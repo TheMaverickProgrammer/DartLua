@@ -27,7 +27,14 @@ class LuaAutoDoc {
 
   /// The title which will appear on the webpage.
   final String title;
-  LuaAutoDoc(this.title);
+
+  /// The optional version text will appear next to the title.
+  final String? version;
+
+  /// Optional date time of document generation.
+  final bool showDateTime;
+
+  LuaAutoDoc(this.title, {this.version, this.showDateTime = false});
 
   /// Given a [runtime] implementation and an [outDir],
   /// collects the global variables and extracts their [LuaDoc]
@@ -38,8 +45,6 @@ class LuaAutoDoc {
   /// The file will be generated at "[outDir]/index.html".
   void generateDocs(BaseRuntime runtime, {required String outDir}) {
     _html = '<html>';
-    _html += '<h1>$title</h1>';
-    _html += '<h5>Generated ${DateTime.now()}</h5>';
     _html += '<script>${prism.js}</script>';
     _html +=
         '''<style>
@@ -84,9 +89,32 @@ class LuaAutoDoc {
           max-width: 70em ;
           width: 90% ;
         }
+
+        #floater {
+          position: fixed;
+          top: 0%;
+          right: 50%;
+          z-index: 1;
+        }
         </style>
         ''';
-    _body = '<body>';
+
+    /// Start the body output.
+    _html += '<body>';
+    _html += '<h1>$title</h1>';
+
+    /// Optional versioning.
+    if (version != null) {
+      _html += '<h4>$version</h4>';
+    }
+
+    /// Optional date time of generation.
+    if (showDateTime) {
+      _html += '<h5>Generated ${DateTime.now()}</h5>';
+    }
+
+    /// Add an html button to return the reader to the index.
+    _html += '<div id="floater"><a href="#">▲</a></div>';
 
     /// Sorts content alphabetically.
     final sortedIndex = runtime.global.vars.entries.toList()
@@ -107,6 +135,7 @@ class LuaAutoDoc {
       _indexHtml[k] = '${_indexHtml[k]!}<a href="#$key">$key</a><br/>';
     }
 
+    // <body>> ends with _body.
     _body += '</body>';
 
     /// Append the index to the output html.
