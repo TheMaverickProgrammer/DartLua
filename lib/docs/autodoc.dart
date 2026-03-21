@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'package:lualib/lua/visitors/runtime/base.dart';
-import 'package:lualib/lua/visitors/runtime/luaobject.dart';
-import 'package:lualib/lua/visitors/visitor.dart';
+import 'package:puredartlua/lua/visitors/runtime/base.dart';
+import 'package:puredartlua/lua/visitors/runtime/luaobject.dart';
+import 'package:puredartlua/lua/visitors/visitor.dart';
 
 import 'prism.dart' as prism;
 

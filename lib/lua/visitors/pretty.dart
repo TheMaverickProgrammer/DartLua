@@ -1,4 +1,4 @@
-import 'package:lualib/lua/visitors/visitor.dart';
+import 'package:puredartlua/lua/visitors/visitor.dart';
 
 class Pretty extends Visitor<String> {
   @override

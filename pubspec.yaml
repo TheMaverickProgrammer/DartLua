@@ -1,12 +1,11 @@
-name: lualib
-description: A sample command-line application.
+name: puredartlua
+description: Lua 5.5 interpreter and autodoc tool written in pure Dart.
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+repository: https://github.com/TheMaverickProgrammer/DartLua
 
 environment:
   sdk: ^3.9.2
 
-# Add regular dependencies here.
 dependencies:
   path: ^1.9.0
   colorize: ^3.0.0

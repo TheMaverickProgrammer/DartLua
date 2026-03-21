@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 
-import 'package:lualib/lua/passes/lexer.dart';
-import 'package:lualib/lua/passes/parser.dart';
-import 'package:lualib/lua/visitors/runtime/base.dart';
-import 'package:lualib/lua/visitors/visitor.dart';
+import 'package:puredartlua/lua/passes/lexer.dart';
+import 'package:puredartlua/lua/passes/parser.dart';
+import 'package:puredartlua/lua/visitors/runtime/base.dart';
+import 'package:puredartlua/lua/visitors/visitor.dart';
 
 typedef Scripts2Bytes = Map<String, Uint8List>;
 

@@ -1,9 +1,9 @@
 import 'dart:math' as math;
-import 'package:lualib/lua/passes/lexer.dart';
-import 'package:lualib/lua/visitors/runtime/luaobject.dart';
-import 'package:lualib/lua/visitors/runtime/scope.dart';
-import 'package:lualib/lua/visitors/runtime/semantics.dart';
-import 'package:lualib/lua/visitors/visitor.dart';
+import 'package:puredartlua/lua/passes/lexer.dart';
+import 'package:puredartlua/lua/visitors/runtime/luaobject.dart';
+import 'package:puredartlua/lua/visitors/runtime/scope.dart';
+import 'package:puredartlua/lua/visitors/runtime/semantics.dart';
+import 'package:puredartlua/lua/visitors/visitor.dart';
 
 extension ObjectAsTypeOrNull on Object {
   T? as<T>() => switch (this) {

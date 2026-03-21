@@ -1,4 +1,4 @@
-import 'package:lualib/lua/passes/lexer.dart';
+import 'package:puredartlua/lua/passes/lexer.dart';
 
 /// Base grammar node.
 abstract class Stmt {

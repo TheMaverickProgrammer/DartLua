@@ -1,5 +1,5 @@
-import 'package:lualib/lua/visitors/visitor.dart';
-import 'package:lualib/lua/passes/lexer.dart';
+import 'package:puredartlua/lua/visitors/visitor.dart';
+import 'package:puredartlua/lua/passes/lexer.dart';
 
 T echo<T extends Stmt>(T t) {
   //final Pretty printer = Pretty();

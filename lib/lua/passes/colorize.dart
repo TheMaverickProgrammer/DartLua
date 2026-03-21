@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:colorize/colorize.dart';
-import 'package:lualib/lua/passes/lexer.dart';
+import 'package:puredartlua/lua/passes/lexer.dart';
 
 String colorize(String content, {int tabWeight = 2}) {
   final Lexer lexer = Lexer.tokenize(content);

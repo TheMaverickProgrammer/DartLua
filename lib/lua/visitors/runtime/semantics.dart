@@ -1,4 +1,4 @@
-import 'package:lualib/lua/visitors/runtime/base.dart';
+import 'package:puredartlua/lua/visitors/runtime/base.dart';
 
 abstract class Semantics {}
 

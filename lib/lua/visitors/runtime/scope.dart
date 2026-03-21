@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'package:lualib/lua/visitors/runtime/luaobject.dart';
+import 'package:puredartlua/lua/visitors/runtime/luaobject.dart';
 
 class Scope {
   final Map<String, LuaObject> vars = {};
