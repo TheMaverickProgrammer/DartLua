@@ -19,6 +19,12 @@ class LuaAutoDoc {
   /// The content of the webpage is built separately from the index.
   final Map<String, String> _indexHtml = {};
 
+  /// The custom js script contents.
+  final String js;
+
+  /// The custom css script contents.
+  final String css;
+
   /// The current &lt;body&gt; tag.
   String _body = '';
 
@@ -34,7 +40,20 @@ class LuaAutoDoc {
   /// Optional date time of document generation.
   final bool showDateTime;
 
-  LuaAutoDoc(this.title, {this.version, this.showDateTime = false});
+  /// Construct an autodoc instance with [title] and [version]
+  /// subtext. By default [showDateTime] is false. If set to true,
+  /// a datetime stamp stub will appear near the title of the ToC.
+  /// By default both [js] and [css] use [prism.js] and [prism.css]
+  /// contents respectively. You can replace these and they will
+  /// populate the output HTML <script></script> and <style></style>
+  /// tags with their corresponding contents.
+  LuaAutoDoc(
+    this.title, {
+    this.version,
+    this.showDateTime = false,
+    this.js = prism.js,
+    this.css = prism.css,
+  });
 
   /// Given a [runtime] implementation and an [outDir],
   /// collects the global variables and extracts their [LuaDoc]
@@ -239,7 +258,7 @@ class LuaAutoDoc {
           content += stub;
           content += parent?.doc?.keyValueHtml?.call(luaObj.id) ?? '';
         }
-      } else if (parent == null) {
+      } else {
         /// Otherwise, null global variables without a parent
         /// can render out.
         content += stub;
