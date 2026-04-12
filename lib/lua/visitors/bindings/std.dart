@@ -126,12 +126,11 @@ mixin Std on BaseRuntime {
       The runtime visits the lua script at <code>path</code>, executes,
       and returns any values. This enables passing lua objects
       between files.
-      <pre>
-      <code class="language-lua">
-      local f = include('fibonacci.lua')
-      print(f(7)) -- prints 13 
-      </code>
-      </pre>
+<pre>
+<code class="language-lua">local f = include('fibonacci.lua')
+print(f(7)) -- prints 13 
+</code>
+</pre>
       ''',
     );
   }
@@ -274,14 +273,11 @@ mixin Std on BaseRuntime {
                 If only two arguments are given, then the second argument becomes <code>value</code>
                 and the <code>position</code> is determined to be the front of the table <code>t</code>.<br/>
                 This is convenient to write stacks in lua.
-                <pre>
-                <code class="language-lua">
-                local t = {}
-                table.insert(t, 1, "foo")
-                -- is the same as
-                table.insert(t, "foo")
-                </code>
-                </pre>
+<pre><code class="language-lua">local t = {}
+table.insert(t, 1, "foo")
+-- is the same as
+table.insert(t, "foo")
+</code></pre>
                 ''',
               ),
         'remove': LuaFuncBuilder.create('remove')

@@ -1,6 +1,6 @@
 name: puredartlua
 description: Lua 5.5 interpreter and autodoc tool written in pure Dart.
-version: 1.0.1
+version: 1.0.2
 repository: https://github.com/TheMaverickProgrammer/DartLua
 
 environment:

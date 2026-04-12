@@ -2,6 +2,7 @@
 /// https://prismjs.com/download.html#themes=prism-tomorrow&languages=lua
 library;
 
+/// This is generated js.
 const js = r'''
 /* PrismJS 1.30.0
 https://prismjs.com/download.html#themes=prism-tomorrow&languages=lua */
@@ -9,8 +10,67 @@ var _self="undefined"!=typeof window?window:"undefined"!=typeof WorkerGlobalScop
 Prism.languages.lua={comment:/^#!.+|--(?:\[(=*)\[[\s\S]*?\]\1\]|.*)/m,string:{pattern:/(["'])(?:(?!\1)[^\\\r\n]|\\z(?:\r\n|\s)|\\(?:\r\n|[^z]))*\1|\[(=*)\[[\s\S]*?\]\2\]/,greedy:!0},number:/\b0x[a-f\d]+(?:\.[a-f\d]*)?(?:p[+-]?\d+)?\b|\b\d+(?:\.\B|(?:\.\d*)?(?:e[+-]?\d+)?\b)|\B\.\d+(?:e[+-]?\d+)?\b/i,keyword:/\b(?:and|break|do|else|elseif|end|false|for|function|goto|if|in|local|nil|not|or|repeat|return|then|true|until|while)\b/,function:/(?!\d)\w+(?=\s*(?:[({]))/,operator:[/[-+*%^&|#]|\/\/?|<[<=]?|>[>=]?|[=~]=?/,{pattern:/(^|[^.])\.\.(?!\.)/,lookbehind:!0}],punctuation:/[\[\](){},;]|\.+|:+/};
 ''';
 
-const css = r'''
+/// This is the generated css.
+/// This variable is private.
+/// Additional rules are added in the
+/// exported variable below.
+const _css = r'''
 /* PrismJS 1.30.0
 https://prismjs.com/download.html#themes=prism-tomorrow&languages=lua */
 code[class*=language-],pre[class*=language-]{color:#ccc;background:0 0;font-family:Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace;font-size:1em;text-align:left;white-space:pre;word-spacing:normal;word-break:normal;word-wrap:normal;line-height:1.5;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-hyphens:none;-moz-hyphens:none;-ms-hyphens:none;hyphens:none}pre[class*=language-]{padding:1em;margin:.5em 0;overflow:auto}:not(pre)>code[class*=language-],pre[class*=language-]{background:#2d2d2d}:not(pre)>code[class*=language-]{padding:.1em;border-radius:.3em;white-space:normal}.token.block-comment,.token.cdata,.token.comment,.token.doctype,.token.prolog{color:#999}.token.punctuation{color:#ccc}.token.attr-name,.token.deleted,.token.namespace,.token.tag{color:#e2777a}.token.function-name{color:#6196cc}.token.boolean,.token.function,.token.number{color:#f08d49}.token.class-name,.token.constant,.token.property,.token.symbol{color:#f8c555}.token.atrule,.token.builtin,.token.important,.token.keyword,.token.selector{color:#cc99cd}.token.attr-value,.token.char,.token.regex,.token.string,.token.variable{color:#7ec699}.token.entity,.token.operator,.token.url{color:#67cdcc}.token.bold,.token.important{font-weight:700}.token.italic{font-style:italic}.token.entity{cursor:help}.token.inserted{color:green}
 ''';
+
+/// This combines the generated css
+/// and adds additional styling to be used
+/// in the final html output documentation.
+const css =
+    '''
+        $_css
+
+        html {
+          background-color: #F8F8F8 ;
+        }
+
+        h1, h2, h3, h4, h5 {
+          color: #000080;
+          font-family: Verdana, Geneva, sans-serif;
+          font-weight: normal;
+          font-style: normal;
+          text-align: left;
+        }
+
+        a:link {
+          color: #000080;
+        }
+
+        a:link:hover {
+          background-color: #D0D0FF;
+          color: #000080;
+          border-radius: 4px;
+        }
+
+        code {
+          font-size: 12pt;
+        }
+
+        body {
+          background-color: #FFFFFF ;
+          color: #000000 ;
+          font-family: Helvetica, Arial, sans-serif ;
+          text-align: justify ;
+          line-height: 1.25 ;
+          margin: 16px auto ;
+          padding: 32px ;
+          border: solid #ccc 1px ;
+          border-radius: 20px ;
+          max-width: 70em ;
+          width: 90% ;
+        }
+
+        #floater {
+          position: fixed;
+          top: 0%;
+          right: 50%;
+          z-index: 1;
+        }
+        ''';

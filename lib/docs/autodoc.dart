@@ -23,6 +23,19 @@ class LuaAutoDoc {
   final String js;
 
   /// The custom css script contents.
+  /// Each lua entry will have a <h3></h3>
+  /// tag pair and a css class with which
+  /// to identify the lua object type for
+  /// further styling.
+  ///
+  /// Lua objects or tables will have the
+  /// css class "lua-table".
+  ///
+  /// Lua functions will have the
+  /// css class "lua-func".
+  ///
+  /// All other lua variables (fields and globals)
+  /// will have the css class "lua-field".
   final String css;
 
   /// The current &lt;body&gt; tag.
@@ -58,65 +71,14 @@ class LuaAutoDoc {
   /// Given a [runtime] implementation and an [outDir],
   /// collects the global variables and extracts their [LuaDoc]
   /// information while traversing lua objects and their properties.
-  /// The html will contain prism.js and css markup to prettify the
+  /// The html will contain [js] and [css] markup to prettify the
   /// document.
   ///
   /// The file will be generated at "[outDir]/index.html".
   void generateDocs(BaseRuntime runtime, {required String outDir}) {
     _html = '<html>';
-    _html += '<script>${prism.js}</script>';
-    _html +=
-        '''<style>
-        ${prism.css}
-        
-        html {
-          background-color: #F8F8F8 ;
-        }
-
-        h1, h2, h3, h4, h5 {
-          color: #000080;
-          font-family: Verdana, Geneva, sans-serif;
-          font-weight: normal;
-          font-style: normal;
-          text-align: left;
-        }
-
-        a:link {
-          color: #000080;
-        }
-
-        a:link:hover {
-          background-color: #D0D0FF;
-          color: #000080;
-          border-radius: 4px;
-        }
-
-        code {
-          font-size: 12pt;
-        }
-
-        body {
-          background-color: #FFFFFF ;
-          color: #000000 ;
-          font-family: Helvetica, Arial, sans-serif ;
-          text-align: justify ;
-          line-height: 1.25 ;
-          margin: 16px auto ;
-          padding: 32px ;
-          border: solid #ccc 1px ;
-          border-radius: 20px ;
-          max-width: 70em ;
-          width: 90% ;
-        }
-
-        #floater {
-          position: fixed;
-          top: 0%;
-          right: 50%;
-          z-index: 1;
-        }
-        </style>
-        ''';
+    _html += '<script>$js</script>';
+    _html += '<style>$css</style>';
 
     /// Start the body output.
     _html += '<body>';
@@ -206,7 +168,12 @@ class LuaAutoDoc {
     if (luaObj.skipSemanitcs || (luaObj.isTable && luaObj.isNotFunc)) {
       final String anchor = pushPath(title);
       header += '<a id="$anchor"></a>';
-      header += '<a href="#$anchor"><h3>$title</a>: <b>table</b></h3>';
+      header +=
+          '''
+          <h3 class="lua-table">
+          <a href="#$anchor">$title</a>: <b>table</b>
+          </h3>
+          ''';
 
       content += '<ul>';
       for (var MapEntry(:key, :value) in luaObj.fields.entries) {
@@ -214,7 +181,7 @@ class LuaAutoDoc {
           final LuaObject obj => luaObj2Html(key, obj.deref(), parent: luaObj),
           null => '',
         };
-        content += '<div>$valueStr</div>';
+        content += valueStr;
       }
       content += '</ul>';
       popPath();
@@ -224,7 +191,13 @@ class LuaAutoDoc {
         final FuncExpr def = luaObj.funcDef!;
         header += '<span>';
         header += '<a id="$anchor"></a>';
-        header += '<a href="#$anchor"><h3>${def.id}</a> ${def.argsHtml}</h3>';
+        header +=
+            '''
+            <h3 class="lua-func">
+              <a href="#$anchor">${def.id}</a>
+              ${def.argsHtml}
+            </h3>
+            ''';
         header += '</span>';
         popPath();
       } else if (luaObj.hasField('__call')) {
@@ -238,32 +211,26 @@ class LuaAutoDoc {
       };
 
       final Object? value = luaObj.value;
-      header += '<span>';
-      header += '<a id="$anchor"></a>';
-      header += '<a href="#$anchor"></a>';
-      header += '</span>';
-
-      final String stub =
+      header +=
           '''
-          <a id="$anchor"></a>
-          <a href="#$anchor">
-            <h3>$dot$title</h3>
-          </a>
+          <span>
+            <a id="$anchor"></a>
+            <h3 class="lua-field">
+              <a href="#$anchor">$dot$title</a>
+            </h3>
+          </span>
           ''';
 
       if (value != null) {
         /// Non-null values with a parent must pass the exclusion
         /// filter.
         if (!(parent?.doc?.exclude?.call(luaObj.id) ?? false)) {
-          content += stub;
-          content += parent?.doc?.keyValueHtml?.call(luaObj.id) ?? '';
+          final stub = parent?.doc?.keyValueHtml?.call(luaObj.id) ?? '';
+          if (stub.isNotEmpty) {
+            content += '<div>$stub</div>';
+          }
         }
-      } else {
-        /// Otherwise, null global variables without a parent
-        /// can render out.
-        content += stub;
       }
-
       popPath();
     }
 
@@ -274,11 +241,13 @@ class LuaAutoDoc {
       // Otherwise, append doc html after values
       // and functions.
       content = switch (luaObj.isTable) {
-        true => '<p>${luaObj.doc!.html}</p>$content',
-        false => '$content<p>${luaObj.doc!.html}</p>',
+        true => '${luaObj.doc!.html}$content',
+        false => '$content${luaObj.doc!.html}',
       };
+
+      content = '<div>$content</div>';
     }
 
-    return '<div>$header$content</div>';
+    return '$header$content';
   }
 }
