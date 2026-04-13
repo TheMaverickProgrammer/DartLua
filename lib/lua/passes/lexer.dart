@@ -11,6 +11,7 @@ enum TokenType {
   kRCurly,
   kDot,
   kComma,
+  kSpread,
   kConcat,
   kString,
   kSemicolon,
@@ -51,8 +52,7 @@ enum TokenType {
   kNot,
   kThen,
   kReturn,
-  kLCommentBlock,
-  kRCommentBlock,
+  kBlockComment,
   kLineComment,
   kBitNot,
   kBitAnd,
@@ -176,8 +176,7 @@ class Lexer {
     tokens.removeWhere(
       (e) => [
         TokenType.kLineComment,
-        TokenType.kLCommentBlock,
-        TokenType.kRCommentBlock,
+        TokenType.kBlockComment,
       ].contains(e.type),
     );
   }
@@ -398,12 +397,12 @@ class Lexer {
         advance();
         final substr = parseDoubleBracketStr();
         tokens.add(
-          char.toToken(TokenType.kLCommentBlock, lexeme: '--${substr.lexeme}'),
+          char.toToken(TokenType.kBlockComment, lexeme: '--${substr.lexeme}'),
         );
         return;
       }
 
-      tokens.add(char.toToken(TokenType.kLCommentBlock, lexeme: '--'));
+      tokens.add(char.toToken(TokenType.kLineComment, lexeme: '--'));
 
       // Consume until newline terminator
       while (!eof() && peek().lexeme != '\n') {
@@ -451,7 +450,13 @@ class Lexer {
 
     if (peek().lexeme == '.') {
       advance();
-      tokens.add(char.toToken(TokenType.kConcat, lexeme: '..'));
+
+      if(peek().lexeme == '.') {
+        tokens.add(char.toToken(TokenType.kSpread, lexeme: '...'));
+      } else {
+        tokens.add(char.toToken(TokenType.kConcat, lexeme: '..'));
+      }
+
       return;
     }
 

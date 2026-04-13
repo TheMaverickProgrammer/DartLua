@@ -1,12 +1,22 @@
 # PureDartLua
 
 - [PureDartLua](#puredartlua)
+  - [Run Scripts](#run-scripts)
   - [Features](#features)
 - [Work In Progress!](#work-in-progress)
   - [Missing Lua Lang Support](#missing-lua-lang-support)
 
 This is a custom a custom `Lua 5.5` interpretter and evaluator written from scratch in pure Dart.
 I wrote this as a part of a series of learning exercises on how to write my own compilers and programming languages.
+
+## Run Scripts
+This package exports a full fledged library and a simple executable for running lua scripts.
+
+To get started, run Hello World.
+
+```bash
+dart bin/main.dart -e test/assets/hello_world.lua
+```
 
 ## Features
 - MIT Licensed.

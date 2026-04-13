@@ -91,6 +91,15 @@ class Parser {
       return null;
     }
 
+    // Consume comments.
+    if ([
+      TokenType.kLineComment,
+      TokenType.kBlockComment,
+    ].contains(token.type)) {
+      advance();
+      return null;
+    }
+
     // Added feature late: https://www.lua.org/manual/5.5/manual.html#3.3.3
     handleMultiAssignExpr(MathExpr expr) {
       if (peek().type == TokenType.kComma) {
@@ -399,6 +408,15 @@ class Parser {
       args.add(DeclArg(arg));
       if (peek().type == TokenType.kComma) {
         advance();
+      }
+    }
+
+    if (args.isNotEmpty) {
+      final int count = args
+          .where((e) => e.id.type == TokenType.kSpread)
+          .length;
+      if (count > 1 || (count == 1 && args.last.id.type != TokenType.kSpread)) {
+        throw 'Varargs can only appear once at the end of an argument list.';
       }
     }
 

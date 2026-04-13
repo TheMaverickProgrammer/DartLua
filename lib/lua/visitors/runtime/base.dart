@@ -151,18 +151,117 @@ abstract class BaseRuntime extends Visitor<Object?> {
   }
 
   @override
+  Object? visitFuncExpr(FuncExpr expr) {
+    // Before we determine what the name of this function is, and whether
+    // or not it should follow local function conventions or not, we can
+    // construct a closure.
+    closure() {
+      Object? res;
+      final int len = expr.body.length;
+      for (int i = 0; i < len; i++) {
+        final Stmt stmt = expr.body[i];
+        try {
+          res = stmt.accept(this);
+        } catch (e) {
+          addError(e.toString());
+        }
+      }
+
+      if (res is LuaObject) {
+        // Unpack the result if its arity is one.
+        if (res.length == 1) res = res.readField('1');
+      }
+      return res;
+    }
+
+    // Spec reference: https://www.lua.org/manual/5.4/manual.html#3.4.11
+    // We need to "build" the function if it's a method on an existing object.
+    // This means the first node must be the object when node length is more than one
+    // or the function name if the node length is exactly one.
+    // We must manually check if the object is not-null in the case that we are adding a field.
+    // For example. Given an object `t = {}`, we can define `function t.f() end`, however
+    // we cannot define `function t.a.f() end` without the existence of `t.a = {}` beforehand.
+
+    final List<RawExpr> idParts = [...expr.idParts];
+    final String id = expr.id;
+    final String linePos = lineInfo(expr.token);
+
+    LuaObject luaObj;
+    if (idParts.length > 1) {
+      // Object methods cannot be local. This is a syntax error that we will prevent
+      // here rather than in the parser for simple implementation.
+      // TODO: move this into the parser.
+      if (expr.local) {
+        addError('$linePos Object methods cannot be defined locally.');
+        return null;
+      }
+
+      // Walk the nodes and create a new method on the object.
+      LuaObject? parent;
+
+      // By virtue of entering this branch in the conditionals,
+      // we know that idParts.length > 1, therefore, a well-formed
+      // function declaration must consist of the form `t0.t1. ... .tn`.
+      // In other words, there's a parent object which this method
+      // will live inside of as a field.
+      String field = '';
+      while (idParts.isNotEmpty) {
+        field = idParts.removeAt(0).token.lexeme;
+        final obj = findVar(field);
+
+        if (obj == null) break;
+        parent = obj;
+      }
+
+      // The very last id part should have been consumed.
+      // If there are still parts left, there was a term
+      // in the chain that was not defined. This is not alllowed in lua.
+      if (idParts.isNotEmpty) {
+        if (parent != null) {
+          final parentId = parent.id;
+          addError('$linePos No such field "$field" in "$parentId".');
+        } else {
+          // The parser should have prevented this.
+          addError(
+            '$linePos Impossible grammar not caught by Parser. Please report!',
+          );
+        }
+        return null;
+      }
+
+      // If we got here, then we have a parent and an object.
+      // If the object is null, it will be created.
+      // If the object is not null, it will be overwritten.
+      luaObj = LuaObject.func(id, expr, closure);
+      parent!.writeField(field, luaObj);
+    } else {
+      // Case: This is a function, not a "method" on an object.
+      luaObj = LuaObject.func(id, expr, closure);
+
+      // Only non-anonymous functions can populate
+      // the environment with their name.
+      if (idParts.isNotEmpty) {
+        if (expr.local) {
+          defLocal(luaObj);
+        } else {
+          defGlobal(luaObj);
+        }
+      }
+    }
+
+    return luaObj;
+  }
+
+  @override
   Object? visitAssignExpr(AssignExpr assignExpr) {
     Object? lhs = assignExpr.lhs.accept(this);
     final rhs = assignExpr.rhs.accept(this);
 
-    if (lhs is String) {
-      final id = lhs;
-      final foundVar = findVar(id);
-      if (foundVar == null) {
-        // Ths ID is never declared 'local'.
-        // Treat it as a global
-        return defGlobal(LuaObject.variable(id, rhs));
-      }
+    if (lhs == null && assignExpr.lhs is RawExpr) {
+      // If this variable is not defined, it is now
+      // and is also in the global scope.
+      final id = (assignExpr.lhs as RawExpr).token.lexeme;
+      return defGlobal(LuaObject.variable(id, rhs));
     } else if (lhs is LuaObject) {
       if (rhs is LuaObject) {
         if (lhs.deref() != rhs.deref()) {
@@ -248,16 +347,25 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     String str(Object? obj) {
       if (obj == null) return 'nil';
-      if (obj is LuaObject) {
-        if (obj.isPrintable) return obj.toString();
-        throw '$lineInfo Unexpected operand in string concat operation. Found "${obj.runtimeType}".';
-      }
       return obj.toString();
     }
 
     String strConcat(Object? lhs, Object? rhs) {
+      check(Object? obj) {
+        if (obj is LuaObject) {
+          if (!(obj.valueAsInt() is int || obj.value is String)) {
+            throw 'Attempt to concat ${obj.value.runtimeType} value.';
+          }
+        } else if (!(obj is num || obj is String)) {
+          throw 'Attempt to concat ${obj.runtimeType} value.';
+        }
+      }
+
+      check(lhs);
       final strL = str(lhs);
+      check(rhs);
       final strR = str(rhs);
+
       return strL + strR;
     }
 
@@ -309,7 +417,19 @@ abstract class BaseRuntime extends Visitor<Object?> {
         case TokenType.kGTE:
           return asNum(lhs) >= asNum(rhs);
         case TokenType.kEQ:
-          return lhs == rhs;
+          Object? lval = lhs;
+
+          if (lhs is LuaObject) {
+            lval = lhs.deref().value;
+          }
+
+          Object? rval = rhs;
+
+          if (rhs is LuaObject) {
+            rval = rhs.deref().value;
+          }
+
+          return lval == rval;
         case TokenType.kNEQ:
           return lhs != rhs;
         default:
@@ -410,37 +530,41 @@ abstract class BaseRuntime extends Visitor<Object?> {
   Object? visitForLoopStmt(ForLoopStmt forLoopStmt) {
     pushScope();
     Object? control = forLoopStmt.control.accept(this);
-    String controlId;
-    if (control is LuaObject && control.valueAsInt() is int) {
-      controlId = control.id;
-      control = control.valueAsInt()!;
-    } else {
-      final String lineInfo = this.lineInfo(forLoopStmt.token);
-      popScope();
-      throw '$lineInfo For-loop control did not evaluate to a variable!';
+
+    evalVar(Object? v) {
+      if (v is LuaObject && v.valueAsInt() is int) {
+        final String id = v.id;
+        return (id, v.valueAsInt()!);
+      } else {
+        final String lineInfo = this.lineInfo(forLoopStmt.token);
+        popScope();
+        throw '$lineInfo For-loop control did not evaluate to a variable!';
+      }
     }
 
-    Object? end = forLoopStmt.endExpr.accept(this);
-    Object? step = forLoopStmt.stepExpr.accept(this);
+    evalNum(Object? n, String label) {
+      if (n == null) {
+        return 1;
+      } else if (n is LuaObject && n.valueAsInt() is int) {
+        return n.valueAsInt();
+      } else if (n is num) {
+        return n;
+      }
 
-    if (end is! num) {
+      // n is not num
       popScope();
-      throw '$lineInfo For-loop end did not evaluate to an integer value!';
+      throw '$lineInfo For-loop $label did not evaluate to an integer value!';
     }
 
-    if (step == null) {
-      step = 1;
-    } else if (step is! num) {
-      popScope();
-      throw '$lineInfo For-loop step did not evaluate to an integer value!';
-    }
+    final String controlId;
+    num ncontrol;
+    (controlId, ncontrol) = evalVar(control);
 
-    num ncontrol = control as num;
-    step = step as num;
-
+    final num end = evalNum(forLoopStmt.endExpr.accept(this), 'end')!;
+    final num step = evalNum(forLoopStmt.stepExpr.accept(this), 'step')!;
     final ctrl = defLocal(LuaObject.variable(controlId, ncontrol));
 
-    while (ncontrol < end) {
+    while (ncontrol <= end) {
       for (Stmt stmt in forLoopStmt.body) {
         try {
           stmt.accept(this);
@@ -618,11 +742,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       };
 
       if (func == null) {
-        final withCtx = switch (context.isEmpty) {
-          false => ' on "$context"',
-          _ => '',
-        };
-        throw '$linePos "$callableId" is not a function$withCtx.';
+        throw '$linePos Attempt to call a nil value (field "$callableId").';
       }
 
       final int defInLen = func.args.length;
@@ -631,7 +751,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
         final String s => s,
       };
 
-      if (argsInLen != defInLen) {
+      // The earlier parser stage would catch if this wasn't true.
+      final bool isVariadic =
+          func.args.lastOrNull?.id.type == TokenType.kSpread;
+
+      if (!isVariadic && argsInLen != defInLen) {
         // There are a few functions that have "overloads".
         // This means there is acceptable behavior in the lua routine
         // even with less the max number of args.
@@ -656,11 +780,43 @@ abstract class BaseRuntime extends Visitor<Object?> {
         defLocal(LuaObject.variable('self', callee));
       }
 
-      for (int i = 0; i < defInLen - fwdArgCount; i++) {
-        final arg = func.args.elementAt(i + fwdArgCount);
+      final List<LuaObject> varg = [];
+      final int argCount = switch (isVariadic) {
+        true => args.length - fwdArgCount,
+        false => defInLen - fwdArgCount,
+      };
+
+      bool buildVarArgTable = false;
+
+      for (int i = 0; i < argCount; i++) {
+        // Var args are bundled under a hidden variable
+        // named `arg`. They do not count towards the
+        // function definition parameter list.
+        String lexeme = 'arg${i + fwdArgCount}';
+        if (i + fwdArgCount < func.args.length) {
+          final arg = func.args.elementAt(i + fwdArgCount);
+          if (arg.id.type == TokenType.kSpread) {
+            buildVarArgTable = true;
+          } else {
+            lexeme = arg.lexeme;
+          }
+        }
+
         final expr = args.elementAt(i);
-        defLocal(LuaObject.variable(arg.lexeme, expr.accept(this)));
+        final next = LuaObject.variable(lexeme, expr.accept(this));
+
+        if (buildVarArgTable) {
+          varg.add(next);
+        } else {
+          defLocal(next);
+        }
       }
+
+      defLocal(
+        LuaObject.table('arg', {
+          for (int i = 0; i < varg.length; i++) '${i + 1}': varg[i],
+        }),
+      );
 
       Object? ret;
       try {
@@ -685,6 +841,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
       final Object? other =>
         throw '$linePos Expected a valid property name on $callee, found: $other',
     };
+
+    // Primitives cannot have fields.
+    if (callee.type == LuaType.value) {
+      throw '$linePos "$callee" is a ${callee.luaTypeInfo} and cannot have fields.';
+    }
 
     if (callee.hasField(fieldName)) return callee.readField(fieldName);
 
@@ -729,14 +890,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       return field;
     }
 
-    final v = findVar(id);
-    if (v == null) {
-      // May be some other token.
-      return id;
-    }
-
-    // else
-    return v;
+    return findVar(id);
   }
 
   @override
