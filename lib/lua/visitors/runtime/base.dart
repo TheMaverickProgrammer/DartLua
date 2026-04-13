@@ -249,7 +249,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       }
     }
 
-    return luaObj;	
+    return luaObj;
   }
 
   @override
@@ -353,14 +353,15 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     String strConcat(Object? lhs, Object? rhs) {
       check(Object? obj) {
-        if(obj is LuaObject) {
-     	   if(!(obj.valueAsInt() is int || obj.value is String)) {
-     	     throw 'Attempt to concat ${obj.value.runtimeType} value.';
-     	  }
-     	 } else if(!(obj is int || obj is String)) {
-     	   throw 'Attempt to concat ${obj.runtimeType} value.';
-     	 }
+        if (obj is LuaObject) {
+          if (!(obj.valueAsInt() is int || obj.value is String)) {
+            throw 'Attempt to concat ${obj.value.runtimeType} value.';
+          }
+        } else if (!(obj is num || obj is String)) {
+          throw 'Attempt to concat ${obj.runtimeType} value.';
+        }
       }
+
       check(lhs);
       final strL = str(lhs);
       check(rhs);
@@ -418,14 +419,14 @@ abstract class BaseRuntime extends Visitor<Object?> {
           return asNum(lhs) >= asNum(rhs);
         case TokenType.kEQ:
           Object? lval = lhs;
-          
-          if(lhs is LuaObject) {
+
+          if (lhs is LuaObject) {
             lval = lhs.deref().value;
           }
 
           Object? rval = rhs;
-         
-          if(rhs is LuaObject) {
+
+          if (rhs is LuaObject) {
             rval = rhs.deref().value;
           }
 
@@ -543,15 +544,14 @@ abstract class BaseRuntime extends Visitor<Object?> {
     }
 
     evalNum(Object? n, String label) {
-      if(n == null) {
+      if (n == null) {
         return 1;
-      }
-      else if(n is LuaObject && n.valueAsInt() is int) {
+      } else if (n is LuaObject && n.valueAsInt() is int) {
         return n.valueAsInt();
       } else if (n is num) {
         return n;
       }
-      
+
       // n is not num
       popScope();
       throw '$lineInfo For-loop $label did not evaluate to an integer value!';
@@ -753,7 +753,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
       };
 
       // The earlier parser stage would catch if this wasn't true.
-      final bool isVariadic = func.args.lastOrNull?.id.type == TokenType.kSpread;
+      final bool isVariadic =
+          func.args.lastOrNull?.id.type == TokenType.kSpread;
 
       if (!isVariadic && argsInLen != defInLen) {
         // There are a few functions that have "overloads".
@@ -779,9 +780,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
       if (fwdSelfArg) {
         defLocal(LuaObject.variable('self', callee));
       }
- 
+
       final List<LuaObject> varg = [];
-      final int argCount = switch(isVariadic) {
+      final int argCount = switch (isVariadic) {
         true => args.length - fwdArgCount,
         false => defInLen - fwdArgCount,
       };
@@ -793,26 +794,30 @@ abstract class BaseRuntime extends Visitor<Object?> {
         // named `arg`. They do not count towards the
         // function definition parameter list.
         String lexeme = 'arg${i + fwdArgCount}';
-        if(i + fwdArgCount < func.args.length) {
+        if (i + fwdArgCount < func.args.length) {
           final arg = func.args.elementAt(i + fwdArgCount);
-          if(arg.id.type == TokenType.kSpread) {
+          if (arg.id.type == TokenType.kSpread) {
             buildVarArgTable = true;
           } else {
             lexeme = arg.lexeme;
           }
-	}
+        }
 
         final expr = args.elementAt(i);
         final next = LuaObject.variable(lexeme, expr.accept(this));
 
-        if(buildVarArgTable) {
+        if (buildVarArgTable) {
           varg.add(next);
         } else {
           defLocal(next);
         }
       }
- 
-      defLocal(LuaObject.table('arg', {for(int i = 0; i < varg.length; i++) '${i+1}': varg[i]}));
+
+      defLocal(
+        LuaObject.table('arg', {
+          for (int i = 0; i < varg.length; i++) '${i + 1}': varg[i],
+        }),
+      );
 
       Object? ret;
       try {
@@ -840,7 +845,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     // Primitives cannot have fields.
     if (callee.type == LuaType.value) {
-        throw '$linePos "$callee" is a ${callee.luaTypeInfo} and cannot have fields.';
+      throw '$linePos "$callee" is a ${callee.luaTypeInfo} and cannot have fields.';
     }
 
     if (callee.hasField(fieldName)) return callee.readField(fieldName);
