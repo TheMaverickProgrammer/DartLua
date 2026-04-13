@@ -52,8 +52,7 @@ enum TokenType {
   kNot,
   kThen,
   kReturn,
-  kLCommentBlock,
-  kRCommentBlock,
+  kBlockComment,
   kLineComment,
   kBitNot,
   kBitAnd,
@@ -177,8 +176,7 @@ class Lexer {
     tokens.removeWhere(
       (e) => [
         TokenType.kLineComment,
-        TokenType.kLCommentBlock,
-        TokenType.kRCommentBlock,
+        TokenType.kBlockComment,
       ].contains(e.type),
     );
   }
@@ -399,7 +397,7 @@ class Lexer {
         advance();
         final substr = parseDoubleBracketStr();
         tokens.add(
-          char.toToken(TokenType.kLCommentBlock, lexeme: '--${substr.lexeme}'),
+          char.toToken(TokenType.kBlockComment, lexeme: '--${substr.lexeme}'),
         );
         return;
       }

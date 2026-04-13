@@ -103,7 +103,6 @@ Colorize pretty(Token token) => switch (token.type) {
   TokenType.kNumber => Colorize(token.lexeme).lightCyan(),
   TokenType.kString => Colorize('"${token.lexeme}"').bold().yellow(),
   TokenType.kLineComment ||
-  TokenType.kLCommentBlock ||
-  TokenType.kRCommentBlock => Colorize(token.lexeme).darkGray(),
+  TokenType.kBlockComment => Colorize(token.lexeme).darkGray(),
   _ => Colorize(token.lexeme).white(),
 };

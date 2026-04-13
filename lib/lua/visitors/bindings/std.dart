@@ -200,8 +200,7 @@ print(f(7)) -- prints 13
 
         final id = value.id;
         return MapEntry<String, LuaObject>(
-          'field_$id',
-          LuaObject.table(id, {'key': id, 'value': value}),
+          id, value
         );
       });
 
@@ -312,7 +311,6 @@ table.insert(t, "foo")
     );
   }
 
-  // TODO: implement variadic arguments
   void initStdPrint({StdPrintCallback? impl}) {
     final token = Token.synthesized('print');
     final defPrint = FuncExpr.named(
@@ -326,7 +324,6 @@ table.insert(t, "foo")
 	impl?.call(findVarArgs()?.join(' ') ?? 'nil');
     }
 
-    // Intentionally does nothing.
     defGlobal(LuaObject.func('print', defPrint, exec)).doc = LuaDoc(
       category: 'Runtime',
       html: '''

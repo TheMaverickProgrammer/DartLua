@@ -3,6 +3,11 @@
 - Added support for variadic arguments.
 - Fixed for-loop evaluation to allow variables.
 - If the end-user does not drop comments, the parser will now skip over them as expected.
+- Took out hacks to promote failed assigned values to variables.
+  - This may come back to break some things...
+- Corected equality checks.
+- Only numbers and strings can be concatenated.
+- Wrote a bunch of test scripts to begin building a test suite.
 
 ## 1.0.2
 - Fixed variables without parent objects (non-fields + globals) not generating headers.

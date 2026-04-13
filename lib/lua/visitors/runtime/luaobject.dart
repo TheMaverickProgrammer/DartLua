@@ -251,6 +251,24 @@ class LuaObject {
     return '$meta$out';
   }
 
+  /// Returns the lua equivalent runtime type
+  /// information. The result is the same as 
+  /// what lua `type(x)` would return. This
+  /// is useful for quick type checking and
+  /// printing helpful error messages.
+  String get luaTypeInfo {
+    if(isTable) return 'table';
+    if(isFunc) return 'function';
+    return switch(deref().value) {
+      null => 'nil',
+      final int _ => 'num',
+      final double _ => 'num',
+      final bool _ => 'boolean',
+      final String _ => 'string',
+      final Object _ => 'userdata',
+    };
+  }
+
   /// Returns the arity of this object.
   /// For lua table length, see [tableSize];
   int get length {

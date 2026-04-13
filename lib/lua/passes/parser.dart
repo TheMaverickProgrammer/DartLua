@@ -92,17 +92,8 @@ class Parser {
     }
 
     // Consume comments.
-    if(token.type == TokenType.kLineComment) {
+    if([TokenType.kLineComment, TokenType.kBlockComment].contains(token.type)) {
       advance();
-      return null;
-    }
-
-    // Consume comment blocks.
-    // Comment blocks must be terminated by
-    // its dual.
-    if(token.type == TokenType.kLCommentBlock) {
-      advance();
-      consume(TokenType.kRCommentBlock, 'Expected closing comment block.');
       return null;
     }
 

@@ -257,14 +257,12 @@ abstract class BaseRuntime extends Visitor<Object?> {
     Object? lhs = assignExpr.lhs.accept(this);
     final rhs = assignExpr.rhs.accept(this);
 
-    if (lhs is String) {
-      final id = lhs;
+    if (lhs == null && assignExpr.lhs is RawExpr) {
+      final id = (assignExpr.lhs as RawExpr).token.lexeme;
       final foundVar = findVar(id);
-      if (foundVar == null) {
-        // Ths ID is never declared 'local'.
-        // Treat it as a global
-        return defGlobal(LuaObject.variable(id, rhs));
-      }
+
+      // TODO: determine if local or global
+      return defLocal(LuaObject.variable(id, rhs));
     } else if (lhs is LuaObject) {
       if (rhs is LuaObject) {
         if (lhs.deref() != rhs.deref()) {
@@ -350,16 +348,24 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     String str(Object? obj) {
       if (obj == null) return 'nil';
-      if (obj is LuaObject) {
-        if (obj.isPrintable) return obj.toString();
-        throw '$lineInfo Unexpected operand in string concat operation. Found "${obj.runtimeType}".';
-      }
       return obj.toString();
     }
 
     String strConcat(Object? lhs, Object? rhs) {
+      check(Object? obj) {
+        if(obj is LuaObject) {
+     	   if(!(obj.valueAsInt() is int || obj.value is String)) {
+     	     throw 'Attempt to concat ${obj.value.runtimeType} value.';
+     	  }
+     	 } else if(!(obj is int || obj is String)) {
+     	   throw 'Attempt to concat ${obj.runtimeType} value.';
+     	 }
+      }
+      check(lhs);
       final strL = str(lhs);
+      check(rhs);
       final strR = str(rhs);
+
       return strL + strR;
     }
 
@@ -411,7 +417,19 @@ abstract class BaseRuntime extends Visitor<Object?> {
         case TokenType.kGTE:
           return asNum(lhs) >= asNum(rhs);
         case TokenType.kEQ:
-          return lhs == rhs;
+          Object? lval = lhs;
+          
+          if(lhs is LuaObject) {
+            lval = lhs.deref().value;
+          }
+
+          Object? rval = rhs;
+         
+          if(rhs is LuaObject) {
+            rval = rhs.deref().value;
+          }
+
+          return lval == rval;
         case TokenType.kNEQ:
           return lhs != rhs;
         default:
@@ -512,11 +530,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
   Object? visitForLoopStmt(ForLoopStmt forLoopStmt) {
     pushScope();
     Object? control = forLoopStmt.control.accept(this);
-    
-    evalVar(Object? ctrl) {
-      if (ctrl is LuaObject && ctrl.valueAsInt() is int) {
-        final String id = ctrl.id;
-        return (id, ctrl.valueAsInt()!);
+
+    evalVar(Object? v) {
+      if (v is LuaObject && v.valueAsInt() is int) {
+        final String id = v.id;
+        return (id, v.valueAsInt()!);
       } else {
         final String lineInfo = this.lineInfo(forLoopStmt.token);
         popScope();
@@ -725,11 +743,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       };
 
       if (func == null) {
-        final withCtx = switch (context.isEmpty) {
-          false => ' on "$context"',
-          _ => '',
-        };
-        throw '$linePos "$callableId" is not a function$withCtx.';
+        throw '$linePos Attempt to call a nil value (field "$callableId").';
       }
 
       final int defInLen = func.args.length;
@@ -824,6 +838,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
         throw '$linePos Expected a valid property name on $callee, found: $other',
     };
 
+    // Primitives cannot have fields.
+    if (callee.type == LuaType.value) {
+        throw '$linePos "$callee" is a ${callee.luaTypeInfo} and cannot have fields.';
+    }
+
     if (callee.hasField(fieldName)) return callee.readField(fieldName);
 
     // Else, create the field.
@@ -867,14 +886,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       return field;
     }
 
-    final v = findVar(id);
-    if (v == null) {
-      // May be some other token.
-      return id;
-    }
-
-    // else
-    return v;
+    return findVar(id);
   }
 
   @override
