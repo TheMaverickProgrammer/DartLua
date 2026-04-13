@@ -3,8 +3,8 @@ import 'runner.dart';
 void help() {
   print('''
 	-h            Show help.
-        -e <PATH>     Execute script at PATH.
-        [ARG1...ARGN] Space separated args for IO input.
+  -e <PATH>     Execute script at PATH.
+  [ARG1...ARGN] Space separated args for IO input.
 	''');
 }
 
