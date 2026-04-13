@@ -1,6 +1,7 @@
 # PureDartLua
 
 - [PureDartLua](#puredartlua)
+  - [Run Scripts](#run-scripts)
   - [Features](#features)
 - [Work In Progress!](#work-in-progress)
   - [Missing Lua Lang Support](#missing-lua-lang-support)
@@ -14,7 +15,7 @@ This package exports a full fledged library and a simple executable for running 
 To get started, run Hello World.
 
 ```bash
-dart bin/lualib.dart -e test/assets/hello_world.lua
+dart bin/main.dart -e test/assets/hello_world.lua
 ```
 
 ## Features

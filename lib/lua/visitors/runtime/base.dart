@@ -258,11 +258,10 @@ abstract class BaseRuntime extends Visitor<Object?> {
     final rhs = assignExpr.rhs.accept(this);
 
     if (lhs == null && assignExpr.lhs is RawExpr) {
+      // If this variable is not defined, it is now
+      // and is also in the global scope.
       final id = (assignExpr.lhs as RawExpr).token.lexeme;
-      final foundVar = findVar(id);
-
-      // TODO: determine if local or global
-      return defLocal(LuaObject.variable(id, rhs));
+      return defGlobal(LuaObject.variable(id, rhs));
     } else if (lhs is LuaObject) {
       if (rhs is LuaObject) {
         if (lhs.deref() != rhs.deref()) {

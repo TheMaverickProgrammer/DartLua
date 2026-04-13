@@ -92,7 +92,10 @@ class Parser {
     }
 
     // Consume comments.
-    if([TokenType.kLineComment, TokenType.kBlockComment].contains(token.type)) {
+    if ([
+      TokenType.kLineComment,
+      TokenType.kBlockComment,
+    ].contains(token.type)) {
       advance();
       return null;
     }
@@ -408,9 +411,11 @@ class Parser {
       }
     }
 
-    if(args.isNotEmpty) {
-      final int count = args.where((e) => e.id.type == TokenType.kSpread).length;
-      if(count > 1 || (count == 1 && args.last.id.type != TokenType.kSpread)) {
+    if (args.isNotEmpty) {
+      final int count = args
+          .where((e) => e.id.type == TokenType.kSpread)
+          .length;
+      if (count > 1 || (count == 1 && args.last.id.type != TokenType.kSpread)) {
         throw 'Varargs can only appear once at the end of an argument list.';
       }
     }
