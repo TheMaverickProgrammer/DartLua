@@ -1,3 +1,9 @@
+## 1.0.3
+- Added new token `TokenType.kSpread` for varargs.
+- Added support for variadic arguments.
+- Fixed for-loop evaluation to allow variables.
+- If the end-user does not drop comments, the parser will now skip over them as expected.
+
 ## 1.0.2
 - Fixed variables without parent objects (non-fields + globals) not generating headers.
 - Added optional `js` and `css` parameter to the autodoc. 

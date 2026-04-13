@@ -11,6 +11,7 @@ enum TokenType {
   kRCurly,
   kDot,
   kComma,
+  kSpread,
   kConcat,
   kString,
   kSemicolon,
@@ -403,7 +404,7 @@ class Lexer {
         return;
       }
 
-      tokens.add(char.toToken(TokenType.kLCommentBlock, lexeme: '--'));
+      tokens.add(char.toToken(TokenType.kLineComment, lexeme: '--'));
 
       // Consume until newline terminator
       while (!eof() && peek().lexeme != '\n') {
@@ -451,7 +452,13 @@ class Lexer {
 
     if (peek().lexeme == '.') {
       advance();
-      tokens.add(char.toToken(TokenType.kConcat, lexeme: '..'));
+
+      if(peek().lexeme == '.') {
+        tokens.add(char.toToken(TokenType.kSpread, lexeme: '...'));
+      } else {
+        tokens.add(char.toToken(TokenType.kConcat, lexeme: '..'));
+      }
+
       return;
     }
 

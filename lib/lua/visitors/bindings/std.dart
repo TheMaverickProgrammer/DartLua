@@ -6,6 +6,8 @@ import 'package:puredartlua/lua/visitors/visitor.dart';
 
 const catRuntime = 'Runtime';
 
+typedef StdPrintCallback = void Function(String);
+
 mixin Std on BaseRuntime {
   Function(String)? onVisitInclude;
 
@@ -310,17 +312,22 @@ table.insert(t, "foo")
     );
   }
 
-  void initStdPrint() {
+  // TODO: implement variadic arguments
+  void initStdPrint({StdPrintCallback? impl}) {
     final token = Token.synthesized('print');
     final defPrint = FuncExpr.named(
       token,
       body: [],
-      args: [DeclArg(Token.synthesized('...'))],
+      args: [DeclArg(Token.synthesized('...', type: TokenType.kSpread))],
       idParts: [RawExpr(token)],
     );
 
+    exec() {
+	impl?.call(findVarArgs()?.join(' ') ?? 'nil');
+    }
+
     // Intentionally does nothing.
-    defGlobal(LuaObject.func('print', defPrint, () {})).doc = LuaDoc(
+    defGlobal(LuaObject.func('print', defPrint, exec)).doc = LuaDoc(
       category: 'Runtime',
       html: '''
           Converts a lua object to a string and then

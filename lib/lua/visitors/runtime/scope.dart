@@ -71,8 +71,8 @@ class Scope {
     return null;
   }
 
-  List<LuaObject>? findVarArgs() {
-    // TODO: implement findVar('...');
-    return null;
+  List<LuaObject> findVarArgs() {
+    final arg = findVar('arg');
+    return arg?.fields.values.nonNulls.toList() ?? [];       
   }
 }
