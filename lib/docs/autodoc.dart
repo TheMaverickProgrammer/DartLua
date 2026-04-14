@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:intl/intl.dart';
 import 'package:puredartlua/lua/visitors/runtime/base.dart';
 import 'package:puredartlua/lua/visitors/runtime/luaobject.dart';
 import 'package:puredartlua/lua/visitors/visitor.dart';
@@ -51,7 +52,20 @@ class LuaAutoDoc {
   final String? version;
 
   /// Optional date time of document generation.
-  final bool showDateTime;
+  /// If this is set, datetime will appear in the html output
+  /// formatted using the intl package DateFormat specification:
+  /// https://pub.dev/documentation/intl/latest/intl/DateFormat-class.html
+  final String? dateTimeFormat;
+
+  /// Optional flag to move the index into a sidebar on the page
+  /// that sticks to the reader's screen while they scroll.
+  /// This will also remove the floating carrot button
+  /// that normally takes the user to the top of the page where the index
+  /// was.
+  ///
+  /// The header information for the doc generation (title, version, date)
+  /// will be place in a toolbar at the top.
+  final bool showSidebarIndex;
 
   /// Construct an autodoc instance with [title] and [version]
   /// subtext. By default [showDateTime] is false. If set to true,
@@ -63,7 +77,8 @@ class LuaAutoDoc {
   LuaAutoDoc(
     this.title, {
     this.version,
-    this.showDateTime = false,
+    this.dateTimeFormat,
+    this.showSidebarIndex = false,
     this.js = prism.js,
     this.css = prism.css,
   });
@@ -80,22 +95,57 @@ class LuaAutoDoc {
     _html += '<script>$js</script>';
     _html += '<style>$css</style>';
 
-    /// Start the body output.
-    _html += '<body>';
-    _html += '<h1>$title</h1>';
+    /// Start the toolbar
+    _html += '''
+      <header style="
+        flex: 0 0 50px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        top: 0;
+        z-index: 10;
+        padding-left: 30px;
+        padding-right: 30px;
+        justify-content: center;
+        ">''';
+    _html += '<div class="version-info" style="margin:10px">';
+    _html += '<span class="version-title" style="margin:10px">$title</span>';
 
     /// Optional versioning.
     if (version != null) {
-      _html += '<h4>$version</h4>';
+      _html +=
+          '<span class="version-number" style="margin:10px">$version</span>';
     }
 
     /// Optional date time of generation.
-    if (showDateTime) {
-      _html += '<h5>Generated ${DateTime.now()}</h5>';
+    if (dateTimeFormat != null) {
+      _html +=
+          '''
+          <span class="version-datetime" 
+          style="margin:10px">
+          Generated ${DateFormat(dateTimeFormat).format(DateTime.now())}
+          </span>
+          ''';
     }
 
-    /// Add an html button to return the reader to the index.
-    _html += '<div id="floater"><a href="#">▲</a></div>';
+    _html += '</div>';
+    _html += '''
+      </header>
+    ''';
+
+    /// Start the main content output.
+
+    _html += switch (showSidebarIndex) {
+      true =>
+        '''
+        <main style="
+          flex: 1;
+          display: flex;
+          flex-direction: row;
+        ">
+        ''',
+      false => '<main>',
+    };
 
     /// Sorts content alphabetically.
     final sortedIndex = runtime.global.vars.entries.toList()
@@ -116,18 +166,40 @@ class LuaAutoDoc {
       _indexHtml[k] = '${_indexHtml[k]!}<a href="#$key">$key</a><br/>';
     }
 
-    // <body>> ends with _body.
-    _body += '</body>';
+    if (showSidebarIndex) {
+      /// Write out the content inside a sidebar div.
+      _html += '''
+        <div class="sidebar"
+          style="
+          order:1;
+          position: sticky;
+          top: 90px;
+          flex: 0 1 230px;
+          min-height: 0%;
+          max-height: 95%;
+          height: 90vh;
+          overflow-y: auto;
+          ">
+        ''';
+      _html += renderIndex();
+      _html += '</div>';
+    } else {
+      /// Add an html button to return the reader to the top page index.
+      _html += '<div id="floater"><a href="#">▲</a></div>';
+      _html += renderIndex();
 
-    /// Append the index to the output html.
-    for (var MapEntry(:key, :value) in _indexHtml.entries) {
-      _html += '<h2>$key</h2>';
-      _html += value;
+      /// Separate the index from the docs.
+      _html += '<hr>';
     }
 
     /// Append the body to the output html.
-    _html += '<hr>';
-    _html += '$_body</html>';
+    if (showSidebarIndex) {
+      _html += '<div style="order:2;flex:1;padding:20px;">$_body</div>';
+    } else {
+      _html += '<div style="padding: 20px">$_body</div>';
+    }
+    _html += '</main>';
+    _html += '</html>';
 
     /// Finally, write out the document on disk.
     final out = '$outDir/index.html';
@@ -249,5 +321,16 @@ class LuaAutoDoc {
     }
 
     return '$header$content';
+  }
+
+  String renderIndex() {
+    String out = '';
+
+    /// Output index information collected earlier.
+    for (var MapEntry(:key, :value) in _indexHtml.entries) {
+      out += '<h2>$key</h2>';
+      out += value;
+    }
+    return out;
   }
 }

@@ -31,7 +31,7 @@ const css =
           background-color: #F8F8F8 ;
         }
 
-        h1, h2, h3, h4, h5 {
+        h1, h2, h3, h4, h5, .version-info {
           color: #000080;
           font-family: Verdana, Geneva, sans-serif;
           font-weight: normal;
