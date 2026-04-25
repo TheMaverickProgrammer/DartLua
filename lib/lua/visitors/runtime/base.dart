@@ -1010,7 +1010,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     if (op == TokenType.kHash) {
       final rhs = expr.rhs.accept(this);
       if (rhs is LuaObject) {
-        return rhs.length;
+        return rhs.tableSize;
       } else if (rhs != null) {
         return 1;
       } else {
