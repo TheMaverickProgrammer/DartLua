@@ -199,6 +199,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       } catch (e) {
         if (e is LuaReturnValueException) {
           ret = e.value;
+          break;
         } else {
           addError(e.toString());
         }
@@ -222,6 +223,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         } catch (e) {
           if (e is LuaReturnValueException) {
             ret = e.value;
+            break;
           } else {
             addError(e.toString());
           }
