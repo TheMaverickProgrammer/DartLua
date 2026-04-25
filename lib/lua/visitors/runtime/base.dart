@@ -197,7 +197,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
       try {
         ret = e.accept(this);
       } catch (e) {
-        addError(e.toString());
+        if (e is LuaReturnValueException) {
+          ret = e.value;
+        } else {
+          addError(e.toString());
+        }
       }
     }
     return ret;
@@ -209,24 +213,26 @@ abstract class BaseRuntime extends Visitor<Object?> {
     // or not it should follow local function conventions or not, we can
     // construct a closure.
     closure() {
-      Object? res;
+      Object? ret;
       final int len = expr.body.length;
       for (int i = 0; i < len; i++) {
         final Stmt stmt = expr.body[i];
         try {
-          res = stmt.accept(this);
+          ret = stmt.accept(this);
         } catch (e) {
-          if (e is! LuaReturnValueException) {
+          if (e is LuaReturnValueException) {
+            ret = e.value;
+          } else {
             addError(e.toString());
           }
         }
       }
 
-      if (res is LuaObject) {
+      if (ret is LuaObject) {
         // Unpack the result if its arity is one.
-        if (res.length == 1) res = res.readField('1');
+        if (ret.length == 1) ret = ret.readField('1');
       }
-      return res;
+      return ret;
     }
 
     // Spec reference: https://www.lua.org/manual/5.4/manual.html#3.4.11
