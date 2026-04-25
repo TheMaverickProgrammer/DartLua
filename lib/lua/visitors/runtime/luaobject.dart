@@ -568,7 +568,7 @@ class LuaObject {
   /// [value] but not both.
   LuaObject(this.id, {LuaTable? fields, Object? value})
     : _value = value,
-      _fields = fields ?? {},
+      _fields = fields,
       assert(
         (value == null || fields == null),
         '''A lua object's storage can either be a value or 

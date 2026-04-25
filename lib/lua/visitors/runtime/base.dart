@@ -431,7 +431,18 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
           return lval == rval;
         case TokenType.kNEQ:
-          return lhs != rhs;
+          Object? lval = lhs;
+
+          if (lhs is LuaObject) {
+            lval = lhs.deref().value;
+          }
+
+          Object? rval = rhs;
+
+          if (rhs is LuaObject) {
+            rval = rhs.deref().value;
+          }
+          return lval != rval;
         default:
           throw '$lineInfo Unsupported binary operation $op.';
       }
