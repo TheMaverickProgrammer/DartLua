@@ -844,7 +844,9 @@ class Parser {
     final List<Stmt> stmts = [];
     while (!eof() && !terminals.contains(peek().type)) {
       try {
-        stmts.add(stmt()!);
+        final s = stmt();
+        if (s == null) continue;
+        stmts.add(s);
       } catch (e) {
         addError(e.toString());
         advance();
