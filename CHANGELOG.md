@@ -1,3 +1,7 @@
+## 1.0.4
+- `not` keyword was resolving when something was truthy instead of the opposite.
+- Moved `onWrite` and `onRead` callbacks to the end of the operation so that programmers can react to changed values and know those values.
+
 ## 1.0.3
 - Added new token `TokenType.kSpread` for varargs.
 - Added support for variadic arguments.

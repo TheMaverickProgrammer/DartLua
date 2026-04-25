@@ -872,7 +872,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
   @override
   Object? visitNotExpr(NotExpr notExpr) {
     final val = notExpr.expr.accept(this);
-    return val.isTruthy;
+    return val.isNotTruthy;
   }
 
   @override
@@ -999,4 +999,6 @@ extension Truthy on Object? {
     false || null => false,
     _ => true,
   };
+
+  bool get isNotTruthy => !isTruthy;
 }
