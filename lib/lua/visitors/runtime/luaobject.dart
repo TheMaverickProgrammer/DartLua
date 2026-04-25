@@ -252,14 +252,14 @@ class LuaObject {
   }
 
   /// Returns the lua equivalent runtime type
-  /// information. The result is the same as 
+  /// information. The result is the same as
   /// what lua `type(x)` would return. This
   /// is useful for quick type checking and
   /// printing helpful error messages.
   String get luaTypeInfo {
-    if(isTable) return 'table';
-    if(isFunc) return 'function';
-    return switch(deref().value) {
+    if (isTable) return 'table';
+    if (isFunc) return 'function';
+    return switch (deref().value) {
       null => 'nil',
       final int _ => 'num',
       final double _ => 'num',
@@ -422,7 +422,6 @@ class LuaObject {
   /// depending on the type of [from].
   set value(Object? from) {
     uses++;
-    _onWrite?.call('self', from);
     if (from == null) {
       _value = null;
       _fields = null;
@@ -436,6 +435,7 @@ class LuaObject {
       _value = from;
       _fields = null;
     }
+    _onWrite?.call('self', from);
   }
 
   /// Creates and returns a [LuaObject.ref] instance
@@ -533,18 +533,18 @@ class LuaObject {
   /// Otherwise if the lua object is not a table, then null is returned.
   Object? writeField(String key, Object? value) {
     if (skipSemanitcs) return LuaObject.noSemantics(key);
-    _onWrite?.call(key, value);
 
+    Object? result;
     if (isRef) {
-      return deref().writeField(key, value);
+      result = deref().writeField(key, value);
     } else if (isTable) {
-      return switch (_fields![key]) {
+      result = switch (_fields![key]) {
         final LuaObject obj => obj.value = value,
         null => _fields![key] = LuaObject.variable(key, value),
       };
-    } else {
-      return null;
     }
+    _onWrite?.call(key, value);
+    return result;
   }
 
   /// A convenience utility to write all fields from some input [table].
