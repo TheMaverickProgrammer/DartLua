@@ -12,7 +12,7 @@ class Evaluator {
   Object? visitAST(AST ast) => impl.visitAST(ast);
 }
 
-class _EvalImpl extends BaseRuntime with Std {
+class _EvalImpl extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
   _EvalImpl(RuntimeResults super.results) {
     initStdRuntime();
     initStdPrint(impl: (str) => print(str));

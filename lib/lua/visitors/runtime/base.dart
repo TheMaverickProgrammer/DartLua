@@ -44,6 +44,59 @@ abstract class BaseResults {
   void addAllDiagnostics(List<String> infos) => this.infos.addAll(infos);
 }
 
+/// Normal lua runtime behavior implementation for [ReturnStmt].
+///
+/// Unwind the callstack on return by throwing a special
+/// exception [LuaReturnValueException] with the value to return.
+/// This value is unpacked correctly by the try-catch
+/// handler in function call statements by design.
+mixin ReturnStmtCallStackUnwind on BaseRuntime {
+  @override
+  Object? visitReturnStmt(ReturnStmt expr) {
+    int idx = 1;
+    final table = LuaObject.table('ret', {});
+
+    for (MathExpr value in expr.values) {
+      table.writeField(idx.toString(), value.accept(this));
+      idx++;
+    }
+
+    return table;
+  }
+}
+
+/// Special lua runtime behavior suitable for static analysis
+/// of branching control flows.
+///
+/// The value returned by evaluating [ReturnStmt]
+/// is resolved as normal except that the callstack
+/// does not unwind. The AST walker will continue
+/// to march forward to the next statements in the block.
+mixin ReturnStmtDoNotUnwind on BaseRuntime {
+  @override
+  Object? visitReturnStmt(ReturnStmt expr) {
+    int idx = 1;
+    final table = LuaObject.table('ret', {});
+
+    for (MathExpr value in expr.values) {
+      table.writeField(idx.toString(), value.accept(this));
+      idx++;
+    }
+
+    throw LuaReturnValueException(table);
+  }
+}
+
+/// Implements common Lua runtime logic.
+/// Extend with mixin [ReturnStmtCallStackUnwind]
+/// or [ReturnStmtDoNotUnwind].
+///
+/// The reason the return statement behavior is omitted is
+/// b/c this library can be used to perform static analysis
+/// as well. In such cases it's desirable to anaylze all
+/// control flows instead of aborting early on `return`.
+/// This decision allows the users of this library to choose
+/// how to configure their desired runtime.
 abstract class BaseRuntime extends Visitor<Object?> {
   final BaseResults results;
   final Scope global = Scope();
@@ -163,7 +216,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
         try {
           res = stmt.accept(this);
         } catch (e) {
-          addError(e.toString());
+          if (e is! LuaReturnValueException) {
+            addError(e.toString());
+          }
         }
       }
 
@@ -911,19 +966,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
     }
     final _ = repeatUntilLoopStmt.untilExpr.accept(this);
     return null;
-  }
-
-  @override
-  Object? visitReturnStmt(ReturnStmt expr) {
-    int idx = 1;
-    final table = LuaObject.table('ret', {});
-
-    for (MathExpr value in expr.values) {
-      table.writeField(idx.toString(), value.accept(this));
-      idx++;
-    }
-
-    return table;
   }
 
   @override

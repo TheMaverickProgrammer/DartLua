@@ -1,6 +1,8 @@
 ## 1.0.4
 - `not` keyword was resolving when something was truthy instead of the opposite.
 - Moved `onWrite` and `onRead` callbacks to the end of the operation so that programmers can react to changed values and know those values.
+- `ReturnStmtCallStackUnwind` and `ReturnStmtDoNotUnwind` added as mixins. These are required to use to form a complete base class for `BaseRuntime`.
+  - The former is expected lua runtime behavior. The latter is for cases where users want to perform static analysis.
 
 ## 1.0.3
 - Added new token `TokenType.kSpread` for varargs.

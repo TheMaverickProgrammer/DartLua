@@ -9,6 +9,18 @@ typedef LuaTable = Map<String, LuaObject?>;
 /// Strong type enumerations for all possible lua primitives.
 enum LuaType { unresolved, nil, table, ref, func, value }
 
+/// A type to represent if the callstack was unwound b/c of
+/// the lua`return` keyword. Stores the [value] of the operation
+/// to unpack. See [ReturnStmtCallStackUnwind] and
+/// [ReturnStmtDoNotUnwind].
+///
+/// Not treated as an actual exception or error.
+class LuaReturnValueException {
+  final LuaObject value;
+
+  LuaReturnValueException(this.value);
+}
+
 /// This class provides an API for effortlessly constructing
 /// lua function objects.
 ///
