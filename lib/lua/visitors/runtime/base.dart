@@ -61,7 +61,7 @@ mixin ReturnStmtCallStackUnwind on BaseRuntime {
       idx++;
     }
 
-    return table;
+    throw LuaReturnValueException(table);
   }
 }
 
@@ -83,7 +83,7 @@ mixin ReturnStmtDoNotUnwind on BaseRuntime {
       idx++;
     }
 
-    throw LuaReturnValueException(table);
+    return table;
   }
 }
 
