@@ -3,6 +3,8 @@
 - Moved `onWrite` and `onRead` callbacks to the end of the operation so that programmers can react to changed values and know those values.
 - `ReturnStmtCallStackUnwind` and `ReturnStmtDoNotUnwind` added as mixins. These are required to use to form a complete base class for `BaseRuntime`.
   - The former is expected lua runtime behavior. The latter is for cases where users want to perform static analysis.
+- `callLuaFunction(luaObject, args)` helper utility function added to `BaseRuntime`.
+  - Pushes and pop the scope, handles exceptions, and declares variables in-order of the function definition.
 
 ## 1.0.3
 - Added new token `TokenType.kSpread` for varargs.

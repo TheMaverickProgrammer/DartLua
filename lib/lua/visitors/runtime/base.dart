@@ -190,6 +190,44 @@ abstract class BaseRuntime extends Visitor<Object?> {
     return scope.findVarArgs();
   }
 
+  /// Given a callable lua [obj] and a list of [args], configure
+  /// a new scope with the provided [args] as parameters based on
+  /// the [LuaObject.funcDef] record. Args exceeding the parameter list
+  /// will be dropped. Any remaining parameters will be filled by
+  /// [LuaObject.nil] values. Any exceptions are caught and tracked
+  /// for the trace back later. The scope is popped and any return
+  /// result [LuaObject] is returned.
+  LuaObject? callLuaFunction(LuaObject obj, List<Object?> args) {
+    final metaCall = obj.fieldValueAs<Function>('__call');
+    if (metaCall == null) {
+      final type = obj.luaTypeInfo;
+      final varname = obj.id;
+      throw 'Attempt to call a $type value "$varname".';
+    }
+
+    LuaObject? res;
+    pushScope();
+    final defArgs = obj.funcDef!.args;
+    final nilCount = defArgs.length - args.length;
+
+    for (int i = 0; i < args.length; i++) {
+      defLocal(LuaObject.variable(defArgs[i].lexeme, args[i]));
+    }
+
+    for (int i = 0; i < nilCount; i++) {
+      defLocal(LuaObject.nil(defArgs[args.length + i].lexeme));
+    }
+
+    try {
+      res = metaCall.call();
+    } catch (e) {
+      addError(e.toString());
+    }
+    popScope();
+
+    return res;
+  }
+
   @override
   Object? visitAST(AST ast) {
     Object? ret;
