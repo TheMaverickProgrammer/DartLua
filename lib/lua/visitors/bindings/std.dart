@@ -152,7 +152,8 @@ print(f(7)) -- prints 13
 
       t as LuaObject;
       final name = t.id;
-      final fields = t.fields;
+      // t.isTable was true.
+      final fields = t.fields!;
       return LuaObject.table('ipairs_$name', {
         for (int i = 0; i < fields.entries.length; i++)
           (i + 1).toString(): fields.entries.elementAtOrNull(i)?.value,
@@ -190,7 +191,9 @@ print(f(7)) -- prints 13
 
       t as LuaObject;
       final name = t.id;
-      final fields = t.fields;
+
+      // t.isTable was true.
+      final fields = t.fields!;
 
       final newFields = fields.map<String, LuaObject>((k, v) {
         final value = switch (v) {
@@ -199,9 +202,7 @@ print(f(7)) -- prints 13
         };
 
         final id = value.id;
-        return MapEntry<String, LuaObject>(
-          id, value
-        );
+        return MapEntry<String, LuaObject>(id, value);
       });
 
       return LuaObject.table('ipairs_$name', newFields);
@@ -321,7 +322,7 @@ table.insert(t, "foo")
     );
 
     exec() {
-	impl?.call(findVarArgs()?.join(' ') ?? 'nil');
+      impl?.call(findVarArgs()?.join(' ') ?? 'nil');
     }
 
     defGlobal(LuaObject.func('print', defPrint, exec)).doc = LuaDoc(

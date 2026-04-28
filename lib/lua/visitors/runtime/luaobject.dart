@@ -224,15 +224,15 @@ class LuaObject {
   /// Query the [LuaType] based on if the following
   /// properties hold:
   /// - [isNil]
-  /// - [isTable]
   /// - [isRef]
+  /// - [isTable]
   /// - [isValue]
   ///
   /// Otherwise the result is [LuaType.unresolved].
   LuaType get type {
     if (isNil) return LuaType.nil;
-    if (isTable) return LuaType.table;
     if (isRef) return LuaType.ref;
+    if (isTable) return LuaType.table;
     if (isValue) return LuaType.value;
     return LuaType.unresolved;
   }
@@ -426,8 +426,7 @@ class LuaObject {
   }
 
   /// Returns the stored [_fields] value
-  /// **CAUTION**: check [isTable] is true before use!
-  LuaTable get fields => deref()._fields!;
+  LuaTable? get fields => deref()._fields;
 
   /// Bumps [uses] by one and stores
   /// [from] as the new [_value] or [_fields]

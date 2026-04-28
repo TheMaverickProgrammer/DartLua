@@ -622,7 +622,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     for (int i = 0; i < iterLen; i++) {
       final iterKey = findVar(key);
       final iterVal = findVar(val);
-      final entry = iterExpr.fields.entries.elementAtOrNull(i);
+      final entry = iterExpr.fields!.entries.elementAtOrNull(i);
       iterKey?.value = entry?.key;
       iterVal?.value = entry?.value;
 

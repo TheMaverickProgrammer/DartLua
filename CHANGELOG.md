@@ -1,3 +1,9 @@
+## 1.0.5
+- Hotfixes
+  - Autodoc crash when evaluating `LuaObjectNoSemantics` type.
+  - Fixed table test.
+  - Note to self: tests should be modernized in the next update.
+
 ## 1.0.4
 - `not` keyword was resolving when something was truthy instead of the opposite.
 - Moved `onWrite` and `onRead` callbacks to the end of the operation so that programmers can react to changed values and know those values.

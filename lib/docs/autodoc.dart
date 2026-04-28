@@ -248,10 +248,10 @@ class LuaAutoDoc {
           ''';
 
       content += '<ul>';
-      for (var MapEntry(:key, :value) in luaObj.fields.entries) {
+      for (var MapEntry(:key, :value) in luaObj.fields?.entries ?? {}) {
         final String valueStr = switch (value) {
           final LuaObject obj => luaObj2Html(key, obj.deref(), parent: luaObj),
-          null => '',
+          _ => '',
         };
         content += valueStr;
       }

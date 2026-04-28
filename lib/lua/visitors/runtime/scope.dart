@@ -42,7 +42,7 @@ class Scope {
 
         // meta method __call is on a special table.
         // therefore we may also have other table fields.
-        luaObject.writeFields(value.fields);
+        luaObject.writeFields(value.fields!);
         /*} else if (value.isTable) {
         luaObject = LuaObject.table(id, value.fields);*/
       } else {
@@ -73,6 +73,6 @@ class Scope {
 
   List<LuaObject> findVarArgs() {
     final arg = findVar('arg');
-    return arg?.fields.values.nonNulls.toList() ?? [];       
+    return arg?.fields?.values.nonNulls.toList() ?? [];
   }
 }
