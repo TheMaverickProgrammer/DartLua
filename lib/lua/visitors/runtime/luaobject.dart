@@ -686,14 +686,9 @@ class LuaObjectNoSemantics extends LuaObject {
 ///
 /// See [Object.toLua].
 extension Native2Lua on Object {
-  /// If this [Object] is already a [LuaObject],
-  /// then upcasts and returns itself, ignoring [id].
-  /// Otherwise a new [LuaObject.variable] instance
+  /// A new [LuaObject.variable] instance
   /// is returned whose variable name in scope is [id].
-  LuaObject toLua(String id) {
-    if (this is LuaObject) return this as LuaObject;
-    return LuaObject.variable(id, this);
-  }
+  LuaObject toLua(String id) => LuaObject.variable(id, this);
 
   /// Calls [toLua] with the id of "ret"
   /// which is short for "return".
