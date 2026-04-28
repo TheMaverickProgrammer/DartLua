@@ -197,7 +197,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// [LuaObject.nil] values. Any exceptions are caught and tracked
   /// for the trace back later. The scope is popped and any return
   /// result [LuaObject] is returned.
-  LuaObject? callLuaFunction(LuaObject obj, List<Object?> args) {
+  LuaObject? callLuaFunction(LuaObject obj, {List<Object?> args = const []}) {
     final metaCall = obj.fieldValueAs<Function>('__call');
     if (metaCall == null) {
       final type = obj.luaTypeInfo;
@@ -211,7 +211,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
     final nilCount = defArgs.length - args.length;
 
     for (int i = 0; i < args.length; i++) {
-      defLocal(LuaObject.variable(defArgs[i].lexeme, args[i]));
+      final id = defArgs[i].lexeme;
+      defLocal(args[i]?.toLua(id) ?? LuaObject.nil(id));
     }
 
     for (int i = 0; i < nilCount; i++) {
