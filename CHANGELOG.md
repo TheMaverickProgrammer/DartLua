@@ -5,6 +5,10 @@
   - The former is expected lua runtime behavior. The latter is for cases where users want to perform static analysis.
 - `callLuaFunction(luaObject, args)` helper utility function added to `BaseRuntime`.
   - Pushes and pop the scope, handles exceptions, and declares variables in-order of the function definition.
+- `toLua(id)` now creates a new lua object with the name `id` in all cases. This is convenient for function calls
+- `makeLuaRef()` is a method that returns the exact lua object pointer without making a copy object.
+  - If the underlying object is not a `LuaObject`, the null is returned.
+- Grammar fix: underlining -> underlying 
 
 ## 1.0.3
 - Added new token `TokenType.kSpread` for varargs.

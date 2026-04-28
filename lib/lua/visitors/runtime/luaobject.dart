@@ -384,8 +384,8 @@ class LuaObject {
 
   /// Inspects [this.value]. If the type
   /// is [LuaObject], inspects its [this.value].
-  /// If the underlining value type is [T], then
-  /// it is returned. If no underlining value type
+  /// If the underlying value type is [T], then
+  /// it is returned. If no underlying value type
   /// matches [T], the [null] is returned.
   ///
   /// For tables, see [fieldValueAs].
@@ -410,7 +410,7 @@ class LuaObject {
   /// representation, the value must be a whole number
   /// and therefore an integer. Otherwise, loss happened
   /// and it must be a real number and therefore a double.
-  /// If the underlining type of [this.value] is not [num]
+  /// If the underlying type of [this.value] is not [num]
   /// then [null] is returned.
   int? valueAsInt() {
     final num? n = valueAs<num>();
@@ -506,14 +506,14 @@ class LuaObject {
   /// Inspects the result of [readField] with [key].
   /// If the result's type is [LuaObject], then
   /// it also inspects its [this.value].
-  /// If the underlining value type is [T], then
-  /// it is returned. If no underlining value type
+  /// If the underlying value type is [T], then
+  /// it is returned. If no underlying value type
   /// matches [T], then [or] is returned.
   ///
   /// For non-table lua objects, see [valueAs].
   ///
   /// ### Implicit Casting
-  /// If the underlining value is of type
+  /// If the underlying value is of type
   /// [double] and the requested [T] type is [int]
   /// then an implicit cast is performed.
   ///
@@ -694,4 +694,12 @@ extension Native2Lua on Object {
   /// which is short for "return".
   /// The helps track return values.
   LuaObject toLuaRet() => toLua('ret');
+
+  /// Attempts to return the underlying [LuaObject]
+  /// of [this] to be used as a direct handle or
+  /// reference. Otherwise null is returned.
+  LuaObject? makeLuaRef() => switch (this) {
+    final LuaObject obj => obj,
+    _ => null,
+  };
 }
