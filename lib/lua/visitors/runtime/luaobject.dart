@@ -4,7 +4,7 @@ import 'package:puredartlua/lua/visitors/visitor.dart';
 /// Shorthand notation for a [Map] of [String] and [LuaObject]
 /// key-pairs. Note that the [LuaObject] can be null as lua
 /// represents these as [LuaType.nil].
-typedef LuaTable = Map<String, LuaObject?>;
+typedef LuaFieldsMap = Map<String, LuaObject?>;
 
 /// Strong type enumerations for all possible lua primitives.
 enum LuaType { unresolved, nil, table, ref, func, value }
@@ -125,7 +125,7 @@ class LuaObject {
   Object? _value;
 
   /// For table lua objects, this stores all keys and values.
-  LuaTable? _fields;
+  LuaFieldsMap? _fields;
 
   /// If this lua object is a function, it will have [FuncExpr]
   /// node with information about its arguments.
@@ -426,7 +426,7 @@ class LuaObject {
   }
 
   /// Returns the stored [_fields] value
-  LuaTable? get fields => deref()._fields;
+  LuaFieldsMap? get fields => deref()._fields;
 
   /// Bumps [uses] by one and stores
   /// [from] as the new [_value] or [_fields]
@@ -436,7 +436,7 @@ class LuaObject {
     if (from == null) {
       _value = null;
       _fields = null;
-    } else if (from is LuaTable) {
+    } else if (from is LuaFieldsMap) {
       _value = null;
       _fields = from;
     } else if (from is LuaObject) {
@@ -558,11 +558,25 @@ class LuaObject {
     return result;
   }
 
-  /// A convenience utility to write all fields from some input [table].
-  void writeFields(LuaTable table) {
+  /// A convenience utility to write all fields from some input [map].
+  /// This assumes you may need the name of the field to be different
+  /// from any existing [LuaObject.id] in the entries.
+  ///
+  /// Alternatively, if the name of the fields are known to match the
+  /// input [LuaObject]s, then consider using [writeFieldsFrom].
+  void writeFields(LuaFieldsMap map) {
     final ref = deref();
-    for (final f in table.entries) {
+    for (final f in map.entries) {
       ref.writeField(f.key, f.value);
+    }
+  }
+
+  /// Given a list of [luaObjects], adopt them as fields with
+  /// their name given by [LuaObject.id].
+  void writeFieldsFrom(List<LuaObject> luaObjects) {
+    final ref = deref();
+    for (final o in luaObjects) {
+      ref.writeField(o.id, o);
     }
   }
 
@@ -577,7 +591,7 @@ class LuaObject {
   /// Default constructor for some lua object. The variable name
   /// in scope will become [id] and can have either [fields] or
   /// [value] but not both.
-  LuaObject(this.id, {LuaTable? fields, Object? value})
+  LuaObject(this.id, {LuaFieldsMap? fields, Object? value})
     : _value = value,
       _fields = fields,
       assert(
@@ -591,7 +605,7 @@ class LuaObject {
   /// Constructs a lua object with [id] for its variable name
   /// in scope with some initial [value].
   LuaObject.variable(this.id, Object? value) : super() {
-    if (value is LuaTable) {
+    if (value is LuaFieldsMap) {
       _fields = value;
     } else if (value is LuaObject) {
       this.value = value.deref();
@@ -604,12 +618,26 @@ class LuaObject {
   }
 
   /// Constructs a lua object with [id] for its variable name
-  /// in scope with some set of [fields].
+  /// in scope with some set of [fields]. These [fields] are
+  /// dart [Object] values. they can be primitives.
+  ///
+  /// Alternatively, if the fields of the table are ALL [LuaObject]s,
+  /// whose names will be exactly the same as the field key, then
+  /// [LuaObject.tableFrom] can be used instead.
   LuaObject.table(this.id, Map<String, Object?> fields) : super() {
     _fields = fields.map(
       (k, v) => MapEntry(k, v?.toLua(k) ?? LuaObject.nil(k)),
     );
   }
+
+  /// A convenience factory constructor when the fields-to-be
+  /// share the same exact name as the key in the outpui table.
+  /// Calls [LuaObject.table] with the keys provided by [LuaObject.id].
+  ///
+  /// If raw values (dart [Object]s) are needed, then use [LuaObject.table]
+  /// and map the keys to their values.
+  factory LuaObject.tableFrom(String id, List<LuaObject> toFields) =>
+      LuaObject.table(id, {for (final o in toFields) o.id: o});
 
   /// Constructs a lua function with [id] for its function name
   /// in scope with some [closure] to be written to the metamethod

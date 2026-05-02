@@ -1,3 +1,7 @@
+## 1.0.6
+- `LuaObject.writeFieldsFrom` takes a list of lua objects whose ID's will become the field keys too.
+- constructor `LuaObject.tableFrom` added under similar rationale.
+- 
 ## 1.0.5
 - Hotfixes
   - Autodoc crash when evaluating `LuaObjectNoSemantics` type.

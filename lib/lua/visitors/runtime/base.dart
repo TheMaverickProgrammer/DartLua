@@ -1027,7 +1027,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   @override
   Object? visitTableLiteral(TableLiteral table) {
-    final t = LuaTable();
+    final t = LuaFieldsMap();
 
     int next = 0;
     for (var e in table.pairs) {
