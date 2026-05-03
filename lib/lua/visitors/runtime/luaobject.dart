@@ -293,7 +293,7 @@ class LuaObject {
     };
   }
 
-  /// Begins at field "1" and increments this string
+  /// Begins at field "1" and increments this key by one
   /// until no field is found with that key. Returns the
   /// largest integer field found minus one.
   /// This mimics lua's table len (#) behavior.
@@ -619,19 +619,22 @@ class LuaObject {
 
   /// Constructs a lua object with [id] for its variable name
   /// in scope with some set of [fields]. These [fields] are
-  /// dart [Object] values. they can be primitives.
+  /// dart [Object] values which means they can be primitives.
+  ///
+  /// If [fields] is null, [_fields] will be assigned to the
+  /// empty map `{}`.
   ///
   /// Alternatively, if the fields of the table are ALL [LuaObject]s,
   /// whose names will be exactly the same as the field key, then
   /// [LuaObject.tableFrom] can be used instead.
-  LuaObject.table(this.id, Map<String, Object?> fields) : super() {
-    _fields = fields.map(
-      (k, v) => MapEntry(k, v?.toLua(k) ?? LuaObject.nil(k)),
-    );
+  LuaObject.table(this.id, [Map<String, Object?>? fields]) : super() {
+    _fields =
+        fields?.map((k, v) => MapEntry(k, v?.toLua(k) ?? LuaObject.nil(k))) ??
+        {};
   }
 
   /// A convenience factory constructor when the fields-to-be
-  /// share the same exact name as the key in the outpui table.
+  /// share the same exact name as the key in the output table.
   /// Calls [LuaObject.table] with the keys provided by [LuaObject.id].
   ///
   /// If raw values (dart [Object]s) are needed, then use [LuaObject.table]

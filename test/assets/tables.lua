@@ -7,7 +7,8 @@ local animals = {
 	bear='growl'
 }
 
-print(type(animals))
+print('type(animals)='..type(animals))
+print('len(animals)='..#animals)
 
 for k, v in pairs(animals) do
 	print(k..'='..v)
@@ -21,6 +22,8 @@ local t = {
 	uncool=false
 }
 
+print('len(t)='..#t)
+
 for k, v in pairs(t) do
 	if type(v) == 'boolean' then
 		print(k..'='..(v and 'true' or 'false'))
@@ -29,3 +32,12 @@ for k, v in pairs(t) do
 	end
 end
 
+
+-- Tables as lists
+local list = {}
+
+for i=0, 10 do 
+	list[i] = i
+end
+
+print('len(list)='..#list)
