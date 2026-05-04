@@ -36,7 +36,9 @@ end
 -- Tables as lists
 local list = {}
 
-for i=0, 10 do 
+-- technically 11 elements, but the
+-- length operator starts counting from 1.
+for i=0, 10 do
 	list[i] = i
 end
 

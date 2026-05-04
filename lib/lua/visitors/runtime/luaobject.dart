@@ -542,6 +542,10 @@ class LuaObject {
   /// If this lua object is a table, then
   /// it writes [value] to [key] and returns the field [key].
   /// Otherwise if the lua object is not a table, then null is returned.
+  ///
+  /// Alternatively, if the field [value] is known to be a [LuaObject]
+  /// whose [LuaObject.id] will be the same as [key], then consider
+  /// using [writeFieldFrom].
   Object? writeField(String key, Object? value) {
     if (skipSemanitcs) return LuaObject.noSemantics(key);
 
@@ -558,6 +562,11 @@ class LuaObject {
     return result;
   }
 
+  /// Given a [LuaObject], adopt it as a field with the name
+  /// given by [LuaObject.id].
+  LuaObject writeFieldFrom(LuaObject value) =>
+      writeField(value.id, value) as LuaObject;
+
   /// A convenience utility to write all fields from some input [map].
   /// This assumes you may need the name of the field to be different
   /// from any existing [LuaObject.id] in the entries.
@@ -571,7 +580,7 @@ class LuaObject {
     }
   }
 
-  /// Given a list of [luaObjects], adopt them as fields with
+  /// Given a list of [LuaObject], adopt them as fields with
   /// their name given by [LuaObject.id].
   void writeFieldsFrom(List<LuaObject> luaObjects) {
     final ref = deref();

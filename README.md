@@ -5,6 +5,7 @@
   - [Features](#features)
 - [Work In Progress!](#work-in-progress)
   - [Missing Lua Lang Support](#missing-lua-lang-support)
+  - [Extra Goals](#extra-goals)
 
 This is a custom a custom `Lua 5.5` interpretter and evaluator written from scratch in pure Dart.
 I wrote this as a part of a series of learning exercises on how to write my own compilers and programming languages.
@@ -48,8 +49,6 @@ I will get around to that when I can!
 
 ## Missing Lua Lang Support
 Here's what's left to be compliant with the `Lua 5.5` specification:
-- Better callsite context evaluation.
-  - Currently stuffing the `callee` into the scope's context but this has edge cases and should be corrected.
 - Missing a semantics pass for `goto` and `::label::` statements.
 - Metamethods.
   - Particularly there is no support for metamethods except for `___call`.
@@ -57,8 +56,10 @@ Here's what's left to be compliant with the `Lua 5.5` specification:
 - `<const>` is not added.
 - Coroutines are not added.
 - I may have missed one variant of function [declarations](https://www.lua.org/manual/5.5/manual.html#3.4.11).
-- Code path correctness.
-  - `return` statements should have the function's final type unified.
+
+## Extra Goals
+- Semantics: code path type unification.
+  - `return` statements could have the function's final type identified.
   - Nondeterministic functions should be identified as such.
     - This would allow invariant code paths to be protomoted to constant value generation.
 

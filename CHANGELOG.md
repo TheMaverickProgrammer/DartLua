@@ -1,7 +1,12 @@
 ## 1.0.6
 - `LuaObject.writeFieldsFrom` takes a list of lua objects whose ID's will become the field keys too.
 - constructor `LuaObject.tableFrom` added under similar rationale.
-- 
+- singular writer `LuaObject.writeFieldFrom` added under similar rationale.
+- When invoking a function, the new scope no longer retains context of itself (the caller)
+  - b/c this created incorrect behavior when resolving parameters during AST visit.
+  - b/c if using `self`, already provides the caller.
+  - b/c now has correct outcome in other projects using this lib after removal.
+
 ## 1.0.5
 - Hotfixes
   - Autodoc crash when evaluating `LuaObjectNoSemantics` type.

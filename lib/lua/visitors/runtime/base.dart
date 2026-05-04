@@ -745,7 +745,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     Object? callee = memoryAccess.callee.accept(this);
 
     if (callee is! LuaObject) {
-      throw '$linePos Expected a lua object for operator "${memoryAccess.op.lexeme}", found value: $callee.';
+      throw '$linePos Expected lua object for operator "${memoryAccess.op.lexeme}", found value: $callee.';
     }
 
     final bool indexedTable = memoryAccess.type == MemoryAccessType.table;
@@ -815,7 +815,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
       int argsInLen = memoryAccess.args.length;
       List<MathExpr> args = memoryAccess.args;
       String callableId = callee.id;
-      String context = callableId;
 
       // This indicates the node is two parts: (lhs, (functioncall))
       // where the lhs is the lua object and the functioncall is a
@@ -829,7 +828,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
         };
 
         // Update the callsite context and fetch the new callableId.
-        context = callableId;
         callableId = switch (rhsMemoryAccess.callee) {
           final RawExpr r => r.token.lexeme,
           final Object? obj =>
@@ -887,7 +885,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         args.add(NilLiteral(Token.synthesized('nil')));
       }
 
-      pushScope(context: callee);
+      pushScope(/*context: callee*/);
 
       if (fwdSelfArg) {
         defLocal(LuaObject.variable('self', callee));
