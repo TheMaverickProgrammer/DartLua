@@ -606,7 +606,7 @@ class Parser {
       TokenType.kNot => notExpr(),
       TokenType.kBitNot ||
       TokenType.kHash ||
-      TokenType.kSub => UnaryExpr(token, rhs: advanceAndThen(math)),
+      TokenType.kSub => UnaryExpr(token, rhs: advanceAndThen(literal)),
       _ => null,
     };
 

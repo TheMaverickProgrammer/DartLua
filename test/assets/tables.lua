@@ -43,3 +43,7 @@ for i=0, 10 do
 end
 
 print('len(list)='..#list)
+
+if #list > 0 then
+	print('list > 0')
+end
