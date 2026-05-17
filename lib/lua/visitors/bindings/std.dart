@@ -8,12 +8,22 @@ const catRuntime = 'Runtime';
 
 typedef StdPrintCallback = void Function(String);
 
+/// Implements the lua standard libraries.
+/// Some implementations need further defining by the programmer
+/// such as [Std.onRequireImpl] called in [initStdRequire].
+///
+/// The entry point is [Std.initStdRuntime].
 mixin Std on BaseRuntime {
-  Function(String)? onVisitInclude;
+  /// This is called by the closure defined in [initStdRequire]
+  /// after the call to [Std.onRequireImpl]. In this way,
+  /// programmers can configure the implementation details
+  /// of `require` on a case-by-case basis (if needed) while
+  /// still performing general book keeping for each.
+  Function(String)? onRequireImplComplete;
 
   void initStdRuntime() {
     initStdStrings();
-    initStdInclude();
+    initStdRequire();
     initStdIPairs();
     initStdPairs();
     initStdTable();
@@ -86,50 +96,46 @@ mixin Std on BaseRuntime {
     );
   }
 
-  void initStdInclude() {
-    include() {
-      final path = findVar('path');
-      final v = path?.valueAs<String>();
+  void initStdRequire() {
+    exec() {
+      final modname = findVar('modname');
+      final v = modname?.valueAs<String>();
       if (v == null) {
         final type = v.runtimeType;
-        throw 'Expected string for include path, found $type.';
+        throw 'Expected string for modname in `require(modname)`. Found $type.';
       }
 
-      Object? included;
+      Object? result;
       try {
         pushScope();
-        included = onIncludeImpl?.call(v, this);
+        result = onRequireImpl?.call(v, this);
       } catch (e) {
         addError(e.toString());
       } finally {
         popScope();
       }
 
-      onVisitInclude?.call(v);
+      onRequireImplComplete?.call(v);
 
-      if (included is LuaObject) {
-        return included;
-      }
-
-      return LuaObject.variable(v, included);
+      return result?.toLua(v).unpack() ?? LuaObject.nil(v);
     }
 
-    final token = Token.synthesized('include');
-    final defInclude = FuncExpr.named(
+    final token = Token.synthesized('require');
+    final defRequire = FuncExpr.named(
       token,
       body: [],
-      args: [DeclArg(Token.synthesized('path'))],
+      args: [DeclArg(Token.synthesized('modname'))],
       idParts: [RawExpr(token)],
     );
 
-    defGlobal(LuaObject.func('include', defInclude, include)).doc = LuaDoc(
+    defGlobal(LuaObject.func('require', defRequire, exec)).doc = LuaDoc(
       category: catRuntime,
       html: '''
-      The runtime visits the lua script at <code>path</code>, executes,
+      The runtime resolves the lua script identified by <code>modname</code>, executes,
       and returns any values. This enables passing lua objects
       between files.
 <pre>
-<code class="language-lua">local f = include('fibonacci.lua')
+<code class="language-lua">local f = require('fibonacci.lua')
 print(f(7)) -- prints 13 
 </code>
 </pre>

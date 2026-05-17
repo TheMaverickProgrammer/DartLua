@@ -425,6 +425,16 @@ class LuaObject {
     return null;
   }
 
+  /// Lua tables returned by functions whose field length
+  /// is of size 1 can be unpacked into a single lua object.
+  LuaObject? unpack() {
+    if (isTable && length == 1 && hasField("1")) {
+      return readField("1")?.toLua(id);
+    }
+
+    return LuaObject.nil(id);
+  }
+
   /// Returns the stored [_fields] value
   LuaFieldsMap? get fields => deref()._fields;
 

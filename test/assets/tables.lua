@@ -47,3 +47,11 @@ print('len(list)='..#list)
 if #list > 0 then
 	print('list > 0')
 end
+
+local compound = {
+	arr={0, 1, 2, 3, 4, 5, 'a', 'b', 'c', 'd', 'e'}
+}
+-- Length operator on a compound expression.
+-- Expected: 11
+print(#compound.arr)
+print(#(compound.arr))

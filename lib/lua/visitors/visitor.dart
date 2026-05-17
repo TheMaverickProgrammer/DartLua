@@ -20,7 +20,7 @@ class AST extends Stmt {
 /// compose a function's argument list.
 ///
 /// If a parameter [isOptional], then the
-/// runtime won't include its cound in the
+/// runtime won't include its count in the
 /// call expression.
 ///
 /// Additionally. [isOptional] will decorate

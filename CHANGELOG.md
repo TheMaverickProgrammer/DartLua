@@ -1,6 +1,9 @@
 ## 1.0.7
-- The `#` operator bound to the wrong level (binary expressions). Made them bind to literals and groups. My small test seems to fix this.
-
+- The `#` operator bound to the wrong level (binary expressions). Made them bind to memory types (literals, function calls, etc). My small tests seems to fix this.
+- Misnamed `include()` -> `require()`.
+- Misnamed `IncludeCallback` -> `LuaRequireCallback`.
+- Added `LuaObject.unpack()` as a shortcut for lua behavior: return functions for tables with a single field are unpacked.
+  
 ## 1.0.6
 - `LuaObject.writeFieldsFrom` takes a list of lua objects whose ID's will become the field keys too.
 - constructor `LuaObject.tableFrom` added under similar rationale.

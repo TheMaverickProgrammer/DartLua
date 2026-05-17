@@ -12,8 +12,16 @@ extension ObjectAsTypeOrNull on Object {
   };
 }
 
+/// The function type to respond to the scope being
+/// unwound. When reporting errors. See [RuntimeCallbacks].
 typedef TraceCallback = void Function(Set<String>);
 
+/// A configuration class enabling the programmer to
+/// define what happens [onErrors], [onWarnings], or
+/// [onDiagnostics].
+///
+/// [consumeTraces] consumes the values from [BaseResults]
+/// and then clears the result object.
 class RuntimeCallbacks {
   TraceCallback? onErrors;
   TraceCallback? onWarnings;
@@ -31,6 +39,15 @@ class RuntimeCallbacks {
   }
 }
 
+/// The result of processing a lua script can omit
+/// errors, warnings, or custom diagnostic info.
+/// This results class collects such information at run-time
+/// and it is up to the user to decide when to reveal the
+/// information to the user.
+///
+/// You must extend this so that you can add your own
+/// diagnostic information or even use it to lift
+/// other data from the AST.
 abstract class BaseResults {
   final Set<String> errors = {};
   final Set<String> warns = {};
@@ -99,16 +116,33 @@ mixin ReturnStmtDoNotUnwind on BaseRuntime {
 /// how to configure their desired runtime.
 abstract class BaseRuntime extends Visitor<Object?> {
   final BaseResults results;
-  final Scope global = Scope();
-  late Scope scope = global;
-  String? debugPath;
-  IncludeCallback? onIncludeImpl;
 
+  /// The global scope.
+  final Scope global = Scope();
+
+  /// The current scope.
+  late Scope scope = global;
+
+  /// For diagnostics or debugging, what the current
+  /// script path is. See [onRequireImpl].
+  String? debugPath;
+
+  /// Describes to do when lua processes the `require()` function.
+  LuaRequireCallback? onRequireImpl;
+
+  /// Only constructor.
   BaseRuntime(this.results);
 
+  /// For variables, return (row, col) as a virtual identifier stub.
+  /// This is useful for debugging.
   String lineTag(Token token) => '_<${token.pos.row + 1},${token.pos.col + 1}>';
+
+  /// Given a [Token], return that token's line information.
+  /// This is useful for debugging.
   String lineInfo(Token token) => token.pos.toString();
 
+  /// Given a [Token], construct a lua identifier stub.
+  /// If [prefix] is non null, then the stub will have that prefix.
   String tokenId(Token token, {String? prefix}) {
     final id = 'id${lineTag(token)}';
     if (prefix == null) {
@@ -118,8 +152,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
     return '${prefix}_$id';
   }
 
+  /// Setter for [debugPath].
   void debugSetPath(String? path) => debugPath = path;
 
+  /// Build a meaningful error message from the current
+  /// runtime information and original message [err].
   void addError(String err) {
     final msg = switch (debugPath) {
       final String path => '$err\n\t... in "$path".',
@@ -129,6 +166,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
     results.addError(msg);
   }
 
+  /// Build a meaningful warning message from the current
+  /// runtime information and original message [warn].
   void addWarning(String warn) {
     final msg = switch (debugPath) {
       final String path => '$warn\n\t... in "$path".',
@@ -138,6 +177,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
     results.addWarning(msg);
   }
 
+  /// Build a meaningful diagnostic message from the current
+  /// runtime information and original message [info].
   void addDiagnostic(String info) {
     final msg = switch (debugPath) {
       final String path => '$info\n\t... in "$path".',
@@ -147,35 +188,57 @@ abstract class BaseRuntime extends Visitor<Object?> {
     results.addDiagnostic(msg);
   }
 
+  /// A reverse linked list implementation where tail
+  /// points towards head (the parent chain). Calling this function
+  /// adds a new [Scope] node in the linked list as the new tail
+  /// and sets [scope] to point to the latest tail node. Every
+  /// node points to its [Scope.parent].
   void pushScope({LuaObject? context}) {
     // scope.dump();
     scope = Scope(parent: scope, context: context);
     // print('scope depth: ${scope.depth}');
   }
 
+  /// If there exists [Scope.parent], then tail adopts that.
+  /// This effectively pops the scope of execution. Otherwise
+  /// nothing happens.
   void popScope() {
     if (scope.parent == null) return;
     //scope.dump();
     scope = scope.parent!;
   }
 
+  /// Shorthand for [scope.context].
   LuaObject? get context => scope.context;
+
+  /// Shorthand for [scope.hasContext].
   bool get hasContext => scope.hasContext;
 
+  /// Defines a local variable in the current [scope] with
+  /// lua object [value].
   LuaObject defLocal(LuaObject value) {
     return scope.defVar(value.id, value);
   }
 
+  /// Defines a global variable in the [global] scope with
+  /// lua object [value].
   LuaObject defGlobal(LuaObject value) {
     return global.defVar(value.id, value);
   }
 
+  /// Searches for a variable with the identifier [id]
+  /// in the current scope. The implementation details
+  /// also searches the parents in order if not found locally
+  /// until such an [id] is found.
+  ///
+  /// If no [id] is found, null is returned signifying no
+  /// such variable with that [id] exists.
   LuaObject? findVar(String id) {
     return scope.findVar(id);
   }
 
   /// First finds [field] inside object "self"
-  /// in [Scope]. If neither can be found,
+  /// in the current [scope]. If neither can be found,
   /// [or] is returned cast [toLua].
   /// If [or] is not provided, null is returned.
   ///
@@ -186,6 +249,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     return findVar('self')?.readField(field)?.toLua(field) ?? or?.toLua(field);
   }
 
+  /// Search the current [scope] for the special `...` identifier.
   List<LuaObject>? findVarArgs() {
     return scope.findVarArgs();
   }
@@ -229,6 +293,12 @@ abstract class BaseRuntime extends Visitor<Object?> {
     return res;
   }
 
+  /// The starting point of all lua programs.
+  /// This will visit every node in the tree.
+  /// The default result will be a program which
+  /// ran to completion.
+  ///
+  /// It can be changed to suit other needs.
   @override
   Object? visitAST(AST ast) {
     Object? ret;
@@ -269,11 +339,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         }
       }
 
-      if (ret is LuaObject) {
-        // Unpack the result if its arity is one.
-        if (ret.length == 1) ret = ret.readField('1');
-      }
-      return ret;
+      return ret?.makeLuaRef()?.unpack();
     }
 
     // Spec reference: https://www.lua.org/manual/5.4/manual.html#3.4.11
@@ -1080,6 +1146,10 @@ abstract class BaseRuntime extends Visitor<Object?> {
   }
 }
 
+/// Helper to convert [Object] to a lua `true` or `false`
+/// equivalent used in boolean expressions.
+///
+/// Introduces [isTruthy] and [isNotTruthy].
 extension Truthy on Object? {
   bool get isTruthy => switch (this) {
     final LuaObject obj => obj.isTruthy,
