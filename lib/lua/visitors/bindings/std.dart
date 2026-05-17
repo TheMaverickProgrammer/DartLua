@@ -117,7 +117,7 @@ mixin Std on BaseRuntime {
 
       onRequireImplComplete?.call(v);
 
-      return result?.toLua(v).unpack() ?? LuaObject.nil(v);
+      return result?.makeLuaRef()?.unpack() ?? LuaObject.nil(v);
     }
 
     final token = Token.synthesized('require');

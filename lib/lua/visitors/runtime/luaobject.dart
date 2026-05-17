@@ -429,7 +429,7 @@ class LuaObject {
   /// is of size 1 can be unpacked into a single lua object.
   LuaObject? unpack() {
     if (isTable && length == 1 && hasField("1")) {
-      return readField("1")?.toLua(id);
+      return readField("1")?.makeLuaRef();
     }
 
     return LuaObject.nil(id);
