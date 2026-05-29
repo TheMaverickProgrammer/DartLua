@@ -2,6 +2,7 @@
 
 - [PureDartLua](#puredartlua)
   - [Run Scripts](#run-scripts)
+  - [DOT File Visualizer](#dot-file-visualizer)
   - [Features](#features)
 - [Work In Progress!](#work-in-progress)
   - [Missing Lua Lang Support](#missing-lua-lang-support)
@@ -19,16 +20,28 @@ To get started, run Hello World.
 dart bin/main.dart -e test/assets/hello_world.lua
 ```
 
+## DOT File Visualizer
+Run
+
+```bash
+dart bin/main.dart -v my_script.lua
+```
+
+The DOT file will be embedded in an HTML page `my_script.lua.html`.
+
 ## Features
+- Command Line Interface (cli).
 - MIT Licensed.
-- Register your own custom runtime userdata.
 - No FFI or extra dependencies.
-- Emit warnings, diagnostic info, or errors.
+- DOT file visualiser.
+- [Autodoc][AUTODOC] API so your own libs can generate docs to share with your consumers.
+- Register your own custom runtime userdata.
+- Emit custom warnings, diagnostic info, or errors.
 - Lua 5.5 compliant.
   - See this [section](#missing-lua-lang-support) for remaining issues.
-- Parser, Evaluator, Interpreter classes you can extend or modify.
-- `Truthy` and `Native2Lua` Dart class extensions.
-  - Makes for convenient bridge between userdata and lua types.
+- Parser, Evaluator, Interpreter classes extensible and modifiable.
+- `Truthy` and `Native2Lua` Dart class extensions for convenient bridge between userdata and lua types.
+- Function builder API to conveniently build complex lua functions.
 - Standard lua runtime libs (partial implementation).
   - strings
   - include
@@ -37,8 +50,6 @@ dart bin/main.dart -e test/assets/hello_world.lua
   - table
   - print
   - math
-- [Autodoc][AUTODOC] API so your own libs can generate docs to share with your consumers.
-- Function builder API to conveniently build complex lua functions.
 
 > Because this is a pure dart lua interpreter, it is not expected to be as fast
 > as the C ffi alternative libs for Dart. However, it is much more programmer friendly!
