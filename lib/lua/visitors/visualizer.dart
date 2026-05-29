@@ -36,9 +36,9 @@ const String pink = '#E29FC2';
 abstract class GzBaseNode {
   late final int key;
   final String id;
-  final String label;
-  final String? color, fontColor, shape;
-  final List<GzBaseNode> children;
+  String label;
+  String? color, fontColor, shape;
+  List<GzBaseNode> children;
   static int globalKeys = 0;
 
   /// [label] is optional. If null, will become [id].
@@ -95,6 +95,7 @@ abstract class GzBaseNode {
   String get _printableId => 'id_$id'
       .replaceAll(' ', '_')
       .replaceAll('"', '')
+      .replaceAll(',', 'CM')
       .replaceAll('=', 'EQ')
       .replaceAll('/', 'DI')
       .replaceAll('.', 'DT')
@@ -217,8 +218,14 @@ GzBaseNode node(
 /// the HTML contents of the graph. This can then be written directly
 /// to a file and viewed by a web browser.
 class Visualizer extends Visitor<GzBaseNode> {
-  String generateHTML(AST ast) =>
-      _html.replaceFirst('%%DOTFILE%%', visitAST(ast).toString());
+  final String path;
+
+  Visualizer(this.path);
+
+  String generateHTML(AST ast) {
+    final root = visitAST(ast)..label = path.split(RegExp(r'[/\\]')).last;
+    return _html.replaceFirst('%%DOTFILE%%', root.toString());
+  }
 
   @override
   GzBaseNode visitAST(AST ast) {
@@ -592,6 +599,7 @@ const String _html = '''<!DOCTYPE html>
         layout: {
           hierarchical: {
             direction: 'UD',
+            sortMethod: 'directed',
           },
         },
         physics: false,

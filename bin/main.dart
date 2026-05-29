@@ -34,7 +34,7 @@ void main(List<String> args) {
     // Abort early on error.
     if (ast == null) return;
 
-    final viz = Visualizer();
+    final viz = Visualizer(path);
     final dotfile = viz.generateHTML(ast);
     final File file = File.fromUri(Uri.file('$path.html', windows: true));
     file.writeAsStringSync(dotfile);
