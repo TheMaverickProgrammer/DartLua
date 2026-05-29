@@ -132,6 +132,12 @@ class Pretty extends Visitor<String> {
   String _printCallable(MemoryAccess mem) {
     final callee = mem.callee.accept(this);
     final args = mem.args.map((e) => e.accept(this)).join(',');
+
+    // TODO: replace with TokenType.kColon
+    if (mem.op.lexeme == ':') {
+      return '$callee:$args';
+    }
+
     return '$callee($args)';
   }
 

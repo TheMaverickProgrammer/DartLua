@@ -1,3 +1,8 @@
+## 1.0.8
+- `token` field on AST nodes is mutable (non final) to allow in-place transformations for upgrade tools.
+- Added `parse(String path)` to construct AST for `runner`.
+- Added `-v` flag to cli to dump DOT files as HTML for the input lua script.
+
 ## 1.0.7
 - The `#` operator bound to the wrong level (binary expressions). Made them bind to memory types (literals, function calls, etc). My small tests seems to fix this.
 - Misnamed `include()` -> `require()`.

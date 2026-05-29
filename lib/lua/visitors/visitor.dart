@@ -356,7 +356,7 @@ class FuncExpr extends MathExpr {
 /// table fields. The spec defines labels as identifiers
 /// but those are encoded in this lib by [GotoLabelStmt].
 class RawExpr extends MathExpr {
-  final Token token;
+  Token token;
 
   RawExpr(this.token);
 
