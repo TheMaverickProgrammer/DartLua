@@ -7,7 +7,10 @@ import 'package:puredartlua/lua/visitors/visitor.dart';
 typedef LuaFieldsMap = Map<String, LuaObject?>;
 
 /// Strong type enumerations for all possible lua primitives.
-enum LuaType { unresolved, nil, table, ref, func, value }
+enum LuaType { unresolved, nil, table, ref, func, value, thread }
+
+/// Coroutine status values.
+enum LuaThreadStatus { suspended, running, dead }
 
 /// A type to represent if the callstack was unwound b/c of
 /// the lua`return` keyword. Stores the [value] of the operation
@@ -179,7 +182,7 @@ class LuaObject {
   /// Query if the stored [value] is of type [LuaObject].
   bool get isRef => _value is LuaObject;
 
-  /// Query if the stored value is not a reference and the [value] is not null.
+  /// Query if the stored [value] is not a reference and the value is not null.
   bool get isValue => !isRef && _value != null;
 
   /// Query if this lua object is a table and has a field named '__call'.
@@ -187,6 +190,12 @@ class LuaObject {
 
   /// Query the negation of [isFunc].
   bool get isNotFunc => !isFunc;
+
+  /// Query if the stored [value] is of type [LuaThread].
+  bool get isThread => _value is LuaThread;
+
+  /// Query the negation of [isThread].
+  bool get isNotThread => !isThread;
 
   /// Query if std "print" can print the [value].
   /// This is short for asking if the lua object is a table
@@ -720,6 +729,15 @@ class LuaObject {
 
     return '<$id>';
   }
+}
+
+/// A type that represents a lua thread.
+/// It only stores the address used by the evaluator.
+/// This type is used to distinguish a [LuaObject.value]
+/// from other types.
+class LuaThread {
+  int _threadAddr = 0x00;
+  LuaThread(int addr) : _threadAddr = addr;
 }
 
 /// Represents a lua object for analyzing irregardless

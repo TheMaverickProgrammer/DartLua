@@ -19,7 +19,25 @@ mixin Std on BaseRuntime {
   /// programmers can configure the implementation details
   /// of `require` on a case-by-case basis (if needed) while
   /// still performing general book keeping for each.
-  Function(String)? onRequireImplComplete;
+  void Function(String)? onRequireImplComplete;
+
+  /// This is called by the closure defined in [initStdCoroutines].
+  /// The callback expects a [LuaObject] argument which will have
+  /// satisfied [LuaObject.isFunc]. The implementation expected
+  /// to return an [int] address value of the designated coroutine.
+  int Function(LuaObject)? onCoroutineCreate;
+
+  /// Given a coroutine [int] address, return the status of the
+  /// coroutine as a [String].
+  String Function(int)? onCoroutineStatus;
+
+  /// Given a coroutine [int] address, resume that coroutine and
+  /// return a value. Multiple values will be unpacked by the runtime.
+  LuaObject Function(int)? onCoroutineResume;
+
+  /// Given a list of lua value [args], perform the coroutine
+  /// yield behavior.
+  void Function(List<LuaObject> args)? onCoroutineYield;
 
   void initStdRuntime() {
     initStdStrings();
@@ -29,6 +47,64 @@ mixin Std on BaseRuntime {
     initStdTable();
     initStdPrint();
     initStdMath();
+    initStdCoroutines();
+  }
+
+  void initStdCoroutines() {
+    final defCoroutine = LuaObject.tableFrom('coroutine', [
+      LuaFuncBuilder.create('create')
+        .arg('fn')
+        .exec(call: () {
+          final fn = findVar('fn');
+          if(fn is LuaObject && fn.isFunc) {
+            final int? addr = onCreateCoRoutine?.call(fn);
+            if(addr == null) return LuaObject.nil('co');
+            return LuaThread(addr).toLua('co');
+          }
+
+          final t = switch(fn) {
+            null => 'nil',
+            final LuaObject o => o.luaTypeInfo,
+            final Object o => o.runtimeType,
+          };
+
+          throw 'Expected function for coroutine. Found $t.';
+        }),
+      LuaFuncBuilder.create('resume')
+        .arg('co')
+        .exec(call: () {
+          final co = findVar('co');
+          if(co?.isThread ?? false) {
+            return onCoroutineResume?.call(co!.value.addr).toLuaRet();
+          }
+
+          throw 'Expected coroutine for "resume".';
+        }),
+      LuaFuncBuilder.create('yield')
+        .vararg()
+        .exec(call: () {
+          final vs = findVarArgs();
+          onCoroutineYield?.call(vs);
+        })
+      LuafuncBuilder.create('status')
+        .arg('co')
+        .exec(call: () {
+          final co = findVar('co');
+          if(co?.isThread ?? false) {
+            return onCoroutineStatus?.call(co!.value.addr)?.toLuaRet();
+          }
+          
+          throw 'Expected coroutine for "status".';
+        });
+    ]);
+
+    defGlobal(defCoroutine).doc = LuaDoc(
+      category: catRuntime,
+      html: '''
+      Lua offsers asymmetric coroutines as a way to reason about statefulness without
+      resorting to bloated abstractions to keep track of state and execution.
+      ''',
+    );
   }
 
   void initStdStrings() {
