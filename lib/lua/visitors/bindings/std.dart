@@ -8,6 +8,37 @@ const catRuntime = 'Runtime';
 
 typedef StdPrintCallback = void Function(String);
 
+/// If one implementation for coroutines are needed, then
+/// all implementations for the coroutine API are needed.
+/// This class provides a quick configuration for all methods.
+class CoroutineCallbacks {
+  /// This is called by the closure defined in [initStdCoroutines].
+  /// The callback expects a [LuaObject] argument which will have
+  /// satisfied [LuaObject.isFunc]. The implementation expected
+  /// to return an [int] address value of the designated coroutine.
+  int Function(LuaObject fn) onCoroutineCreate;
+
+  /// Given a coroutine [int] address, return the status of the
+  /// coroutine as a [String].
+  String Function(int addr) onCoroutineStatus;
+
+  /// Given a coroutine [int] address and optional [vargs],
+  /// resume that coroutine and return a value. Multiple values will
+  /// be unpacked by the runtime.
+  LuaObject Function(int addr, List<LuaObject> vargs) onCoroutineResume;
+
+  /// Given a list of lua value [args], perform the coroutine
+  /// yield behavior.
+  void Function(List<LuaObject> args) onCoroutineYield;
+
+  CoroutineCallbacks({
+    required this.onCoroutineCreate,
+    required this.onCoroutineResume,
+    required this.onCoroutineStatus,
+    required this.onCoroutineYield,
+  });
+}
+
 /// Implements the lua standard libraries.
 /// Some implementations need further defining by the programmer
 /// such as [Std.onRequireImpl] called in [initStdRequire].
@@ -21,23 +52,9 @@ mixin Std on BaseRuntime {
   /// still performing general book keeping for each.
   void Function(String)? onRequireImplComplete;
 
-  /// This is called by the closure defined in [initStdCoroutines].
-  /// The callback expects a [LuaObject] argument which will have
-  /// satisfied [LuaObject.isFunc]. The implementation expected
-  /// to return an [int] address value of the designated coroutine.
-  int Function(LuaObject)? onCoroutineCreate;
-
-  /// Given a coroutine [int] address, return the status of the
-  /// coroutine as a [String].
-  String Function(int)? onCoroutineStatus;
-
-  /// Given a coroutine [int] address, resume that coroutine and
-  /// return a value. Multiple values will be unpacked by the runtime.
-  LuaObject Function(int)? onCoroutineResume;
-
-  /// Given a list of lua value [args], perform the coroutine
-  /// yield behavior.
-  void Function(List<LuaObject> args)? onCoroutineYield;
+  /// Support coroutines by setting this field to a
+  /// non-null implementation.
+  CoroutineCallbacks? coroutineImpls;
 
   void initStdRuntime() {
     initStdStrings();
@@ -47,55 +64,89 @@ mixin Std on BaseRuntime {
     initStdTable();
     initStdPrint();
     initStdMath();
-    initStdCoroutines();
   }
 
-  void initStdCoroutines() {
+  void initStdCoroutines({required CoroutineCallbacks impl}) {
+    coroutineImpls = impl;
     final defCoroutine = LuaObject.tableFrom('coroutine', [
       LuaFuncBuilder.create('create')
-        .arg('fn')
-        .exec(call: () {
-          final fn = findVar('fn');
-          if(fn is LuaObject && fn.isFunc) {
-            final int? addr = onCreateCoRoutine?.call(fn);
-            if(addr == null) return LuaObject.nil('co');
-            return LuaThread(addr).toLua('co');
-          }
+          .arg('fn')
+          .exec(
+            call: () {
+              final fn = findVar('fn');
+              if (fn is LuaObject && fn.isFunc) {
+                final int addr = impl.onCoroutineCreate.call(fn);
+                return LuaThread(addr).toLua('co');
+              }
 
-          final t = switch(fn) {
-            null => 'nil',
-            final LuaObject o => o.luaTypeInfo,
-            final Object o => o.runtimeType,
-          };
+              final t = switch (fn) {
+                null => 'nil',
+                final LuaObject o => o.luaTypeInfo,
+              };
 
-          throw 'Expected function for coroutine. Found $t.';
-        }),
+              throw 'Expected function for coroutine. Found $t.';
+            },
+          )
+        ..doc = LuaDoc(
+          html: '''
+          Creates a new coroutine with a function <code>fn</code> and returns an object 
+          of type <code>thread</code>.
+          ''',
+        ),
       LuaFuncBuilder.create('resume')
-        .arg('co')
-        .exec(call: () {
-          final co = findVar('co');
-          if(co?.isThread ?? false) {
-            return onCoroutineResume?.call(co!.value.addr).toLuaRet();
-          }
+          .arg('co')
+          .varargs()
+          .exec(
+            call: () {
+              final co = findVar('co');
+              final vs = findVarArgs();
+              if (co?.isThread ?? false) {
+                final thread = co!.value as LuaThread;
+                return impl.onCoroutineResume
+                    .call(thread.addr, vs ?? [])
+                    .toLuaRet();
+              }
 
-          throw 'Expected coroutine for "resume".';
-        }),
-      LuaFuncBuilder.create('yield')
-        .vararg()
-        .exec(call: () {
-          final vs = findVarArgs();
-          onCoroutineYield?.call(vs);
-        })
-      LuafuncBuilder.create('status')
-        .arg('co')
-        .exec(call: () {
-          final co = findVar('co');
-          if(co?.isThread ?? false) {
-            return onCoroutineStatus?.call(co!.value.addr)?.toLuaRet();
-          }
-          
-          throw 'Expected coroutine for "status".';
-        });
+              throw 'Expected coroutine for "resume".';
+            },
+          )
+        ..doc = LuaDoc(
+          html: '''
+          Resumes the coroutine <code>co</code> and passes the parameters if any. 
+          It returns the status of operation and optional other return values.
+          ''',
+        ),
+      LuaFuncBuilder.create('yield').varargs().exec(
+          call: () {
+            final vs = findVarArgs();
+            impl.onCoroutineYield.call(vs ?? []);
+          },
+        )
+        ..doc = LuaDoc(
+          html: '''
+          Suspends the running coroutine. The optional parameters passed to this 
+          method acts as additional return values to the resume function.
+          ''',
+        ),
+      LuaFuncBuilder.create('status')
+          .arg('co')
+          .exec(
+            call: () {
+              final co = findVar('co');
+              if (co?.isThread ?? false) {
+                final thread = co!.value as LuaThread;
+                return impl.onCoroutineStatus.call(thread.addr).toLuaRet();
+              }
+
+              throw 'Expected coroutine for "status".';
+            },
+          )
+        ..doc = LuaDoc(
+          html: '''
+          Returns one of the values: <code>running</code>, <code>normal</code>, 
+          <code>suspended</code>, or <code>dead</code> based on the state of the coroutine.
+          ''',
+        ),
     ]);
 
     defGlobal(defCoroutine).doc = LuaDoc(

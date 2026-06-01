@@ -18,4 +18,8 @@ void main() {
   test('basic tables', () {
     expect(runner(parse('./test/assets/tables.lua')!), true);
   });
+
+  test('coroutines', () {
+    expect(runner(parse('./test/assets/coroutines.lua')!), true);
+  });
 }

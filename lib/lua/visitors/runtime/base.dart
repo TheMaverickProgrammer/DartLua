@@ -16,6 +16,9 @@ extension ObjectAsTypeOrNull on Object {
 /// unwound. When reporting errors. See [RuntimeCallbacks].
 typedef TraceCallback = void Function(Set<String>);
 
+/// Custom exception handling if needed.
+typedef LuaExceptionCallback = void Function(Object);
+
 /// A configuration class enabling the programmer to
 /// define what happens [onErrors], [onWarnings], or
 /// [onDiagnostics].
@@ -261,7 +264,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// [LuaObject.nil] values. Any exceptions are caught and tracked
   /// for the trace back later. The scope is popped and any return
   /// result [LuaObject] is returned.
-  LuaObject? callLuaFunction(LuaObject obj, {List<Object?> args = const []}) {
+  LuaObject? callLuaFunction(
+    LuaObject obj, {
+    List<Object?> args = const [],
+    LuaExceptionCallback? onException,
+  }) {
     final metaCall = obj.fieldValueAs<Function>('__call');
     if (metaCall == null) {
       final type = obj.luaTypeInfo;
@@ -286,7 +293,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
     try {
       res = metaCall.call();
     } catch (e) {
-      addError(e.toString());
+      if (onException == null) {
+        addError(e.toString());
+      } else {
+        onException.call(e);
+      }
     }
     popScope();
 

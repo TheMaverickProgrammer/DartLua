@@ -51,6 +51,9 @@ class LuaFuncBuilder {
   LuaFuncBuilder self() =>
       this..args.add(DeclArg(Token.synthesized('self', type: TokenType.kSelf)));
 
+  LuaFuncBuilder varargs() =>
+      this..args.add(DeclArg(Token.synthesized('...', type: TokenType.kRaw)));
+
   LuaObject exec({Function? call}) {
     final closure = call ?? () => LuaObject.variable('ret_$id', null);
 
@@ -192,7 +195,10 @@ class LuaObject {
   bool get isNotFunc => !isFunc;
 
   /// Query if the stored [value] is of type [LuaThread].
-  bool get isThread => _value is LuaThread;
+  bool get isThread => switch (isRef) {
+    true => deref().isThread,
+    false => _value is LuaThread,
+  };
 
   /// Query the negation of [isThread].
   bool get isNotThread => !isThread;
@@ -267,6 +273,7 @@ class LuaObject {
       LuaType.nil => 'nil',
       LuaType.table => 'table',
       LuaType.func => 'func',
+      LuaType.thread => 'thread',
     };
 
     return '$meta$out';
@@ -299,6 +306,7 @@ class LuaObject {
       LuaType.nil || LuaType.unresolved || LuaType.func => 0,
       LuaType.table => _fields?.length ?? 0,
       LuaType.value => 1,
+      LuaType.thread => 0,
     };
   }
 
@@ -732,12 +740,12 @@ class LuaObject {
 }
 
 /// A type that represents a lua thread.
-/// It only stores the address used by the evaluator.
+/// It only stores the address [addr] used by the evaluator.
 /// This type is used to distinguish a [LuaObject.value]
 /// from other types.
 class LuaThread {
-  int _threadAddr = 0x00;
-  LuaThread(int addr) : _threadAddr = addr;
+  int addr = 0x00;
+  LuaThread(this.addr);
 }
 
 /// Represents a lua object for analyzing irregardless
