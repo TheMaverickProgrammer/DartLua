@@ -71,6 +71,8 @@ class Scope {
     return null;
   }
 
+  /// Find the hidden variable "arg" if the function
+  /// parameter list includes the special identifier "...".
   List<LuaObject> findVarArgs() {
     final arg = findVar('arg');
     return arg?.fields?.values.nonNulls.toList() ?? [];

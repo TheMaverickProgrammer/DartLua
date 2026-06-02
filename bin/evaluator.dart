@@ -23,6 +23,8 @@ class Evaluator {
 class _EvalImpl extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
   final Map<int, LuaObject> _cos = {};
   final Map<int, LuaThreadStatus> _statuses = {};
+  final Map<int, ControlStructure?> _ctrls = {};
+
   int _nextAddr = 0x01;
   int _currAddr = 0x00;
 
@@ -61,20 +63,41 @@ class _EvalImpl extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
     final fn = _cos[addr]!;
     _currAddr = addr;
 
-    LuaObject? ret;
+    if (_ctrls.containsKey(_currAddr)) {
+      // Resume the coroutine.
+      // Grab the most relevant control structure in the AST
+      // and revisit it.
+      final cs = _ctrls[_currAddr]!;
 
-    // Simulate lua protected mode. Errors are not propogated up.
-    onException(e) {
-      if (e is LuaReturnValueException) {
-        ret = e.value;
-      } else {
+      ControlStructure? prev = ctrlStruct;
+      bool canResume = true;
+      try {
+        ctrlStruct = cs;
+        final _ = switch (cs.node) {
+          final FuncExpr f => f.accept(this),
+          final ForLoopStmt f => f.accept(this),
+          final ForIterLoopStmt f => f.accept(this),
+          final WhileLoopStmt w => w.accept(this),
+          final RepeatUntilLoopStmt r => r.accept(this),
+          final Object o =>
+            throw 'Unsuspending unknown control structure ${o.runtimeType}',
+        };
+      } catch (e) {
+        if (e is LuaReturnValueException) {
+          return e.value;
+        }
         addError(e.toString());
+        canResume = false;
+      } finally {
+        ctrlStruct = prev;
       }
+
+      // Return if successfully resumed.
+      return canResume.toLuaRet();
     }
 
-    // Note we only set ret if not set by the exception handler.
-    ret ??= callLuaFunction(fn, args: vargs, onException: onException);
-
+    // Else, start the coroutine for the first time.
+    LuaObject? ret = callLuaFunction(fn, args: vargs);
     return ret ?? LuaObject.nil('ret');
   }
 
@@ -82,6 +105,7 @@ class _EvalImpl extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
     if (!_statuses.containsKey(_currAddr)) {
       throw 'No running coroutine to yield from.';
     }
+    _ctrls[_currAddr] = ctrlStruct;
 
     _currAddr = 0x00;
     throw LuaReturnValueException(LuaObject.tableFrom('yield_ret', args));

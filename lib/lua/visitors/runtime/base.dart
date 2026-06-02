@@ -107,6 +107,27 @@ mixin ReturnStmtDoNotUnwind on BaseRuntime {
   }
 }
 
+/// Whenever a language construct would move the program's execution
+/// out of the normal tree walk, we can refer to this structure and obtain
+/// the exact location to resume. See: Coroutines.
+class ControlStructure {
+  /// The control structure node in the tree.
+  Stmt node;
+
+  /// The counter in the control structure's body if applicable.
+  num counter;
+
+  /// The end of the [counter] in the control structure if applicable.
+  num end;
+
+  /// The iterator function for the control structure if applicable.
+  Function? iter;
+
+  ControlStructure(this.node, {num? counter, num? end, this.iter})
+    : counter = counter ?? 0,
+      end = end ?? 0;
+}
+
 /// Implements common Lua runtime logic.
 /// Extend with mixin [ReturnStmtCallStackUnwind]
 /// or [ReturnStmtDoNotUnwind].
@@ -132,6 +153,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   /// Describes to do when lua processes the `require()` function.
   LuaRequireCallback? onRequireImpl;
+
+  /// Used in coroutines.
+  ControlStructure? ctrlStruct;
 
   /// Only constructor.
   BaseRuntime(this.results);
@@ -293,7 +317,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
     try {
       res = metaCall.call();
     } catch (e) {
-      if (onException == null) {
+      if (e is LuaReturnValueException) {
+        res = e.value;
+      } else if (onException == null) {
         addError(e.toString());
       } else {
         onException.call(e);
@@ -334,11 +360,17 @@ abstract class BaseRuntime extends Visitor<Object?> {
     // or not it should follow local function conventions or not, we can
     // construct a closure.
     closure() {
+      int start = switch (ctrlStruct?.node == expr) {
+        true => ctrlStruct!.counter,
+        false => 0,
+      }.toInt();
+
       Object? ret;
       final int len = expr.body.length;
-      for (int i = 0; i < len; i++) {
+      for (int i = start; i < len; i++) {
         final Stmt stmt = expr.body[i];
         try {
+          ctrlStruct = ControlStructure(expr, counter: i);
           ret = stmt.accept(this);
         } catch (e) {
           if (e is LuaReturnValueException) {
@@ -686,6 +718,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
     final val = forIterLoopStmt.value.lexeme;
 
     final iterExpr = forIterLoopStmt.iterExpr.accept(this);
+
+    // TODO: iter expr should be a function, not a table.
+    // See https://github.com/TheMaverickProgrammer/DartLua/issues/5
     if (iterExpr is! LuaObject || !iterExpr.isTable) {
       final String lineInfo = this.lineInfo(forIterLoopStmt.token);
       popScope();
@@ -695,6 +730,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
     final iterLen = iterExpr.length;
     defLocal(LuaObject.nil(key));
     defLocal(LuaObject.nil(val));
+
+    /// Todo: this control structure needs the iterator function to keep track of.
+    ctrlStruct = ControlStructure(forIterLoopStmt);
 
     for (int i = 0; i < iterLen; i++) {
       final iterKey = findVar(key);
@@ -755,6 +793,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
     final ctrl = defLocal(LuaObject.variable(controlId, ncontrol));
 
     while (ncontrol <= end) {
+      ctrlStruct = ControlStructure(forLoopStmt, counter: ncontrol);
+
       for (Stmt stmt in forLoopStmt.body) {
         try {
           stmt.accept(this);
@@ -787,8 +827,10 @@ abstract class BaseRuntime extends Visitor<Object?> {
     if (visitBody) {
       Object? res;
       pushScope();
-      for (Stmt stmt in stmt.body) {
-        final out = stmt.accept(this);
+      for (Stmt s in stmt.body) {
+        ctrlStruct = ControlStructure(stmt, counter: stmt.body.indexOf(s));
+
+        final out = s.accept(this);
 
         // One of these code paths must be non-null
         // unless all paths are null.
@@ -1083,10 +1125,26 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   @override
   Object? visitRepeatUntilLoopStmt(RepeatUntilLoopStmt repeatUntilLoopStmt) {
-    for (Stmt stmt in repeatUntilLoopStmt.body) {
-      stmt.accept(this);
+    pushScope();
+    while (true) {
+      try {
+        for (Stmt stmt in repeatUntilLoopStmt.body) {
+          ctrlStruct = ControlStructure(
+            repeatUntilLoopStmt,
+            counter: repeatUntilLoopStmt.body.indexOf(stmt),
+          );
+          stmt.accept(this);
+        }
+        final cond = repeatUntilLoopStmt.untilExpr.accept(this);
+        if (cond == false || cond == null) {
+          break;
+        }
+      } catch (e) {
+        addError(e.toString());
+        break;
+      }
     }
-    final _ = repeatUntilLoopStmt.untilExpr.accept(this);
+    popScope();
     return null;
   }
 
@@ -1149,9 +1207,18 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   @override
   Object? visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
-    final _ = whileLoopStmt.expr.accept(this);
-    for (Stmt stmt in whileLoopStmt.body) {
-      stmt.accept(this);
+    while (true) {
+      final cond = whileLoopStmt.expr.accept(this);
+
+      if (cond == false || cond == null) break;
+
+      for (Stmt stmt in whileLoopStmt.body) {
+        ctrlStruct = ControlStructure(
+          whileLoopStmt,
+          counter: whileLoopStmt.body.indexOf(stmt),
+        );
+        stmt.accept(this);
+      }
     }
     return null;
   }

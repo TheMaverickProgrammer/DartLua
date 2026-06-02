@@ -52,7 +52,8 @@ class LuaFuncBuilder {
       this..args.add(DeclArg(Token.synthesized('self', type: TokenType.kSelf)));
 
   LuaFuncBuilder varargs() =>
-      this..args.add(DeclArg(Token.synthesized('...', type: TokenType.kRaw)));
+      this
+        ..args.add(DeclArg(Token.synthesized('...', type: TokenType.kSpread)));
 
   LuaObject exec({Function? call}) {
     final closure = call ?? () => LuaObject.variable('ret_$id', null);

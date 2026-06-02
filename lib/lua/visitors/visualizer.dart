@@ -476,8 +476,8 @@ class Visualizer extends Visitor<GzBaseNode> {
       color: 'yellow',
       shape: 'diamond',
       children: [
-        node('ctrl', children: ctrl),
-        node('do', children: body),
+        node('ctrl', color: 'pink', children: ctrl),
+        node('do', color: 'yellow', children: body),
       ],
     );
   }
