@@ -78,7 +78,7 @@ class Parser {
         advance();
       }
     }
-    return AST(stmts);
+    return AST(Token.synthesized('<Program>', type: TokenType.kRaw), stmts);
   }
 
   Stmt? stmt() {
@@ -196,18 +196,18 @@ class Parser {
       TokenType.kUntil,
     ];
 
-    consume(TokenType.kReturn, 'Expected "return" keyword.');
-    return ReturnStmt(argList(terminals: retTerminals));
+    final token = consume(TokenType.kReturn, 'Expected "return" keyword.');
+    return ReturnStmt(token, argList(terminals: retTerminals));
   }
 
   Stmt breakStmt() {
-    consume(TokenType.kBreak, 'Expected "break" keyword.');
-    return BreakStmt();
+    final token = consume(TokenType.kBreak, 'Expected "break" keyword.');
+    return BreakStmt(token);
   }
 
   Stmt gotoStmt() {
-    consume(TokenType.kGoto, 'Expected "goto" keyword.');
-    return GotoStmt(rawExpr());
+    final token = consume(TokenType.kGoto, 'Expected "goto" keyword.');
+    return GotoStmt(token, rawExpr());
   }
 
   Stmt gotoLabelStmt() {
@@ -677,10 +677,11 @@ class Parser {
       usedBracketNotation = true;
       offset = 0;
     } else if (first.type == TokenType.kLCurly) {
-      return KeyValStmt.autokey(math());
+      return KeyValStmt.autokey(first, math());
     }
 
-    if (peek(offset: offset).type == TokenType.kAssign) {
+    final token = peek(offset: offset);
+    if (token.type == TokenType.kAssign) {
       expr ??= rawExpr();
 
       // Literal keys cannot be used unless inside bracket notation
@@ -696,10 +697,10 @@ class Parser {
       }
       advance();
 
-      return KeyValStmt(key: expr, value: math());
+      return KeyValStmt(token, key: expr, value: math());
     }
 
-    return KeyValStmt.autokey(expr ?? math());
+    return KeyValStmt.autokey(first, expr ?? math());
   }
 
   // Support https://www.lua.org/manual/5.5/manual.html#3.3.3
