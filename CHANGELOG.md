@@ -1,9 +1,12 @@
+## 1.0.9
+- `token` is now a field on all grammar nodes via `Stmt` base class.
+- Started but did not complete coroutines.
+- Had to push this premature version because an existing project was expecting some of these changes! Whoops.
+
 ## 1.0.8
 - `token` field on AST nodes is mutable (non final) to allow in-place transformations for upgrade tools.
-- `token` is now a field on all grammar nodes via `Stmt` base class.
 - Added `parse(String path)` to construct AST for `runner`.
 - Added `-v` flag to cli to dump DOT files as HTML for the input lua script.
-- Started but did not complete coroutines.
 
 ## 1.0.7
 - The `#` operator bound to the wrong level (binary expressions). Made them bind to memory types (literals, function calls, etc). My small tests seems to fix this.
