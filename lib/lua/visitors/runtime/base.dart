@@ -230,6 +230,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// This effectively pops the scope of execution. Otherwise
   /// nothing happens.
   void popScope() {
+    ctrlStruct = null;
     if (scope.parent == null) return;
     //scope.dump();
     scope = scope.parent!;
@@ -360,7 +361,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
     // or not it should follow local function conventions or not, we can
     // construct a closure.
     closure() {
-      int start = switch (ctrlStruct?.node == expr) {
+      // TODO: always fetch latest ctrl struct. not the one in closure?
+      int start = switch (false /*ctrlStruct?.node == expr*/ ) {
         true => ctrlStruct!.counter,
         false => 0,
       }.toInt();
@@ -599,6 +601,10 @@ abstract class BaseRuntime extends Visitor<Object?> {
           return asInt(lhs) & asInt(rhs);
         case TokenType.kBitOr:
           return asInt(lhs) | asInt(rhs);
+        case TokenType.kBitLShift:
+          return asInt(lhs) << asInt(rhs);
+        case TokenType.kBitRShift:
+          return asInt(lhs) >> asInt(rhs);
         case TokenType.kCarrot:
           return math.pow(asNum(lhs), asNum(rhs));
         case TokenType.kDiv:

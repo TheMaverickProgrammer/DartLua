@@ -587,7 +587,12 @@ class Parser {
   MathExpr bitwiseExpr() {
     MathExpr expr = unaryExpr();
 
-    final bitops = [TokenType.kBitAnd, TokenType.kBitOr];
+    final bitops = [
+      TokenType.kBitAnd,
+      TokenType.kBitOr,
+      TokenType.kBitLShift,
+      TokenType.kBitRShift,
+    ];
 
     Token? op = peek();
     while (bitops.contains(op?.type)) {

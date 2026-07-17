@@ -57,6 +57,8 @@ enum TokenType {
   kBitNot,
   kBitAnd,
   kBitOr,
+  kBitLShift,
+  kBitRShift,
   kGoto,
   kGotoLabel,
   kEOF,
@@ -174,10 +176,7 @@ class Lexer {
 
   void dropComments() {
     tokens.removeWhere(
-      (e) => [
-        TokenType.kLineComment,
-        TokenType.kBlockComment,
-      ].contains(e.type),
+      (e) => [TokenType.kLineComment, TokenType.kBlockComment].contains(e.type),
     );
   }
 
@@ -305,9 +304,14 @@ class Lexer {
   void lt() {
     final char = advance();
 
-    if (peek().lexeme == '=') {
+    final lexeme = peek().lexeme;
+    if (lexeme == '=') {
       advance();
       tokens.add(char.toToken(TokenType.kLTE, lexeme: '<='));
+      return;
+    } else if (lexeme == '<') {
+      advance();
+      tokens.add(char.toToken(TokenType.kBitLShift, lexeme: '<<'));
       return;
     }
     tokens.add(char.toToken(TokenType.kLT));
@@ -316,9 +320,14 @@ class Lexer {
   void gt() {
     final char = advance();
 
-    if (peek().lexeme == '=') {
+    final lexeme = peek().lexeme;
+    if (lexeme == '=') {
       advance();
       tokens.add(char.toToken(TokenType.kGTE, lexeme: '>='));
+      return;
+    } else if (lexeme == '>') {
+      advance();
+      tokens.add(char.toToken(TokenType.kBitRShift, lexeme: '>>'));
       return;
     }
 
@@ -451,7 +460,7 @@ class Lexer {
     if (peek().lexeme == '.') {
       advance();
 
-      if(peek().lexeme == '.') {
+      if (peek().lexeme == '.') {
         tokens.add(char.toToken(TokenType.kSpread, lexeme: '...'));
       } else {
         tokens.add(char.toToken(TokenType.kConcat, lexeme: '..'));

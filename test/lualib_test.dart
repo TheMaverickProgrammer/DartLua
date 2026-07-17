@@ -19,6 +19,10 @@ void main() {
     expect(runner(parse('./test/assets/tables.lua')!), true);
   });
 
+  test('bitops', () {
+    expect(runner(parse('./test/assets/bitops.lua')!), true);
+  });
+
   test('coroutines', () {
     expect(runner(parse('./test/assets/coroutines.lua')!), true);
   });

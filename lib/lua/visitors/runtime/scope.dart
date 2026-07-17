@@ -43,11 +43,7 @@ class Scope {
         // meta method __call is on a special table.
         // therefore we may also have other table fields.
         luaObject.writeFields(value.fields!);
-        /*} else if (value.isTable) {
-        luaObject = LuaObject.table(id, value.fields);*/
       } else {
-        /*luaObject = LuaObject(id);
-        luaObject.value = value;*/
         luaObject = value;
       }
     } else /* not LuaObject */ {
