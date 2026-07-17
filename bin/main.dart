@@ -1,12 +1,12 @@
 import 'dart:io';
 
+import 'package:puredartlua/lua/lua.dart';
+import 'package:puredartlua/lua/visitors/runtime/luaobject.dart';
 import 'package:puredartlua/lua/visitors/visualizer.dart';
-
-import 'runner.dart';
+import 'package:puredartlua/utils.dart';
 
 void help() {
-  print('''
-	-h            Show help.
+  print('''  -h            Show help.
   -e <PATH>     Execute script at PATH.
   -v <PATH>     Generate DOT file HTML for input <PATH>.
   [ARG1...ARGN] Space separated args for IO input.
@@ -51,17 +51,25 @@ void main(List<String> args) {
   }
 
   final String path = args[++idx];
-
-  // ignore: unused_local_variable
-  final List<String> input = args.sublist(++idx, args.length);
-
   try {
     // Try to construct an AST.
     final ast = parse(path);
     if (ast == null) return;
 
+    final List<String> input = args.sublist(idx, args.length);
+
+    make() {
+      final evaluator = Evaluator();
+
+        evaluator.impl.defGlobal(
+          LuaObject.tableFrom('arg',
+          [ for(int i = 0; i < input.length; i++) input[i].toLua('$i') ]
+        ));
+
+      return evaluator;
+    }
     // Interpret by walking the AST.
-    runner(ast);
+    runner(ast, constructor: make);
   } catch (e) {
     // Print any run-time errors.
     print(e);
