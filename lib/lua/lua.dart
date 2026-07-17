@@ -108,10 +108,14 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
       }
 
       // Return if successfully resumed.
+      if(!canResume) {
+        _statuses[_currAddr] = LuaThreadStatus.dead;
+      }
       return canResume.toLuaRet();
     }
 
     // Else, start the coroutine for the first time.
+    _statuses[_currAddr] = LuaThreadStatus.running;
     LuaObject? ret = callLuaFunction(fn, args: vargs);
     return ret ?? LuaObject.nil('ret');
   }
@@ -121,7 +125,7 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
       throw 'No running coroutine to yield from.';
     }
     _ctrls[_currAddr] = ctrlStruct;
-
+    _statuses[_currAddr] = LuaThreadStatus.suspended;
     _currAddr = 0x00;
     throw LuaReturnValueException(LuaObject.tableFrom('yield_ret', args));
   }

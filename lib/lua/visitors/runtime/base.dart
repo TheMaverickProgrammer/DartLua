@@ -306,7 +306,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     final defArgs = obj.funcDef!.args;
     final nilCount = defArgs.length - args.length;
 
-    for (int i = 0; i < args.length; i++) {
+    for (int i = 0; i < defArgs.length; i++) {
       final id = defArgs[i].lexeme;
       defLocal(args[i]?.toLua(id) ?? LuaObject.nil(id));
     }
@@ -362,7 +362,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     // construct a closure.
     closure() {
       // TODO: always fetch latest ctrl struct. not the one in closure?
-      int start = switch (false /*ctrlStruct?.node == expr*/ ) {
+      int start = switch (/*false*/ctrlStruct?.node == expr ) {
         true => ctrlStruct!.counter,
         false => 0,
       }.toInt();
@@ -804,6 +804,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
       for (Stmt stmt in forLoopStmt.body) {
         try {
           stmt.accept(this);
+        } on LuaReturnValueException {
+          rethrow;
         } catch (e) {
           addError(e.toString());
         }
@@ -1057,6 +1059,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
       Object? ret;
       try {
         ret = callable!.call();
+      } on LuaReturnValueException {
+        rethrow;
       } catch (e) {
         throw '$linePos ${e.toString()}';
       } finally {
@@ -1214,9 +1218,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
   @override
   Object? visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
     while (true) {
-      final cond = whileLoopStmt.expr.accept(this);
+      final cond = whileLoopStmt.expr.accept(this)?.isTruthy ?? false;
 
-      if (cond == false || cond == null) break;
+      if (!cond) break;
 
       for (Stmt stmt in whileLoopStmt.body) {
         ctrlStruct = ControlStructure(
