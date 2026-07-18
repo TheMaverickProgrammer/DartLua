@@ -110,7 +110,7 @@ mixin ReturnStmtDoNotUnwind on BaseRuntime {
 /// Whenever a language construct would move the program's execution
 /// out of the normal tree walk, we can refer to this structure and obtain
 /// the exact location to resume. See: Coroutines.
-class ControlStructure {
+class CoCtrlStruct {
   /// The control structure node in the tree.
   Stmt node;
 
@@ -120,12 +120,31 @@ class ControlStructure {
   /// The end of the [counter] in the control structure if applicable.
   num end;
 
+  /// The child node offset in the control structure.
+  /// Often used with the body of some statement list.
+  int stmtIdx;
+
   /// The iterator function for the control structure if applicable.
   Function? iter;
 
-  ControlStructure(this.node, {num? counter, num? end, this.iter})
+  /// Constructor. Optional [counter], [end], and [iter]
+  /// parameters for different types of control structures.
+  /// For example, a for-loop would have a counter but
+  /// a while loop would have a condition stored in [node].
+  CoCtrlStruct(this.node, {num? counter, num? end, int? stmtIdx, this.iter })
     : counter = counter ?? 0,
-      end = end ?? 0;
+      end = end ?? 0,
+      stmtIdx = stmtIdx ?? 0;
+
+  /// Makes a new pointer with the data at some point in time.
+  CoCtrlStruct copy() =>
+    CoCtrlStruct(
+      node,
+      counter: counter,
+      end: end,
+      stmtIdx: stmtIdx,
+      iter: iter,
+    );
 }
 
 /// Implements common Lua runtime logic.
@@ -155,7 +174,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
   LuaRequireCallback? onRequireImpl;
 
   /// Used in coroutines.
-  ControlStructure? ctrlStruct;
+  CoCtrlStruct? coCtrlStruct;
 
   /// Only constructor.
   BaseRuntime(this.results);
@@ -230,7 +249,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// This effectively pops the scope of execution. Otherwise
   /// nothing happens.
   void popScope() {
-    ctrlStruct = null;
+    coCtrlStruct = null;
     if (scope.parent == null) return;
     //scope.dump();
     scope = scope.parent!;
@@ -362,8 +381,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
     // construct a closure.
     closure() {
       // TODO: always fetch latest ctrl struct. not the one in closure?
-      int start = switch (/*false*/ctrlStruct?.node == expr ) {
-        true => ctrlStruct!.counter,
+      int start = switch (/*false*/coCtrlStruct?.node == expr ) {
+        true => coCtrlStruct!.counter,
         false => 0,
       }.toInt();
 
@@ -372,7 +391,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       for (int i = start; i < len; i++) {
         final Stmt stmt = expr.body[i];
         try {
-          ctrlStruct = ControlStructure(expr, counter: i);
+          coCtrlStruct = CoCtrlStruct(expr, counter: i);
           ret = stmt.accept(this);
         } catch (e) {
           if (e is LuaReturnValueException) {
@@ -738,7 +757,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     defLocal(LuaObject.nil(val));
 
     /// Todo: this control structure needs the iterator function to keep track of.
-    ctrlStruct = ControlStructure(forIterLoopStmt);
+    coCtrlStruct = CoCtrlStruct(forIterLoopStmt);
 
     for (int i = 0; i < iterLen; i++) {
       final iterKey = findVar(key);
@@ -796,13 +815,24 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     final num end = evalNum(forLoopStmt.endExpr.accept(this), 'end')!;
     final num step = evalNum(forLoopStmt.stepExpr.accept(this), 'step')!;
+
+    // Adopt the coroutine's counter.
+    if(coCtrlStruct?.node == forLoopStmt) {
+      ncontrol = coCtrlStruct!.counter + step;
+    }
+
     final ctrl = defLocal(LuaObject.variable(controlId, ncontrol));
 
     while (ncontrol <= end) {
-      ctrlStruct = ControlStructure(forLoopStmt, counter: ncontrol);
-
-      for (Stmt stmt in forLoopStmt.body) {
+      final int stmtStartIdx = coCtrlStruct?.stmtIdx ?? 0;
+      for (int i = stmtStartIdx; i < forLoopStmt.body.length; i++) {
+        final stmt = forLoopStmt.body[i];
         try {
+          coCtrlStruct = CoCtrlStruct(
+            forLoopStmt,
+            counter: ncontrol,
+            stmtIdx: stmtStartIdx+1
+          );
           stmt.accept(this);
         } on LuaReturnValueException {
           rethrow;
@@ -836,7 +866,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
       Object? res;
       pushScope();
       for (Stmt s in stmt.body) {
-        ctrlStruct = ControlStructure(stmt, counter: stmt.body.indexOf(s));
+        coCtrlStruct = CoCtrlStruct(stmt,
+          stmtIdx: stmt.body.indexOf(s)
+        );
 
         final out = s.accept(this);
 
@@ -1008,7 +1040,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
       }
 
       final int fwdArgCount = fwdSelfArg ? 1 : 0;
-      while (args.length + fwdArgCount < defInLen) {
+      final int variadicCount = isVariadic ? 1 : 0;
+      while (args.length + fwdArgCount + variadicCount < defInLen) {
         args.add(NilLiteral(Token.synthesized('nil')));
       }
 
@@ -1139,7 +1172,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     while (true) {
       try {
         for (Stmt stmt in repeatUntilLoopStmt.body) {
-          ctrlStruct = ControlStructure(
+          coCtrlStruct = CoCtrlStruct(
             repeatUntilLoopStmt,
             counter: repeatUntilLoopStmt.body.indexOf(stmt),
           );
@@ -1218,12 +1251,15 @@ abstract class BaseRuntime extends Visitor<Object?> {
   @override
   Object? visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
     while (true) {
-      final cond = whileLoopStmt.expr.accept(this)?.isTruthy ?? false;
+      final cond = switch(whileLoopStmt.expr.accept(this)) {
+        final List ls => ls.firstOrNull?.isTruthy,
+        final Object? o => o.isTruthy,
+      };
 
       if (!cond) break;
 
       for (Stmt stmt in whileLoopStmt.body) {
-        ctrlStruct = ControlStructure(
+        coCtrlStruct = CoCtrlStruct(
           whileLoopStmt,
           counter: whileLoopStmt.body.indexOf(stmt),
         );

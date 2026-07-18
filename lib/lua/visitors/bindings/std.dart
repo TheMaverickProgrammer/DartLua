@@ -31,11 +31,16 @@ class CoroutineCallbacks {
   /// yield behavior.
   void Function(List<LuaObject> args) onCoroutineYield;
 
+  /// Handle the scope pop to collect the stack information
+  /// via [BaseRuntime.coCtrlStruct] before it is set to null.
+  void Function(CoCtrlStruct) onCoroutinePopScope;
+
   CoroutineCallbacks({
     required this.onCoroutineCreate,
     required this.onCoroutineResume,
     required this.onCoroutineStatus,
     required this.onCoroutineYield,
+    required this.onCoroutinePopScope,
   });
 }
 
@@ -64,6 +69,17 @@ mixin Std on BaseRuntime {
     initStdTable();
     initStdPrint();
     initStdMath();
+  }
+
+  @override
+  void popScope() {
+    // Collect the control structure.
+    // TODO: is there a better way to do this?
+    if(coCtrlStruct != null) {
+      coroutineImpls?.onCoroutinePopScope.call(coCtrlStruct!);
+    }
+
+    super.popScope();
   }
 
   void initStdCoroutines({required CoroutineCallbacks impl}) {

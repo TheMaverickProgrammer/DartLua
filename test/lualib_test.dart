@@ -7,6 +7,10 @@ void main() {
     expect(run(parse('./test/assets/for_loop.lua')!), true);
   });
 
+  test('while loops', () {
+    expect(run(parse('./test/assets/while_loops.lua')!), true);
+  });
+
   test('assignment', () {
     expect(run(parse('./test/assets/hello_world.lua')!), true);
   });

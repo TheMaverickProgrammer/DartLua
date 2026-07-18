@@ -6,9 +6,14 @@ local function test1()
         end
     end)
 
-    while coroutine.resume(co) do
+    --[[while coroutine.resume(co) do
         print('resuming')
-    end
+    end]]
+    print(coroutine.resume(co))
+    print(coroutine.resume(co))
+    print(coroutine.resume(co))
+    print(coroutine.resume(co))
+    print(coroutine.resume(co))
 end
 
 local function test2()
@@ -34,4 +39,4 @@ local function test2()
     print("main", coroutine.resume(co, 10, 20))
 end
 
-test2()
+test1()
