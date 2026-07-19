@@ -727,10 +727,34 @@ abstract class BaseRuntime extends Visitor<Object?> {
     return defLocal(LuaObject.variable(id, value));
   }
 
+  // Following https://www.lua.org/pil/5.1.html
+  // Each evaluated value returns one value
+  // unless it is the last evaluated value.
+  // Then those values are assigned to the lhs items.
   @override
   Object? visitDeclMultiVar(DeclMultiVar declMultiVar) {
-    for (final declVar in declMultiVar.vars) {
-      declVar.accept(this);
+    int len = declMultiVar.vals.length;
+    final List<LuaObject> vals = [];
+    for(int i = 0; i < len; i++) {
+      final LuaArgPack vs = switch(declMultiVar.vals[i].accept(this)) {
+        final LuaArgPack p => switch(i == len) {
+          true => p,
+          false => [?p.firstOrNull]
+        },
+        final LuaObject o => [o],
+        final Object? o => [?o?.toLua('arg$i')],
+      }.nonNulls.toList(growable: false);
+      vals.addAll(vs);
+    }
+
+    len = declMultiVar.vars.length;
+    for (int i = 0; i < len; i++) {
+      final declVar = declMultiVar.vars[i];
+      final LuaObject? o = declVar.accept(this)?.makeLuaRef();
+
+      if(i < vals.length) {
+        o?.value = vals[i];
+      }
     }
     return null;
   }

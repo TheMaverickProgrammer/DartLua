@@ -9,11 +9,17 @@ local function test1()
     --[[while coroutine.resume(co) do
         print('resuming')
     end]]
-    print(coroutine.resume(co))
-    print(coroutine.resume(co))
-    print(coroutine.resume(co))
-    print(coroutine.resume(co))
-    print(coroutine.resume(co))
+    print_table(coroutine.resume(co))
+    print_table(coroutine.resume(co))
+    print_table(coroutine.resume(co))
+    print_table(coroutine.resume(co))
+    print_table(coroutine.resume(co))
+end
+
+local function print_table(t)
+    for k, v in pairs(t) do
+        print(k..'='..tostring(v))
+    end
 end
 
 local function test2()

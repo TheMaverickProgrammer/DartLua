@@ -66,38 +66,32 @@ class DeclVar extends Stmt {
 
 /// Lua supports multivariable assignment.
 /// Therefore it supports multivariable declarations.
+/// The values are determined at runtime and follow
+/// the specification here:
+/// https://www.lua.org/pil/5.1.html
 class DeclMultiVar extends Stmt {
   /// The list of [DeclVar] nodes.
   final List<DeclVar> vars;
+  final List<MathExpr> vals;
 
-  DeclMultiVar._(super.token, this.vars);
+  DeclMultiVar._(super.token, this.vars, this.vals);
 
   /// Convenience constructor.
   /// See [DeclVar].
-  factory DeclMultiVar.initNils(List<Token> tokens) {
+  factory DeclMultiVar.initNils(List<Token> vars) {
     return DeclMultiVar._(
-      tokens.first,
-      tokens.map((e) => DeclVar.initNil(e)).toList(growable: false),
+      vars.first,
+      vars.map((e) => DeclVar.initNil(e)).toList(growable: false),
+      [] // vals
     );
   }
 
-  /// Constructs a multivariable assignment expression
-  /// from a list of [values]. If there are more [tokens]
-  /// than there are [values], then the remaining [vars]
-  /// will be associated with [DeclVar.initNil].
-  factory DeclMultiVar.initVars(List<Token> tokens, List<MathExpr> values) {
-    final List<DeclVar> vars = [];
-    for (int i = 0; i < tokens.length; i++) {
-      final token = tokens[i];
-      if (i < values.length) {
-        final val = values[i];
-        vars.add(DeclVar.initValue(token, value: val));
-      } else {
-        vars.add(DeclVar.initNil(token));
-      }
-    }
-
-    return DeclMultiVar._(tokens.first, vars);
+  factory DeclMultiVar.initVals(List<Token> vars, List<MathExpr> vals) {
+      return DeclMultiVar._(
+        vars.first,
+        vars.map((e) => DeclVar.initNil(e)).toList(growable: false),
+        vals,
+    );
   }
 
   @override

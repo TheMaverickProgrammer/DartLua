@@ -157,10 +157,10 @@ class Parser {
       'Expected variable name after "local".',
     );
 
-    final tokens = [token];
+    final vars = [token];
     while (peek().type == TokenType.kComma) {
       advance();
-      tokens.add(
+      vars.add(
         consume(
           TokenType.kRaw,
           'Expected variable name in multi-variable initializer.',
@@ -170,7 +170,7 @@ class Parser {
 
     final assign = peek();
     if (assign.type != TokenType.kAssign) {
-      return DeclMultiVar.initNils(tokens);
+      return DeclMultiVar.initNils(vars);
     }
 
     consume(
@@ -178,14 +178,14 @@ class Parser {
       'Expected assignment operator for multi-variable initilaizer.',
     );
 
-    final List<MathExpr> values = [math()];
+    final List<MathExpr> vals = [math()];
 
     while (peek().type == TokenType.kComma) {
       advance();
-      values.add(math());
+      vals.add(math());
     }
 
-    return DeclMultiVar.initVars(tokens, values);
+    return DeclMultiVar.initVals(vars, vals);
   }
 
   Stmt returnStmt() {

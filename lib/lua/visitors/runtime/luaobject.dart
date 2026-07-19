@@ -442,20 +442,6 @@ class LuaObject {
 
     return null;
   }
-
-  /// Lua tables returned by functions whose field length
-  /// is of size 1 can be unpacked into a single lua object.
-  LuaObject? unpack() {
-    if(isTable) {
-      if (length == 1 && hasField("1")) {
-        return readField("1")?.makeLuaRef();
-      }
-      return this;
-    }
-
-    return LuaObject.nil(id);
-  }
-
   /// Returns the stored [_fields] value
   LuaFieldsMap? get fields => deref()._fields;
 
@@ -752,6 +738,20 @@ class LuaThread {
   LuaThread(this.addr);
 }
 
+/// This type is used for multi variable value assignment
+/// and for multiple return values.
+typedef LuaArgPack = List<LuaObject>;
+extension LuaArgPackUnpack on LuaArgPack {
+  /// Lua tables returned by functions whose field length
+  /// is of size 1 can be unpacked into a single lua object.
+  LuaObject? unpack() {
+    if (length == 1) {
+      return first;
+    }
+    return LuaObject.nil('<argpack>');
+  }
+}
+
 /// Represents a lua object for analyzing irregardless
 /// if it is a well-defined variable or value.
 /// This permits any visitor to look pass semantic errors
@@ -764,6 +764,9 @@ class LuaObjectNoSemantics extends LuaObject {
 /// [LuaObject] instances in-place.
 ///
 /// See [Object.toLua].
+/// 
+/// Additionally has shorthand functions for common
+/// internal mechanisms such as [LuaArgPack] unpacking.
 extension Native2Lua on Object {
   /// A new [LuaObject.variable] instance
   /// is returned whose variable name in scope is [id].
@@ -780,5 +783,14 @@ extension Native2Lua on Object {
   LuaObject? makeLuaRef() => switch (this) {
     final LuaObject obj => obj,
     _ => null,
+  };
+
+  /// If [this] is [LuaObject] there's nothing to unpack.
+  /// If [this] is [LuaArgPack] use the method.
+  /// If [this] is anything else, convert to a lua object.
+  LuaObject? unpack() => switch(this) {
+    final LuaObject obj => obj,
+    final LuaArgPack p => p.unpack(),
+    final Object o => o.toLua('arg'),
   };
 }

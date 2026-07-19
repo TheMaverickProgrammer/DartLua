@@ -11,8 +11,12 @@ void main() {
     expect(run(parse('./test/assets/while_loops.lua')!), true);
   });
 
-  test('assignment', () {
+  test('simple assignment', () {
     expect(run(parse('./test/assets/hello_world.lua')!), true);
+  });
+
+  test('multi value assignment', () {
+    expect(run(parse('./test/assets/multivalues.lua')!), true);
   });
 
   test('scope', () {

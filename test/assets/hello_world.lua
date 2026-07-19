@@ -5,5 +5,7 @@ print(str)
 -- Testing variadic args in print.
 print(1, 2, 3, nil, true)
 
--- Empty variadic args resolves to nil.
+-- Empty variadic should print nothing.
 print()
+
+print(1)
