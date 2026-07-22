@@ -19,9 +19,9 @@ enum LuaThreadStatus { suspended, running, dead }
 ///
 /// Not treated as an actual exception or error.
 class LuaReturnValueException {
-  final LuaObject value;
+  final List<LuaObject> argpack;
 
-  LuaReturnValueException(this.value);
+  LuaReturnValueException(this.argpack);
 }
 
 /// This class provides an API for effortlessly constructing
@@ -745,7 +745,7 @@ extension LuaArgPackUnpack on LuaArgPack {
   /// Lua tables returned by functions whose field length
   /// is of size 1 can be unpacked into a single lua object.
   LuaObject? unpack() {
-    if (length == 1) {
+    if (isNotEmpty) {
       return first;
     }
     return LuaObject.nil('<argpack>');

@@ -25,7 +25,7 @@ class CoroutineCallbacks {
   /// Given a coroutine [int] address and optional [vargs],
   /// resume that coroutine and return a value. Multiple values will
   /// be unpacked by the runtime.
-  LuaObject Function(int addr, List<LuaObject> vargs) onCoroutineResume;
+  LuaArgPack Function(int addr, List<LuaObject> vargs) onCoroutineResume;
 
   /// Given a list of lua value [args], perform the coroutine
   /// yield behavior.
@@ -119,8 +119,7 @@ mixin Std on BaseRuntime {
               if (co?.isThread ?? false) {
                 final thread = co!.value as LuaThread;
                 return impl.onCoroutineResume
-                    .call(thread.addr, vs ?? [])
-                    .toLuaRet();
+                    .call(thread.addr, vs ?? []);
               }
 
               throw 'Expected coroutine for "resume".';

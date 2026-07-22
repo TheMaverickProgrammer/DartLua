@@ -73,15 +73,7 @@ abstract class BaseResults {
 mixin ReturnStmtCallStackUnwind on BaseRuntime {
   @override
   Object? visitReturnStmt(ReturnStmt expr) {
-    int idx = 1;
-    final table = LuaObject.table('ret', {});
-
-    for (MathExpr value in expr.values) {
-      table.writeField(idx.toString(), value.accept(this));
-      idx++;
-    }
-
-    throw LuaReturnValueException(table);
+    throw LuaReturnValueException(expr.values.visitArgPack(this));
   }
 }
 
@@ -95,15 +87,7 @@ mixin ReturnStmtCallStackUnwind on BaseRuntime {
 mixin ReturnStmtDoNotUnwind on BaseRuntime {
   @override
   Object? visitReturnStmt(ReturnStmt expr) {
-    int idx = 1;
-    final table = LuaObject.table('ret', {});
-
-    for (MathExpr value in expr.values) {
-      table.writeField(idx.toString(), value.accept(this));
-      idx++;
-    }
-
-    return table;
+    return expr.values.visitArgPack(this);
   }
 }
 
@@ -307,8 +291,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// will be dropped. Any remaining parameters will be filled by
   /// [LuaObject.nil] values. Any exceptions are caught and tracked
   /// for the trace back later. The scope is popped and any return
-  /// result [LuaObject] is returned.
-  LuaObject? callLuaFunction(
+  /// result [LuaObject]s are returned as an argpack.
+  List<LuaObject> callLuaFunction(
     LuaObject obj, {
     List<Object?> args = const [],
     LuaExceptionCallback? onException,
@@ -320,7 +304,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       throw 'Attempt to call a $type value "$varname".';
     }
 
-    LuaObject? res;
+    List<LuaObject> res = [];
     pushScope();
     final defArgs = obj.funcDef!.args;
     final nilCount = defArgs.length - args.length;
@@ -338,7 +322,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       res = metaCall.call();
     } catch (e) {
       if (e is LuaReturnValueException) {
-        res = e.value;
+        res = e.argpack;
       } else if (onException == null) {
         addError(e.toString());
       } else {
@@ -364,7 +348,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         ret = e.accept(this);
       } catch (e) {
         if (e is LuaReturnValueException) {
-          ret = e.value;
+          ret = e.argpack;
           break;
         } else {
           addError(e.toString());
@@ -395,7 +379,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
           ret = stmt.accept(this);
         } catch (e) {
           if (e is LuaReturnValueException) {
-            ret = e.value;
+            ret = e.argpack;
             break;
           } else {
             addError(e.toString());
@@ -403,7 +387,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         }
       }
 
-      return ret?.makeLuaRef()?.unpack();
+      return ret;
     }
 
     // Spec reference: https://www.lua.org/manual/5.4/manual.html#3.4.11
@@ -602,8 +586,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
     }
 
     try {
-      final lhs = expr.lhs.accept(this);
-      final rhs = expr.rhs.accept(this);
+      final lhs = expr.lhs.accept(this)?.unpack();
+      final rhs = expr.rhs.accept(this)?.unpack();
 
       switch (op) {
         case TokenType.kConcat:
@@ -727,27 +711,15 @@ abstract class BaseRuntime extends Visitor<Object?> {
     return defLocal(LuaObject.variable(id, value));
   }
 
-  // Following https://www.lua.org/pil/5.1.html
+  // See [VisitArgPack] extension.
   // Each evaluated value returns one value
   // unless it is the last evaluated value.
   // Then those values are assigned to the lhs items.
   @override
   Object? visitDeclMultiVar(DeclMultiVar declMultiVar) {
-    int len = declMultiVar.vals.length;
-    final List<LuaObject> vals = [];
-    for(int i = 0; i < len; i++) {
-      final LuaArgPack vs = switch(declMultiVar.vals[i].accept(this)) {
-        final LuaArgPack p => switch(i == len) {
-          true => p,
-          false => [?p.firstOrNull]
-        },
-        final LuaObject o => [o],
-        final Object? o => [?o?.toLua('arg$i')],
-      }.nonNulls.toList(growable: false);
-      vals.addAll(vs);
-    }
+    final List<LuaObject> vals = declMultiVar.vals.visitArgPack(this);
 
-    len = declMultiVar.vars.length;
+    final int len = declMultiVar.vars.length;
     for (int i = 0; i < len; i++) {
       final declVar = declMultiVar.vars[i];
       final LuaObject? o = declVar.accept(this)?.makeLuaRef();
@@ -995,8 +967,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
       // which will contain the special (latter) case. If so, we want to
       // use these supplied arguments for invocation.
       LuaObject? callable = callee;
-      int argsInLen = memoryAccess.args.length;
-      List<MathExpr> args = memoryAccess.args;
+      int argsInLen;
+      List<LuaObject> args;
       String callableId = callee.id;
 
       // This indicates the node is two parts: (lhs, (functioncall))
@@ -1024,10 +996,13 @@ abstract class BaseRuntime extends Visitor<Object?> {
         };
 
         // Use the rhs args for invocation.
-        args = rhsMemoryAccess.args;
+        args = rhsMemoryAccess.args.visitArgPack(this);
 
         // +1 to include implied self.
-        argsInLen = rhsMemoryAccess.args.length + 1;
+        argsInLen = args.length + 1;
+      } else {
+        args = memoryAccess.args.visitArgPack(this);
+        argsInLen = args.length;
       }
 
       final func = switch (callable) {
@@ -1063,11 +1038,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
         }
       }
 
-      final int fwdArgCount = fwdSelfArg ? 1 : 0;
-      final int variadicCount = isVariadic ? 1 : 0;
-      while (args.length + fwdArgCount + variadicCount < defInLen) {
-        args.add(NilLiteral(Token.synthesized('nil')));
-      }
 
       pushScope(/*context: callee*/);
 
@@ -1076,6 +1046,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       }
 
       final List<LuaObject> varg = [];
+      final int fwdArgCount = fwdSelfArg ? 1 : 0;
       final int argCount = switch (isVariadic) {
         true => args.length - fwdArgCount,
         false => defInLen - fwdArgCount,
@@ -1097,8 +1068,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
           }
         }
 
-        final expr = args.elementAt(i);
-        final next = LuaObject.variable(lexeme, expr.accept(this));
+        final arg = args.elementAt(i);
+        final next = LuaObject.variable(lexeme, arg);
 
         if (buildVarArgTable) {
           varg.add(next);
@@ -1124,7 +1095,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         popScope();
       }
 
-      return ret?.toLua('ret');
+      return ret;
     }
 
     // Else this must be a field on an object.
@@ -1152,7 +1123,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   @override
   Object? visitNilLiteral(NilLiteral nil) {
-    return null;
+    return LuaObject.nil('<nil>');
   }
 
   @override
@@ -1306,4 +1277,28 @@ extension Truthy on Object? {
   };
 
   bool get isNotTruthy => !isTruthy;
+}
+
+// Following https://www.lua.org/pil/5.1.html
+// Any argument pack would need to be evaluated
+// so that the returned values are the first item
+// in any pack list unless it's the last item, then
+// all the values can be returned.
+// The output is a flat list to be read from directly.
+extension VisitArgPack on List<MathExpr> {
+  List<LuaObject> visitArgPack(Visitor visitor) {
+    final List<LuaObject> out = [];
+    for(int i = 0; i < length; i++) {
+      final LuaArgPack vs = switch(this[i].accept(visitor)) {
+        final LuaArgPack p => switch(i+1 == length) {
+          true => p,
+          false => [?p.firstOrNull]
+        },
+        final LuaObject o => [o],
+        final Object? o => [?o?.toLua('arg$i')],
+      }.nonNulls.toList(growable: false);
+      out.addAll(vs);
+    }
+    return out;
+  }
 }

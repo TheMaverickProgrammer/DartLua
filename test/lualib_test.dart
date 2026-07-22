@@ -12,7 +12,7 @@ void main() {
   });
 
   test('simple assignment', () {
-    expect(run(parse('./test/assets/hello_world.lua')!), true);
+    expect(run(parse('./test/assets/assignment.lua')!), true);
   });
 
   test('multi value assignment', () {

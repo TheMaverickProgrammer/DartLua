@@ -36,12 +36,13 @@ end
 -- Tables as lists
 local list = {}
 
--- technically 11 elements, but the
+-- This is technically 11 elements, but the
 -- length operator starts counting from 1.
 for i=0, 10 do
 	list[i] = i
 end
 
+-- Expects len(list)=11
 print('len(list)='..#list)
 
 if #list > 0 then
@@ -52,6 +53,9 @@ local compound = {
 	arr={0, 1, 2, 3, 4, 5, 'a', 'b', 'c', 'd', 'e'}
 }
 -- Length operator on a compound expression.
--- Expected: 11
+
+-- Expects 11
 print(#compound.arr)
+
+-- Expects 11
 print(#(compound.arr))

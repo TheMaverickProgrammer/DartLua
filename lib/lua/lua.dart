@@ -71,21 +71,18 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
     return _statuses[addr].toString();
   }
 
-  LuaObject _onCoroutineResume(int addr, List<LuaObject> vargs) {
+  LuaArgPack _onCoroutineResume(int addr, List<LuaObject> vargs) {
     if (!_cos.containsKey(addr)) {
       throw 'No such coroutine with address $addr.';
     }
 
     if(_statuses[addr] == LuaThreadStatus.dead) {
-      return LuaObject.table('co_ret', {
-      '1': false,
-      '2': 'Cannot resume dead coroutine.',
-      });
+      return [false.toLua('canResume'), 'Cannot resume dead coroutine.'.toLua('error')];
     }
 
     final fn = _cos[addr]!;
     bool canResume = true;
-    LuaObject? ret;
+    LuaArgPack ret = [];
 
     _currAddr = addr;
     _statuses[_currAddr] = LuaThreadStatus.running;
@@ -112,9 +109,9 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
         canResume = false;
       } catch (e) {
         if (e is LuaReturnValueException) {
-          ret = e.value;
+          ret = e.argpack;
         } else {
-          ret = e.toString().toLua('error');
+          ret = [e.toString().toLua('error')];
         }
       } finally {
         coCtrlStruct = prev;
@@ -128,10 +125,7 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
       _statuses[_currAddr] = LuaThreadStatus.dead;
     }
 
-    return LuaObject.table('co_ret', {
-      '1': canResume,
-      '2': ?ret,
-    });
+    return [ canResume.toLua('canResume'), ...ret];
   }
 
   void _onCoroutineYield(List<LuaObject> args) {
@@ -141,7 +135,7 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
     _ctrls[_currAddr] = coCtrlStruct?.copy();
     _statuses[_currAddr] = LuaThreadStatus.suspended;
     _currAddr = 0x00;
-    throw LuaReturnValueException(LuaObject.tableFrom('yield_ret', args));
+    throw LuaReturnValueException(args);
   }
 
   void _onCoroutinePopScope(CoCtrlStruct coCtrlStruct) {

@@ -45,4 +45,4 @@ local function test2()
     print("main", coroutine.resume(co, 10, 20))
 end
 
-test1()
+test2()
