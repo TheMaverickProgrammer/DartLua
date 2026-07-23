@@ -156,11 +156,12 @@ Here's what's left to be compliant with the `Lua 5.5` specification:
 - Missing a semantics pass for `goto` and `::label::` statements.
 - Metamethods.
   - Particularly there is no support for metamethods except for `___call`.
-  - But metamethods are just function objects with a few places that lua calls as defined.
+  - But metamethods are just function objects with a few places that lua calls as defined so this can be done easily.
 - `<const>` is not added.
-- `Coroutines` library is added but the runtime needs bytecode to make use of it.
+- `Coroutines` library **is** added but the runtime needs bytecode to make use of it.
 - Lua uses semicolons for grammar disambiguities. Semicolons are not in this implementation atm.
 - Lua supports dropping the parenthesis for singular arg function args e.g. `print "hello!"`.
+- No tail call support.
 
 ## Extra Goals
 - Semantics: code path type unification.

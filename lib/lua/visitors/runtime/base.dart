@@ -816,14 +816,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
     final num end = evalNum(forLoopStmt.endExpr.accept(this), 'end')!;
     final num step = evalNum(forLoopStmt.stepExpr.accept(this), 'step')!;
 
-    // Adopt the coroutine's counter.
-    if(coCtrlStruct?.node == forLoopStmt) {
-      ncontrol = coCtrlStruct!.counter + step;
-    }
-
-    final ctrl = defLocal(LuaObject.variable(controlId, ncontrol));
-
     while (ncontrol <= end) {
+      defLocal(LuaObject.variable(controlId, ncontrol));
+
       for (int i = 0; i < forLoopStmt.body.length; i++) {
         final stmt = forLoopStmt.body[i];
         try {
@@ -835,7 +830,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
         }
       }
       ncontrol += step;
-      ctrl.value = ncontrol;
     }
 
     popScope();
