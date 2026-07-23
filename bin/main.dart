@@ -29,7 +29,7 @@ void main(List<String> args) {
     }
 
     final path = args[++idx];
-    final ast = parse(path);
+    final ast = parseFile(path);
 
     // Abort early on error.
     if (ast == null) return;
@@ -53,7 +53,7 @@ void main(List<String> args) {
   final String path = args[++idx];
   try {
     // Try to construct an AST.
-    final ast = parse(path);
+    final ast = parseFile(path);
     if (ast == null) return;
 
     final List<String> input = args.sublist(idx, args.length);

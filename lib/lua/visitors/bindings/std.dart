@@ -29,7 +29,7 @@ class CoroutineCallbacks {
 
   /// Given a list of lua value [args], perform the coroutine
   /// yield behavior.
-  void Function(List<LuaObject> args) onCoroutineYield;
+  LuaArgPack Function(List<LuaObject> args) onCoroutineYield;
 
   /// Handle the scope pop to collect the stack information
   /// via [BaseRuntime.coCtrlStruct] before it is set to null.
@@ -134,7 +134,7 @@ mixin Std on BaseRuntime {
       LuaFuncBuilder.create('yield').varargs().exec(
           call: () {
             final vs = findVarArgs();
-            impl.onCoroutineYield.call(vs ?? []);
+            return impl.onCoroutineYield.call(vs ?? []);
           },
         )
         ..doc = LuaDoc(
@@ -470,7 +470,7 @@ table.insert(t, "foo")
     );
 
     exec() {
-      impl?.call(findVarArgs()?.join(' ') ?? 'nil');
+      impl?.call(findVarArgs()?.join(' ') ?? '');
     }
 
     defGlobal(LuaObject.func('print', defPrint, exec)).doc = LuaDoc(

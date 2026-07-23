@@ -1,4 +1,4 @@
--- Demonstrates how to read `args`
+-- Demonstrates how to read inputs
 -- from the main driver.
 print('Your user input was:')
 for k,v in pairs(arg) do

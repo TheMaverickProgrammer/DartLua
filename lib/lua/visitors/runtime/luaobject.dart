@@ -770,7 +770,10 @@ class LuaObjectNoSemantics extends LuaObject {
 extension Native2Lua on Object {
   /// A new [LuaObject.variable] instance
   /// is returned whose variable name in scope is [id].
-  LuaObject toLua(String id) => LuaObject.variable(id, this);
+  LuaObject toLua(String id) => switch(this) {
+    final LuaFieldsMap m => LuaObject.table(id, m),
+    _ => LuaObject.variable(id, this),
+  };
 
   /// Calls [toLua] with the id of "ret"
   /// which is short for "return".

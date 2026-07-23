@@ -32,13 +32,14 @@ bool displayStdErr(List<String> errs, {required String verb}) {
   return false;
 }
 
+/// Reads a [File] at [path] and calls [parse].
+AST? parseFile(String path) =>
+  parse(File(path).readAsStringSync());
+
 /// Reads the lua file at [path].
 /// If there was an error, calls [displayStdErr] an returns null.
 /// Otherwise returns the constructed [AST].
-AST? parse(String path) {
-  final File file = File(path);
-  final String content = file.readAsStringSync();
-
+AST? parse(String content) {
   final Lexer lexer = Lexer.tokenize(content);
 
   if (displayStdErr(lexer.errors, verb: 'tokenizing')) return null;

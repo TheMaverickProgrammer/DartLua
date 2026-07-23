@@ -365,7 +365,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     // construct a closure.
     closure() {
       // TODO: always fetch latest ctrl struct. not the one in closure?
-      int start = switch (/*false*/coCtrlStruct?.node == expr ) {
+      int start = switch (coCtrlStruct?.node == expr ) {
         true => coCtrlStruct!.counter,
         false => 0,
       }.toInt();
@@ -399,7 +399,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
     // we cannot define `function t.a.f() end` without the existence of `t.a = {}` beforehand.
 
     final List<RawExpr> idParts = [...expr.idParts];
-    final String id = expr.id;
+    final String id = switch(expr.id.isEmpty) {
+      true => '<anonymous fn>',
+      false => expr.id,
+    };
+
     final String linePos = lineInfo(expr.token);
 
     LuaObject luaObj;
@@ -820,15 +824,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
     final ctrl = defLocal(LuaObject.variable(controlId, ncontrol));
 
     while (ncontrol <= end) {
-      final int stmtStartIdx = coCtrlStruct?.stmtIdx ?? 0;
-      for (int i = stmtStartIdx; i < forLoopStmt.body.length; i++) {
+      for (int i = 0; i < forLoopStmt.body.length; i++) {
         final stmt = forLoopStmt.body[i];
         try {
-          coCtrlStruct = CoCtrlStruct(
-            forLoopStmt,
-            counter: ncontrol,
-            stmtIdx: stmtStartIdx+1
-          );
           stmt.accept(this);
         } on LuaReturnValueException {
           rethrow;
@@ -1016,7 +1014,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
       final int defInLen = func.args.length;
       final String funcId = switch (func.id) {
-        '' => '<anonymous>',
+        '' => '<anonymous fn>',
         final String s => s,
       };
 

@@ -32,21 +32,33 @@ while(bar() and i > 0) do
     print('shouldn\'t be here!')
 end
 
--- OK
+-- Expect: here1 x5
+-- Expect: here1 x4
+-- Expect: here1 x3
+-- Expect: here1 x2
+-- Expect: here1 x1
 i = 5
 while(doh() and i > 0) do
     print('here1 x'..i)
     i = i - 1
 end
 
--- OK
+-- Expect: here2 x5
+-- Expect: here2 x4
+-- Expect: here2 x3
+-- Expect: here2 x2
+-- Expect: here2 x1
 i = 5
 while(ray() and i > 0) do
     print('here2 x'..i)
     i = i - 1
 end
 
--- OK
+-- Expect: here3 x5
+-- Expect: here3 x4
+-- Expect: here3 x3
+-- Expect: here3 x2
+-- Expect: here3 x1
 i = 5
 while(mee() and i > 0) do
     print('here3 x'..i)
