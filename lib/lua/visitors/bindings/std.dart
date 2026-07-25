@@ -81,8 +81,8 @@ mixin Std on BaseRuntime {
             final t = findVar('t');
             final mt = findVar('mt');
 
-            if(t == null) {
-              throw 'Expected lua object as first argument.';
+            if(t == null || t.isNotTable) {
+              throw 'Expected lua table as first argument.';
             }
 
             if(mt == null || mt.isNotTable) {
@@ -253,10 +253,20 @@ print(f(7)) -- prints 13
       final name = t.id;
       // t.isTable was true.
       final fields = t.fields!;
-      return LuaObject.table('ipairs_$name', {
-        for (int i = 0; i < fields.entries.length; i++)
-          (i + 1).toString(): fields.entries.elementAtOrNull(i)?.value,
-      });
+      final Map<String, LuaObject> newFields = {};
+
+      int i = 0;
+      while(i < fields.length) {
+        final String key = '${i+1}';
+        if(fields.containsKey(key)) {
+          newFields[key] = fields[key]!;
+          i++;
+        } else {
+          break;
+        }
+      }
+
+      return LuaObject.table('ipairs_$name', newFields);
     }
 
     final token = Token.synthesized('ipairs');
@@ -294,17 +304,19 @@ print(f(7)) -- prints 13
       // t.isTable was true.
       final fields = t.fields!;
 
-      final newFields = fields.map<String, LuaObject>((k, v) {
-        final value = switch (v) {
-          null => LuaObject.nil('value'),
-          final LuaObject obj => obj,
-        };
+      // Null fields are marked as deleted in lua.
+      // I don't remove them in this implementation,
+      // but we do exclude them from all operations that
+      // expose keys.
+      final newFields =
+        fields
+          .entries
+          .where((e) => e.value?.isNil == false)
+          .map((e) => MapEntry(e.key, e.value!));
 
-        final id = value.id;
-        return MapEntry<String, LuaObject>(id, value);
-      });
-
-      return LuaObject.table('ipairs_$name', newFields);
+      return LuaObject.table('ipairs_$name',
+        Map<String, LuaObject>.fromEntries(newFields)
+      );
     }
 
     final token = Token.synthesized('pairs');
@@ -421,7 +433,13 @@ table.insert(t, "foo")
     );
 
     exec() {
-      impl?.call(findVarArgs()?.join(' ') ?? '');
+      tostring(LuaObject e) {
+        final mm = e.readMetatable('__tostring')?.as<LuaObject>();
+        if(mm == null) return e;
+        return callLuaFunction(mm, args: [e]).unpack();
+      }
+
+      impl?.call(findVarArgs()?.map(tostring).join(' ') ?? '');
     }
 
     defGlobal(LuaObject.func('print', defPrint, exec)).doc = LuaDoc(

@@ -12,6 +12,7 @@
 - [Work In Progress!](#work-in-progress)
   - [Missing Lua Lang Support](#missing-lua-lang-support)
   - [Extra Goals](#extra-goals)
+  - [Unplanned](#unplanned)
 <!-- /TOC -->
 
 This is a custom a custom `Lua 5.5` interpreter and utilities written from scratch in pure Dart.
@@ -65,7 +66,7 @@ void main() {
 
   runner(parse("x = add_one(5)")!, constructor: () => evaluator);
 
-  int? result = evaluator.impl.globals.findVar('x')?.valueAsInt();
+  int? result = evaluator.findVar('x')?.valueAsInt();
 
   // Do something with `result`.
 }
@@ -96,7 +97,7 @@ The DOT file will be embedded in an HTML page `my_script.lua.html`.
 - `Truthy` and `Native2Lua` Dart class extensions for convenient bridge between userdata and lua types.
 - Globals provided by `_ENV` and legacy `_G` upvalues.
 - Metatables supported via `setmetatable(t, mt)` and `getmetatable(t)` as you'd expect.
-  - Metamethods: `__add`, `__sub`, `__mul`, `__div`, `__mod`, `__pow`, `__unm`, `__idiv`, `__band`, `__bor`, `__bxor`, `__bnot`, `__shl`, `__shr`, `__concat`, `__len`, `__eq`, `__lt`, `__le`.
+  - Metamethods: `__add`, `__sub`, `__mul`, `__div`, `__mod`, `__pow`, `__unm`, `__idiv`, `__band`, `__bor`, `__bxor`, `__bnot`, `__shl`, `__shr`, `__concat`, `__len`, `__eq`, `__lt`, `__le`, `__tostring`.
 - Standard lua runtime libs (partial implementation).
   - strings
   - include
@@ -170,5 +171,10 @@ Here's what's left to be compliant with the `Lua 5.5` specification:
   - `return` statements could have the function's final type identified.
   - Nondeterministic functions should be identified as such.
     - This would allow invariant code paths to be protomoted to constant value generation.
+
+## Unplanned
+This interpreter makes use of Dart's execution and memory model and it does not explicitly cleanup any memory. Therefore, anything related to Lua's garbage collector is not supported and not planned to be supported in the forseeable future.
+
+This also means the metamethods related to GC such as `__mode`, `__close`, and `__gc` are not implemented either.
 
 [AUTODOC]: ./lib/docs/autodoc.dart

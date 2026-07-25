@@ -71,6 +71,20 @@ for k,v in pairs(list) do
     print(k,'=',v)
 end
 
+-- Expect: 1 = 1
+-- Expect: 2 = 2
+-- Expect: 3 = 3
+-- Expect: 4 = 4
+-- Expect: 5 = 5
+-- Expect: 6 = 6
+-- Expect: 7 = 7
+-- Expect: 8 = 8
+-- Expect: 9 = 9
+-- Expect: 10 = 10
+for k,v in ipairs(list) do
+    print(k,'=',v)
+end
+
 -- Expect: list > 0
 if #list > 0 then
 	print('list > 0')

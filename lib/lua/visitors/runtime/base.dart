@@ -330,7 +330,10 @@ abstract class BaseRuntime extends Visitor<Object?> {
     }
 
     try {
-      res = closure.call();
+      // For the public API utilites,
+      // we expect friendly non-null values.
+      // Return an empty list if null.
+      res = closure.call() ?? [];
     } catch (e) {
       if (e is LuaReturnValueException) {
         res = e.argpack;

@@ -5,6 +5,8 @@ import 'package:test/expect.dart';
 import 'package:test/scaffolding.dart';
 import 'package:puredartlua/utils.dart';
 
+/// A simple utility class for holding the location
+/// of the expectation [line] and the content [captured].
 class ExpectationLine {
   final int line;
   final String captured;
@@ -40,6 +42,10 @@ class ExpectationParser {
   }
 }
 
+/// Handles the setup and execution of the test suite.
+/// It loads a file, parsees the lua [AST], and calls
+/// [runner] with a custom [Evaluator] so we can read
+/// values collected during execution.
 bool runTest(String path) {
   bool ok = true;
   try {
@@ -125,6 +131,22 @@ void main() {
 
     test('__add', () {
       expect(runTest('$dir/__add.lua'), true);
+    });
+
+    test('__sub', () {
+      expect(runTest('$dir/__sub.lua'), true);
+    });
+
+    test('__mul', () {
+      expect(runTest('$dir/__mul.lua'), true);
+    });
+
+    test('__div', () {
+      expect(runTest('$dir/__div.lua'), true);
+    });
+
+    test('__pow', () {
+      expect(runTest('$dir/__pow.lua'), true);
     });
 
     test('__concat', () {
