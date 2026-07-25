@@ -91,9 +91,10 @@ mixin ReturnStmtDoNotUnwind on BaseRuntime {
   }
 }
 
+/// NOTE: Incomplete coroutines. May be removed.
 /// Whenever a language construct would move the program's execution
 /// out of the normal tree walk, we can refer to this structure and obtain
-/// the exact location to resume. See: Coroutines.
+/// the exact location to resume.
 class CoCtrlStruct {
   /// The control structure node in the tree.
   Stmt node;
@@ -147,6 +148,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// The global scope.
   final Scope global = Scope();
 
+  final LuaObject globalEnv = LuaObject.table('_ENV');
+
   /// The current scope.
   late Scope scope = global;
 
@@ -157,11 +160,15 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// Describes to do when lua processes the `require()` function.
   LuaRequireCallback? onRequireImpl;
 
-  /// Used in coroutines.
-  CoCtrlStruct? coCtrlStruct;
+  /// Configures _ENV and _ENV._G in the global scope.
+  BaseRuntime(this.results) {
+    final globalG = LuaObject.variable('_G', globalEnv);
+    globalEnv.writeFieldFrom(globalG);
 
-  /// Only constructor.
-  BaseRuntime(this.results);
+    /// Registering tghese so they can be reached from any [Scope.parent].
+    global.defVar(globalEnv.id, globalEnv);
+    global.defVar(globalG.id, globalG);
+  }
 
   /// For variables, return (row, col) as a virtual identifier stub.
   /// This is useful for debugging.
@@ -233,7 +240,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// This effectively pops the scope of execution. Otherwise
   /// nothing happens.
   void popScope() {
-    coCtrlStruct = null;
     if (scope.parent == null) return;
     //scope.dump();
     scope = scope.parent!;
@@ -254,7 +260,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// Defines a global variable in the [global] scope with
   /// lua object [value].
   LuaObject defGlobal(LuaObject value) {
-    return global.defVar(value.id, value);
+    final luaObject = globalEnv.writeFieldFrom(value);
+    return global.defVar(value.id, luaObject);
   }
 
   /// Searches for a variable with the identifier [id]
@@ -297,8 +304,12 @@ abstract class BaseRuntime extends Visitor<Object?> {
     List<Object?> args = const [],
     LuaExceptionCallback? onException,
   }) {
-    final metaCall = obj.fieldValueAs<Function>('__call');
-    if (metaCall == null) {
+    final closure = switch(obj.value) {
+      final Function f => f,
+      _ => obj.fieldValueAs<Function>('__call'),
+    };
+
+    if (closure == null) {
       final type = obj.luaTypeInfo;
       final varname = obj.id;
       throw 'Attempt to call a $type value "$varname".';
@@ -319,7 +330,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     }
 
     try {
-      res = metaCall.call();
+      res = closure.call();
     } catch (e) {
       if (e is LuaReturnValueException) {
         res = e.argpack;
@@ -364,18 +375,13 @@ abstract class BaseRuntime extends Visitor<Object?> {
     // or not it should follow local function conventions or not, we can
     // construct a closure.
     closure() {
-      // TODO: always fetch latest ctrl struct. not the one in closure?
-      int start = switch (coCtrlStruct?.node == expr ) {
-        true => coCtrlStruct!.counter,
-        false => 0,
-      }.toInt();
+      int start = 0;
 
       Object? ret;
       final int len = expr.body.length;
       for (int i = start; i < len; i++) {
         final Stmt stmt = expr.body[i];
         try {
-          coCtrlStruct = CoCtrlStruct(expr, counter: i);
           ret = stmt.accept(this);
         } catch (e) {
           if (e is LuaReturnValueException) {
@@ -427,7 +433,10 @@ abstract class BaseRuntime extends Visitor<Object?> {
       String field = '';
       while (idParts.isNotEmpty) {
         field = idParts.removeAt(0).token.lexeme;
-        final obj = findVar(field);
+        final obj = switch(parent) {
+          null => findVar(field),
+          final LuaObject p => p.readField(field)?.toLuaRet(),
+        };
 
         if (obj == null) break;
         parent = obj;
@@ -475,7 +484,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
   @override
   Object? visitAssignExpr(AssignExpr assignExpr) {
     Object? lhs = assignExpr.lhs.accept(this);
-    final rhs = assignExpr.rhs.accept(this);
+    final rhs = assignExpr.rhs.accept(this)?.unpack();
 
     if (lhs == null && assignExpr.lhs is RawExpr) {
       // If this variable is not defined, it is now
@@ -485,7 +494,16 @@ abstract class BaseRuntime extends Visitor<Object?> {
     } else if (lhs is LuaObject) {
       if (rhs is LuaObject) {
         if (lhs.deref() != rhs.deref()) {
-          lhs.value = rhs;
+          // EDGE CASE. Promote functions up to the lhs value.
+          // This is because the `fieldValueAs<Function>()` method
+          // expects the [LuaObject] with a field name for a function
+          // to be resolved correclty.
+          if(rhs.isFunc) {
+            lhs.value = rhs.value;
+            lhs.funcDef = rhs.funcDef;
+          } else {
+            lhs.value = rhs;
+          }
         }
       } else {
         lhs.value = rhs;
@@ -515,6 +533,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
   Object? visitBinaryExpr(BinaryExpr expr) {
     final String lineInfo = this.lineInfo(expr.op);
     final op = expr.op.type;
+
+    LuaObject asLua(Object? obj, String id) => obj?.makeLuaRef() ?? LuaObject.variable(id, obj);
 
     int asInt(Object? obj) {
       if (obj == null) throw '$lineInfo Operand was null for binary $op.';
@@ -565,27 +585,39 @@ abstract class BaseRuntime extends Visitor<Object?> {
       throw '$lineInfo Unexpected type while casting to "bool". Found "${obj.runtimeType}".';
     }*/
 
-    String str(Object? obj) {
-      if (obj == null) return 'nil';
-      return obj.toString();
-    }
-
     String strConcat(Object? lhs, Object? rhs) {
-      check(Object? obj) {
-        if (obj is LuaObject) {
-          if (!(obj.valueAsInt() is int || obj.value is String)) {
-            throw 'Attempt to concat ${obj.value.runtimeType} value.';
-          }
-        } else if (!(obj is num || obj is String)) {
-          throw 'Attempt to concat ${obj.runtimeType} value.';
+      check(LuaObject obj) {
+        final mm = switch(obj.readMetatable('__concat')) {
+          final LuaObject o => o,
+          _ => null,
+        };
+
+        if (!(obj.valueAsInt() is int || obj.value is String)) {
+          if(mm != null) return mm;
+          throw 'Attempt to concat ${obj.luaTypeInfo} value.';
         }
+
+        return null;
       }
 
-      check(lhs);
-      final strL = str(lhs);
-      check(rhs);
-      final strR = str(rhs);
+      final luaLhs = asLua(lhs, 'lhs');
+      final mmLhs = check(luaLhs);
 
+      final luaRhs = asLua(rhs, 'rhs');
+      final mmRhs = check(luaRhs);
+
+      if(mmLhs != null) {
+        return callLuaFunction(mmLhs, args: [luaLhs, luaRhs])
+          .firstOrNull?.toString() ?? 'nil';
+      }
+
+      if(mmRhs != null) {
+        return callLuaFunction(mmRhs, args: [luaLhs, luaRhs])
+          .firstOrNull?.toString() ?? 'nil';
+      }
+
+      final strL = luaLhs.toString();
+      final strR = luaRhs.toString();
       return strL + strR;
     }
 
@@ -629,6 +661,24 @@ abstract class BaseRuntime extends Visitor<Object?> {
         case TokenType.kSub:
           return asNum(lhs) - asNum(rhs);
         case TokenType.kAdd:
+          final luaLhs = asLua(lhs, 'lhs');
+          final luaRhs = asLua(rhs, 'rhs');
+
+          final mmLhs = luaLhs.readMetatable('__add')?.as<LuaObject>();
+          if(mmLhs != null) {
+            return callLuaFunction(mmLhs, args: [luaLhs, luaRhs]);
+          }
+
+          final mmRhs = luaRhs.readMetatable('__add')?.as<LuaObject>();
+          if(mmRhs != null) {
+            return callLuaFunction(mmRhs, args: [luaLhs, luaRhs]);
+          }
+
+          print('lhs: ${lhs?.deref().value}');
+          print('rhs: ${rhs?.deref().value}');
+          print('mm lhs: $mmLhs');
+          print('mm rhs: $mmRhs');
+
           return asNum(lhs) + asNum(rhs);
         case TokenType.kMult:
           return asNum(lhs) * asNum(rhs);
@@ -740,7 +790,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     pushScope();
 
     final key = forIterLoopStmt.key.lexeme;
-    final val = forIterLoopStmt.value.lexeme;
+    final val = forIterLoopStmt.value?.lexeme;
 
     final iterExpr = forIterLoopStmt.iterExpr.accept(this);
 
@@ -754,17 +804,20 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     final iterLen = iterExpr.length;
     defLocal(LuaObject.nil(key));
-    defLocal(LuaObject.nil(val));
 
-    /// Todo: this control structure needs the iterator function to keep track of.
-    coCtrlStruct = CoCtrlStruct(forIterLoopStmt);
+    if(val != null) {
+      defLocal(LuaObject.nil(val));
+    }
 
     for (int i = 0; i < iterLen; i++) {
       final iterKey = findVar(key);
-      final iterVal = findVar(val);
       final entry = iterExpr.fields!.entries.elementAtOrNull(i);
       iterKey?.value = entry?.key;
-      iterVal?.value = entry?.value;
+
+      if(val != null) {
+        final iterVal = findVar(val);
+        iterVal?.value = entry?.value;
+      }
 
       for (Stmt stmt in forIterLoopStmt.body) {
         try {
@@ -854,10 +907,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
       Object? res;
       pushScope();
       for (Stmt s in stmt.body) {
-        coCtrlStruct = CoCtrlStruct(stmt,
-          stmtIdx: stmt.body.indexOf(s)
-        );
-
         final out = s.accept(this);
 
         // One of these code paths must be non-null
@@ -1030,7 +1079,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
         }
       }
 
-
       pushScope(/*context: callee*/);
 
       if (fwdSelfArg) {
@@ -1099,7 +1147,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     final String fieldName = switch (memoryAccess.field) {
       final RawExpr r => r.token.lexeme,
       final Object? other =>
-        throw '$linePos Expected a valid property name on $callee, found: $other',
+        throw '$linePos Expected a valid index on $callee, found: $other',
     };
 
     // Primitives cannot have fields.
@@ -1159,10 +1207,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
     while (true) {
       try {
         for (Stmt stmt in repeatUntilLoopStmt.body) {
-          coCtrlStruct = CoCtrlStruct(
-            repeatUntilLoopStmt,
-            counter: repeatUntilLoopStmt.body.indexOf(stmt),
-          );
           stmt.accept(this);
         }
         final cond = repeatUntilLoopStmt.untilExpr.accept(this);
@@ -1203,7 +1247,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       t[k.toString()] = v?.toLua(k.toString());
     }
 
-    return t;
+    return LuaObject.table('table', t);
   }
 
   @override
@@ -1246,10 +1290,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
       if (!cond) break;
 
       for (Stmt stmt in whileLoopStmt.body) {
-        coCtrlStruct = CoCtrlStruct(
-          whileLoopStmt,
-          counter: whileLoopStmt.body.indexOf(stmt),
-        );
         stmt.accept(this);
       }
     }

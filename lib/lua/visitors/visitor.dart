@@ -174,8 +174,8 @@ class ForIterLoopStmt extends Stmt {
   /// The key lexeme to be introduced in scope.
   final Token key;
 
-  /// The value lexeme to be introduced in scope.
-  final Token value;
+  /// The value lexeme to be introduced in scope. Optional.
+  final Token? value;
 
   /// The iterator to advanced and destructure.
   final MathExpr iterExpr;
@@ -186,7 +186,7 @@ class ForIterLoopStmt extends Stmt {
   ForIterLoopStmt(
     super.token, {
     required this.key,
-    required this.value,
+    this.value,
     required this.iterExpr,
     required this.body,
   });

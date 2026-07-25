@@ -272,7 +272,7 @@ class LuaAutoDoc {
             ''';
         header += '</span>';
         popPath();
-      } else if (luaObj.hasField('__call')) {
+      } else if (luaObj.isCallable || luaObj.isFunc) {
         content += '<i>Callable</i>';
       }
     } else {

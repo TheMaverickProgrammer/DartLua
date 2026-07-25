@@ -36,6 +36,7 @@ class StdRuntimeResults extends BaseResults {}
 /// Implement the standard runtime. Initialize the libraries
 /// we are interested in using.
 class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
+  /// WARNING: Coroutines are unfinished!
   final Map<int, LuaObject> _cos = {};
   final Map<int, LuaThreadStatus> _statuses = {};
   final Map<int, CoCtrlStruct?> _ctrls = {};
@@ -103,11 +104,9 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
       // and revisit it.
       final cs = _ctrls[_currAddr]!;
 
-      CoCtrlStruct? prev = coCtrlStruct;
-
       try {
         _resumeFromLastYield[_currAddr] = vargs;
-        coCtrlStruct = cs;
+
         final _ = switch (cs.node) {
           final FuncExpr f => f.accept(this)?.toLuaRet().call(),
           final ForLoopStmt f => f.accept(this),
@@ -125,7 +124,6 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
           ret = [e.toString().toLua('error')];
         }
       } finally {
-        coCtrlStruct = prev;
       }
     } else {
       // Else, start the coroutine for the first time.
@@ -143,22 +141,6 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
     if (!_statuses.containsKey(_currAddr)) {
       throw 'No running coroutine to yield from.';
     }
-
-    /// Our implementation requires the node
-    /// containing the yield to run twice.
-    /// The first time, we throw as seem below.
-    /// The second time, [_resumeFromLastYield]
-    /// will have the argpack from a call to `resume(...)`.
-    /// This way the values submitted by `resume` will appears
-    /// as if they were injected into place where the
-    /// call to `yield()` was.
-    if(_resumeFromLastYield.containsKey(_currAddr)) {
-      return _resumeFromLastYield.remove(_currAddr) ?? [];
-    }
-
-    _ctrls[_currAddr] = coCtrlStruct?.copy();
-    _statuses[_currAddr] = LuaThreadStatus.suspended;
-    _currAddr = 0x00;
     throw LuaReturnValueException(args);
   }
 

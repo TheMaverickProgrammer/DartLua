@@ -87,13 +87,14 @@ The DOT file will be embedded in an HTML page `my_script.lua.html`.
 - No FFI or extra dependencies.
 - DOT file visualiser.
 - [Autodoc][AUTODOC] API so your own libs can generate docs to share with your consumers.
-- Register your own custom runtime userdata.
+- Create your own custom runtime and define `LuaObject`s in dart.
+- `LuaFunctionBuilder` class to conveniently build complex lua functions.
 - Emit custom warnings, diagnostic info, or errors.
 - Aims to be Lua 5.5 compliant.
   - See this [section](#missing-lua-lang-support) for remaining issues.
 - Parser, Evaluator, Interpreter classes extensible and modifiable.
 - `Truthy` and `Native2Lua` Dart class extensions for convenient bridge between userdata and lua types.
-- Function builder API to conveniently build complex lua functions.
+- Globals provided by `_ENV` and legacy `_G` upvalues.
 - Standard lua runtime libs (partial implementation).
   - strings
   - include
@@ -157,7 +158,8 @@ Here's what's left to be compliant with the `Lua 5.5` specification:
 - Metamethods.
   - Particularly there is no support for metamethods except for `___call`.
   - But metamethods are just function objects with a few places that lua calls as defined so this can be done easily.
-- `<const>` is not added.
+- Keyword `<const>` support not added.
+- Keyword `global` support not added. (But globals in scope are supported!)
 - `Coroutines` library **is** added but the runtime needs bytecode to make use of it.
 - Lua uses semicolons for grammar disambiguities. Semicolons are not in this implementation atm.
 - Lua supports dropping the parenthesis for singular arg function args e.g. `print "hello!"`.

@@ -134,6 +134,10 @@ class LuaObject {
   /// For table lua objects, this stores all keys and values.
   LuaFieldsMap? _fields;
 
+  /// Lua objects can have meta tables which is a pointer
+  /// to another [LuaObject] table.
+  LuaObject? _metatable;
+
   /// If this lua object is a function, it will have [FuncExpr]
   /// node with information about its arguments.
   FuncExpr? funcDef;
@@ -189,11 +193,18 @@ class LuaObject {
   /// Query if the stored [value] is not a reference and the value is not null.
   bool get isValue => !isRef && _value != null;
 
-  /// Query if this lua object is a table and has a field named '__call'.
-  bool get isFunc => isTable && readField('__call') != null;
+  /// Query if this lua object has a [Function] stord in [value].
+  /// For the metamethod `__call` see [isCallable].
+  bool get isFunc => value is Function;
 
   /// Query the negation of [isFunc].
   bool get isNotFunc => !isFunc;
+
+  /// Query if this object's meta table has __call defined.
+  bool get isCallable => readMetatable('__call') != null;
+
+  /// Query if this object does not have __call defined in the meta table.
+  bool get isNotCallable => !isCallable;
 
   /// Query if the stored [value] is of type [LuaThread].
   bool get isThread => switch (isRef) {
@@ -237,10 +248,12 @@ class LuaObject {
   MapEntry<String, LuaObject> get asMapEntry =>
       MapEntry<String, LuaObject>(id, this);
 
-  /// Query the [LuaType] based on if the following
-  /// properties hold:
+  /// Query the internal [LuaType] based on if the following
+  /// properties hold. Note that these are internal types
+  /// and not directly from the lua spec.
   /// - [isNil]
   /// - [isRef]
+  /// - [isFunc]
   /// - [isTable]
   /// - [isValue]
   ///
@@ -248,6 +261,7 @@ class LuaObject {
   LuaType get type {
     if (isNil) return LuaType.nil;
     if (isRef) return LuaType.ref;
+    if (isFunc) return LuaType.func;
     if (isTable) return LuaType.table;
     if (isValue) return LuaType.value;
     return LuaType.unresolved;
@@ -302,6 +316,7 @@ class LuaObject {
   /// For lua table length, see [tableSize];
   int get length {
     uses++;
+
     return switch (type) {
       LuaType.ref => deref().length,
       LuaType.nil || LuaType.unresolved || LuaType.func => 0,
@@ -355,7 +370,7 @@ class LuaObject {
         }
       }
 
-      return LuaObject.nil('ret');
+      return LuaObject.nil('field');
     }
 
     return null;
@@ -470,18 +485,17 @@ class LuaObject {
   /// of itself.
   LuaObject toRef() => LuaObject.ref(this);
 
-  /// Attempts to find the metamethod '__call' and if found,
-  /// executes its closure.
+  /// Attempts to execute the [value] closure if [isFunction] is true.
   /// Otherwise this throws an error.
   Object? call() {
     uses++;
     return switch (skipSemanitcs) {
       true => () {
-        return LuaObject.noSemantics('${id}_metamethod__call');
+        return LuaObject.noSemantics('call_ret');
       },
-      false => switch (fieldValueAs<Function>('__call')) {
+      false => switch (value) {
         final Function func => func(),
-        _ => throw 'No metamethod "__call" on "$id".',
+        _ => throw 'Not a function "$id".',
       },
     };
   }
@@ -489,16 +503,15 @@ class LuaObject {
   /// Internal utility method to determine if this
   /// unpacked lua object is a table and has a field named [key].
   bool hasField(String key) {
-    if (isRef) {
-      return deref().hasField(key);
-    } else if (isTable) {
-      return _fields?.containsKey(key) ?? false;
+    final ptr = deref();
+    if (ptr.isTable) {
+      return ptr._fields?.containsKey(key) ?? false;
     }
     return false;
   }
 
   /// If this lua object is a table,
-  /// unpacks [_fields] and returns the value.
+  /// then reads [_fields] by [key] and returns the value.
   /// Otherwise null is returned.
   Object? readField(String key) {
     uses++;
@@ -518,6 +531,26 @@ class LuaObject {
       return null;
     }
   }
+
+  /// If this lua object has a meta table
+  /// thenr reads [_metatable] by [key] and returns the value.
+  /// Otherwise null is returned.
+  Object? readMetatable(String key) {
+    uses++;
+    _onRead?.call(key);
+
+    if (skipSemanitcs) return LuaObjectNoSemantics(key);
+
+    return deref()._metatable?.readField(key);
+  }
+
+  /// Sets [_metatable] to [mt] overwriting any previous table.
+  void setMetatable(LuaObject mt) {
+    deref()._metatable = mt;
+  }
+
+  /// Returns the [_metatable] or [LuaObject.nil].
+  LuaObject getMetatable() => deref()._metatable ?? LuaObject.nil('$id.metatable');
 
   /// Inspects the result of [readField] with [key].
   /// If the result's type is [LuaObject], then
@@ -565,6 +598,10 @@ class LuaObject {
   /// using [writeFieldFrom].
   Object? writeField(String key, Object? value) {
     if (skipSemanitcs) return LuaObject.noSemantics(key);
+
+    if(isNil) {
+      throw 'Tried to add field "$key" on nil "$id".';
+    }
 
     Object? result;
     if (isRef) {
@@ -669,13 +706,13 @@ class LuaObject {
       LuaObject.table(id, {for (final o in toFields) o.id: o});
 
   /// Constructs a lua function with [id] for its function name
-  /// in scope with some [closure] to be written to the metamethod
-  /// '__call'. A required [def] is needed to determine the input
+  /// in scope with some [closure] to be written to [value]. 
+  /// A required [def] is needed to determine the input
   /// arguments and other runtime information.
   LuaObject.func(this.id, FuncExpr def, Function closure) : super() {
     _fields = {};
     funcDef = def;
-    writeField('__call', closure);
+    value = closure;
   }
 
   /// Constructs a lua object with null values and fields.
@@ -775,10 +812,10 @@ extension Native2Lua on Object {
     _ => LuaObject.variable(id, this),
   };
 
-  /// Calls [toLua] with the id of "ret"
-  /// which is short for "return".
-  /// The helps track return values.
-  LuaObject toLuaRet() => toLua('ret');
+  /// Calls [toLua] with the id of its own
+  /// string value.
+  /// The helps track values as they're moved around.
+  LuaObject toLuaRet() => toLua(toString());
 
   /// Attempts to return the underlying [LuaObject]
   /// of [this] to be used as a direct handle or

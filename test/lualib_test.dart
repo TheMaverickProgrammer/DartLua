@@ -64,10 +64,13 @@ bool runTest(String path) {
     final int outLen = evaluator.impl.stdOut.length;
     final int expLen = expected.length;
 
-    for(int i = 0; i < outLen && i < expLen; i++) {
+    for(int i = 0; i < expLen; i++) {
       final int line = expected[i].line;
       final String e = expected[i].captured;
-      final String o = evaluator.impl.stdOut[i];
+      final String o = switch(i < outLen) {
+        true => evaluator.impl.stdOut[i],
+        false => 'N/A'
+      };
 
       if(e.compareTo(o) != 0) {
         print('[Line $line] Expected "$e". Was "$o".');
@@ -85,14 +88,6 @@ bool runTest(String path) {
 }
 
 void main() {
-  test('basic for loops', () {
-    expect(runTest('./test/assets/for_loop.lua'), true);
-  });
-
-  test('while loops', () {
-    expect(runTest('./test/assets/while_loops.lua'), true);
-  });
-
   test('simple assignment', () {
     expect(runTest('./test/assets/assignment.lua'), true);
   });
@@ -105,12 +100,36 @@ void main() {
     expect(runTest('./test/assets/scope.lua'), true);
   });
 
+  test('globals, _ENV, and _G', () {
+    expect(runTest('./test/assets/globals.lua'), true);
+  });
+
   test('basic tables', () {
     expect(runTest('./test/assets/tables.lua'), true);
   });
 
   test('bitops', () {
     expect(runTest('./test/assets/bitops.lua'), true);
+  });
+
+  test('basic for loops', () {
+    expect(runTest('./test/assets/for_loop.lua'), true);
+  });
+
+  test('while loops', () {
+    expect(runTest('./test/assets/while_loops.lua'), true);
+  });
+
+  group('metamethods', () {
+    final dir = './test/assets/metamethods';
+
+    test('__add', () {
+      expect(runTest('$dir/__add.lua'), true);
+    });
+
+    test('__concat', () {
+      expect(runTest('$dir/__concat.lua'), true);
+    });
   });
 
   test('coroutines', () {

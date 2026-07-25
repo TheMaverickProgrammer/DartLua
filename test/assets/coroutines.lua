@@ -1,28 +1,4 @@
-local function test1()
-    local co = coroutine.create(function()
-        for i = 1, 10 do
-            print(i)
-            coroutine.yield()
-        end
-    end)
-
-    --[[while coroutine.resume(co) do
-        print('resuming')
-    end]]
-    print_table(coroutine.resume(co))
-    print_table(coroutine.resume(co))
-    print_table(coroutine.resume(co))
-    print_table(coroutine.resume(co))
-    print_table(coroutine.resume(co))
-end
-
-local function print_table(t)
-    for k, v in pairs(t) do
-        print(k..'='..tostring(v))
-    end
-end
-
-local function test2()
+local function test()
     -- create a coroutine
     local co = coroutine.create(function (value1,value2)
         local tempvar3 = 10
@@ -45,4 +21,12 @@ local function test2()
     print("main", coroutine.resume(co, 10, 20))
 end
 
-test2()
+test()
+
+-- Expect: coroutine section 1 3 2 10
+-- Expect: main true 4 3
+-- Expect: coroutine section 2 12 nil 13
+-- Expect: main true 5 1
+-- Expect: coroutine section 3 5 6 16
+-- Expect: main true 2 end
+-- Expect: main false cannot resume dead coroutine

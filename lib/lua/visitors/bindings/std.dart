@@ -62,6 +62,7 @@ mixin Std on BaseRuntime {
   CoroutineCallbacks? coroutineImpls;
 
   void initStdRuntime() {
+    initStdMetatables();
     initStdStrings();
     initStdRequire();
     initStdIPairs();
@@ -71,104 +72,54 @@ mixin Std on BaseRuntime {
     initStdMath();
   }
 
-  @override
-  void popScope() {
-    // Collect the control structure.
-    // TODO: is there a better way to do this?
-    if(coCtrlStruct != null) {
-      coroutineImpls?.onCoroutinePopScope.call(coCtrlStruct!);
-    }
-
-    super.popScope();
-  }
-
-  void initStdCoroutines({required CoroutineCallbacks impl}) {
-    coroutineImpls = impl;
-    final defCoroutine = LuaObject.tableFrom('coroutine', [
-      LuaFuncBuilder.create('create')
-          .arg('fn')
-          .exec(
-            call: () {
-              final fn = findVar('fn');
-              if (fn is LuaObject && fn.isFunc) {
-                final int addr = impl.onCoroutineCreate.call(fn);
-                return LuaThread(addr).toLua('co');
-              }
-
-              final t = switch (fn) {
-                null => 'nil',
-                final LuaObject o => o.luaTypeInfo,
-              };
-
-              throw 'Expected function for coroutine. Found $t.';
-            },
-          )
-        ..doc = LuaDoc(
-          html: '''
-          Creates a new coroutine with a function <code>fn</code> and returns an object 
-          of type <code>thread</code>.
-          ''',
-        ),
-      LuaFuncBuilder.create('resume')
-          .arg('co')
-          .varargs()
-          .exec(
-            call: () {
-              final co = findVar('co');
-              final vs = findVarArgs();
-              if (co?.isThread ?? false) {
-                final thread = co!.value as LuaThread;
-                return impl.onCoroutineResume
-                    .call(thread.addr, vs ?? []);
-              }
-
-              throw 'Expected coroutine for "resume".';
-            },
-          )
-        ..doc = LuaDoc(
-          html: '''
-          Resumes the coroutine <code>co</code> and passes the parameters if any. 
-          It returns the status of operation and optional other return values.
-          ''',
-        ),
-      LuaFuncBuilder.create('yield').varargs().exec(
+  void initStdMetatables() {
+    final defSetMetatable = LuaFuncBuilder.create('setmetatable')
+        .arg('t')
+        .arg('mt')
+        .exec(
           call: () {
-            final vs = findVarArgs();
-            return impl.onCoroutineYield.call(vs ?? []);
+            final t = findVar('t');
+            final mt = findVar('mt');
+
+            if(t == null) {
+              throw 'Expected lua object as first argument.';
+            }
+
+            if(mt == null || mt.isNotTable) {
+              throw 'Expected lua table as second argument.';
+            }
+
+            t.setMetatable(mt);
           },
-        )
-        ..doc = LuaDoc(
-          html: '''
-          Suspends the running coroutine. The optional parameters passed to this 
-          method acts as additional return values to the resume function.
-          ''',
-        ),
-      LuaFuncBuilder.create('status')
-          .arg('co')
-          .exec(
-            call: () {
-              final co = findVar('co');
-              if (co?.isThread ?? false) {
-                final thread = co!.value as LuaThread;
-                return impl.onCoroutineStatus.call(thread.addr).toLuaRet();
-              }
+        );
 
-              throw 'Expected coroutine for "status".';
-            },
-          )
-        ..doc = LuaDoc(
-          html: '''
-          Returns one of the values: <code>running</code>, <code>normal</code>, 
-          <code>suspended</code>, or <code>dead</code> based on the state of the coroutine.
-          ''',
-        ),
-    ]);
-
-    defGlobal(defCoroutine).doc = LuaDoc(
+    defGlobal(defSetMetatable).doc = LuaDoc(
       category: catRuntime,
       html: '''
-      Lua offsers asymmetric coroutines as a way to reason about statefulness without
-      resorting to bloated abstractions to keep track of state and execution.
+      Given lua object <code>t</code> and a table of functions <code>mt</code>,
+      sets <code>t</code>'s metatable to <code>mt</code>.
+      ''',
+    );
+
+    final defGetMetatable = LuaFuncBuilder.create('getmetatable')
+        .arg('t')
+        .exec(
+          call: () {
+            final t = findVar('t');
+
+            if(t == null) {
+              throw 'Expected lua object as first argument.';
+            }
+
+            return t.getMetatable();
+          },
+        );
+
+    defGlobal(defGetMetatable).doc = LuaDoc(
+      category: catRuntime,
+      html: '''
+      Given lua object <code>t</code> returns the metatable used
+      by <code>t</code> or <code>nil</code> if no metatable is set.
       ''',
     );
   }
@@ -599,7 +550,7 @@ table.insert(t, "foo")
                     if (x == null) {
                       throw 'Expected num argument "x" for "${context!.id}".';
                     }
-                    return x; // TODO
+                    return (math.exp(x) + math.exp(-x)) * 0.5;
                   },
                 ),
             'sinh': LuaFuncBuilder.create('sinh')
@@ -610,7 +561,7 @@ table.insert(t, "foo")
                     if (x == null) {
                       throw 'Expected num argument "x" for "${context!.id}".';
                     }
-                    return x; // TODO
+                    return (math.exp(x) - math.exp(-x)) * 0.5;
                   },
                 ),
             'tanh': LuaFuncBuilder.create('tanh')
@@ -621,7 +572,9 @@ table.insert(t, "foo")
                     if (x == null) {
                       throw 'Expected num argument "x" for "${context!.id}".';
                     }
-                    return x; // TODO
+                    final expPos = math.exp(x);
+                    final expNeg = math.exp(-x);
+                    return (expPos - expNeg) / (expPos + expNeg);
                   },
                 ),
             'deg': LuaFuncBuilder.create('deg')
@@ -681,7 +634,11 @@ table.insert(t, "foo")
                     if (y == null) {
                       throw 'Expected num argument "y" for "${context!.id}".';
                     }
-                    return x; // TODO: math.fmod(x / y);
+                    if (y == 0) {
+                      throw 'Division by zero in fmod.';
+                    }
+
+                    return x - (x / y).truncateToDouble() * y;
                   },
                 ),
             'frexp': LuaFuncBuilder.create('frexp')
@@ -837,5 +794,96 @@ table.insert(t, "foo")
           );
 
     defGlobal(defMath);
+  }
+
+    void initStdCoroutines({required CoroutineCallbacks impl}) {
+    coroutineImpls = impl;
+    final defCoroutine = LuaObject.tableFrom('coroutine', [
+      LuaFuncBuilder.create('create')
+          .arg('fn')
+          .exec(
+            call: () {
+              final fn = findVar('fn');
+              if (fn is LuaObject && fn.isFunc) {
+                final int addr = impl.onCoroutineCreate.call(fn);
+                return LuaThread(addr).toLua('co');
+              }
+
+              final t = switch (fn) {
+                null => 'nil',
+                final LuaObject o => o.luaTypeInfo,
+              };
+
+              throw 'Expected function for coroutine. Found $t.';
+            },
+          )
+        ..doc = LuaDoc(
+          html: '''
+          Creates a new coroutine with a function <code>fn</code> and returns an object 
+          of type <code>thread</code>.
+          ''',
+        ),
+      LuaFuncBuilder.create('resume')
+          .arg('co')
+          .varargs()
+          .exec(
+            call: () {
+              final co = findVar('co');
+              final vs = findVarArgs();
+              if (co?.isThread ?? false) {
+                final thread = co!.value as LuaThread;
+                return impl.onCoroutineResume
+                    .call(thread.addr, vs ?? []);
+              }
+
+              throw 'Expected coroutine for "resume".';
+            },
+          )
+        ..doc = LuaDoc(
+          html: '''
+          Resumes the coroutine <code>co</code> and passes the parameters if any. 
+          It returns the status of operation and optional other return values.
+          ''',
+        ),
+      LuaFuncBuilder.create('yield').varargs().exec(
+          call: () {
+            final vs = findVarArgs();
+            return impl.onCoroutineYield.call(vs ?? []);
+          },
+        )
+        ..doc = LuaDoc(
+          html: '''
+          Suspends the running coroutine. The optional parameters passed to this 
+          method acts as additional return values to the resume function.
+          ''',
+        ),
+      LuaFuncBuilder.create('status')
+          .arg('co')
+          .exec(
+            call: () {
+              final co = findVar('co');
+              if (co?.isThread ?? false) {
+                final thread = co!.value as LuaThread;
+                return impl.onCoroutineStatus.call(thread.addr).toLuaRet();
+              }
+
+              throw 'Expected coroutine for "status".';
+            },
+          )
+        ..doc = LuaDoc(
+          html: '''
+          Returns one of the values: <code>running</code>, <code>normal</code>, 
+          <code>suspended</code>, or <code>dead</code> based on the state of the coroutine.
+          ''',
+        ),
+    ]);
+
+    defGlobal(defCoroutine).doc = LuaDoc(
+      category: catRuntime,
+      html: '''
+      Lua offsers asymmetric coroutines as a way to reason about statefulness without
+      resorting to bloated abstractions to keep track of state and execution.
+      ''',
+    );
   }
 }

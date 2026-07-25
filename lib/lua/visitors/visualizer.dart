@@ -394,7 +394,7 @@ class Visualizer extends Visitor<GzBaseNode> {
 
     String str = switch (mem.op.type) {
       TokenType.kColon => 'forward',
-      TokenType.kLParen => '__call',
+      TokenType.kLParen => 'exec',
       final Object o => 'Unknown (${o.toString()})',
     };
 
@@ -485,7 +485,7 @@ class Visualizer extends Visitor<GzBaseNode> {
   @override
   GzBaseNode visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
     final key = forIterLoopStmt.key.lexeme;
-    final val = forIterLoopStmt.value.lexeme;
+    final val = forIterLoopStmt.value?.lexeme;
     final iter = forIterLoopStmt.iterExpr.accept(this);
     final body = forIterLoopStmt.body.map((e) => e.accept(this)).toList();
 
@@ -499,6 +499,7 @@ class Visualizer extends Visitor<GzBaseNode> {
           color: pink,
           children: [node(key, color: skyBlue)],
         ),
+        if(val != null)
         node(
           'val',
           color: pink,

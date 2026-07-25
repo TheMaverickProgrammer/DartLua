@@ -263,11 +263,16 @@ class Parser {
 
     // Look-ahead to determine for-loop type.
     final next = peek(offset: 1);
-    if (next.type == TokenType.kComma) {
+    if (next.type != TokenType.kAssign) {
       // This is an iterator for-loop.
       final key = consume(TokenType.kRaw, 'Expected name for key term.');
-      consume(TokenType.kComma, 'Expected "," between key and value terms.');
-      final value = consume(TokenType.kRaw, 'Expected name for value term.');
+
+      Token? value;
+      if(peek().type == TokenType.kComma) {
+        consume(TokenType.kComma, 'Expected "," between key and value terms.');
+        value = consume(TokenType.kRaw, 'Expected name for value term.');
+      }
+
       consume(TokenType.kIn, 'Expected "in" before for-in loop iterator.');
       final iterExpr = math();
       consume(TokenType.kDo, 'Expected "do" before for-in loop body.');
@@ -283,41 +288,40 @@ class Parser {
         iterExpr: iterExpr,
         body: body,
       );
-    } else if (next.type == TokenType.kAssign) {
-      // This is a ranged for-loop.
-      final control = assignExpr();
-      consume(TokenType.kComma, 'Expected "," before for-loop end term.');
-      final endExpr = math();
+    }
 
-      final MathExpr stepExpr;
-      final pk = peek();
-      if (pk.type == TokenType.kDo) {
-        // This is a ranged for-loop with implied step of 1.
-        stepExpr = NumberLiteral(
-          Token(TokenType.kNumber, "1", pk.pos),
-          value: 1.0,
-        );
-      } else {
-        consume(TokenType.kComma, 'Expected "," before for-loop step term.');
-        stepExpr = math();
-      }
+    /* else next.type == TokenType.kAssign*/
 
-      consume(TokenType.kDo, 'Expected "do" before for-loop body.');
+    // This is a ranged for-loop.
+    final control = assignExpr();
+    consume(TokenType.kComma, 'Expected "," before for-loop end term.');
+    final endExpr = math();
 
-      final body = bodyStmt(terminal: TokenType.kEnd);
-      consume(TokenType.kEnd, 'Expected for-loop to terminate with "end".');
-
-      return ForLoopStmt(
-        token,
-        control: control,
-        endExpr: endExpr,
-        stepExpr: stepExpr,
-        body: body,
+    final MathExpr stepExpr;
+    final pk = peek();
+    if (pk.type == TokenType.kDo) {
+      // This is a ranged for-loop with implied step of 1.
+      stepExpr = NumberLiteral(
+        Token(TokenType.kNumber, "1", pk.pos),
+        value: 1.0,
       );
     } else {
-      // There is a problem.
-      throw '${next.pos} Unexpected $next in for-loop statement.';
+      consume(TokenType.kComma, 'Expected "," before for-loop step term.');
+      stepExpr = math();
     }
+
+    consume(TokenType.kDo, 'Expected "do" before for-loop body.');
+
+    final body = bodyStmt(terminal: TokenType.kEnd);
+    consume(TokenType.kEnd, 'Expected for-loop to terminate with "end".');
+
+    return ForLoopStmt(
+      token,
+      control: control,
+      endExpr: endExpr,
+      stepExpr: stepExpr,
+      body: body,
+    );
   }
 
   Stmt whileLoopStmt() {

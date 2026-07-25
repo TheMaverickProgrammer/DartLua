@@ -32,17 +32,13 @@ class Scope {
       if (value.skipSemanitcs) {
         luaObject = value.toRef();
       } else if (value.isFunc) {
-        final closure = value.fieldValueAs<Function>('__call')!;
+        final closure = value.value as Function;
         final def = value.funcDef;
         if (def == null) {
-          throw '''A programmer forgot to use LuaFuncBuilder. '''
+          throw '''Internal error: programmer forgot to use LuaFuncBuilder. '''
               '''Please report this error!.''';
         }
         luaObject = LuaObject.func(id, def, closure);
-
-        // meta method __call is on a special table.
-        // therefore we may also have other table fields.
-        luaObject.writeFields(value.fields!);
       } else {
         luaObject = value;
       }
