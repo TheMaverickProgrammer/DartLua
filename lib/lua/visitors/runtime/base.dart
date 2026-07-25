@@ -534,7 +534,26 @@ abstract class BaseRuntime extends Visitor<Object?> {
     final String lineInfo = this.lineInfo(expr.op);
     final op = expr.op.type;
 
-    LuaObject asLua(Object? obj, String id) => obj?.makeLuaRef() ?? LuaObject.variable(id, obj);
+    LuaObject asLua(Object? obj, String id)
+      => obj?.makeLuaRef() ?? LuaObject.variable(id, obj);
+
+    Object? metamethod(String name, Object? lhs, Object? rhs) {
+      final l = asLua(lhs, 'lhs');
+      final r = asLua(rhs, 'rhs');
+
+      LuaObject? mm = l.readMetatable(name)?.as<LuaObject>();
+      if(mm != null) {
+        return callLuaFunction(mm, args: [l, r]);
+      }
+
+      mm = r.readMetatable(name)?.as<LuaObject>();
+      if(mm != null) {
+        return callLuaFunction(mm, args: [l, r]);
+      }
+
+      // Metamethod not handled by operands.
+      return null;
+    }
 
     int asInt(Object? obj) {
       if (obj == null) throw '$lineInfo Operand was null for binary $op.';
@@ -629,6 +648,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
         case TokenType.kConcat:
           return strConcat(lhs, rhs);
         case TokenType.kMod:
+          final ok = metamethod('__mod', lhs, rhs);
+          if(ok != null) return ok;
           return asInt(lhs) % asInt(rhs);
         case TokenType.kAnd:
           if (lhs.isTruthy) return rhs;
@@ -636,61 +657,78 @@ abstract class BaseRuntime extends Visitor<Object?> {
         case TokenType.kOr:
           if (lhs.isTruthy) return lhs;
           return rhs;
+        case TokenType.kBitNot:
+          final ok = metamethod('__bxor', lhs, rhs);
+          if(ok != null) return ok;
+          return asInt(lhs) ^ asInt(rhs);
         case TokenType.kBitAnd:
+          // TODO: verify https://www.lua.org/manual/5.5/manual.html#2.1
+          final ok = metamethod('__band', lhs, rhs);
+          if(ok != null) return ok;
           return asInt(lhs) & asInt(rhs);
         case TokenType.kBitOr:
+          final ok = metamethod('__bor', lhs, rhs);
+          if(ok != null) return ok;
           return asInt(lhs) | asInt(rhs);
         case TokenType.kBitLShift:
+          final ok = metamethod('__shl', lhs, rhs);
+          if(ok != null) return ok;
           return asInt(lhs) << asInt(rhs);
         case TokenType.kBitRShift:
+          final ok = metamethod('__shr', lhs, rhs);
+          if(ok != null) return ok;
           return asInt(lhs) >> asInt(rhs);
         case TokenType.kCarrot:
+          final ok = metamethod('__pow', lhs, rhs);
+          if(ok != null) return ok;
           return math.pow(asNum(lhs), asNum(rhs));
         case TokenType.kDiv:
+          final ok = metamethod('__div', lhs, rhs);
+          if(ok != null) return ok;
           return asNum(lhs) /
               switch (asNum(rhs)) {
                 == 0.0 => throw '$lineInfo Divide by zero.',
                 final num n => n,
               };
         case TokenType.kDivFloor:
+          final ok = metamethod('__idiv', lhs, rhs);
+          if(ok != null) return ok;
           return asNum(lhs) /
               switch (asNum(rhs)) {
                 == 0.0 => throw '$lineInfo Divide by zero.',
                 final num n => asNum(n.floor()),
               };
         case TokenType.kSub:
+          final ok = metamethod('__sub', lhs, rhs);
+          if(ok != null) return ok;
           return asNum(lhs) - asNum(rhs);
         case TokenType.kAdd:
-          final luaLhs = asLua(lhs, 'lhs');
-          final luaRhs = asLua(rhs, 'rhs');
-
-          final mmLhs = luaLhs.readMetatable('__add')?.as<LuaObject>();
-          if(mmLhs != null) {
-            return callLuaFunction(mmLhs, args: [luaLhs, luaRhs]);
-          }
-
-          final mmRhs = luaRhs.readMetatable('__add')?.as<LuaObject>();
-          if(mmRhs != null) {
-            return callLuaFunction(mmRhs, args: [luaLhs, luaRhs]);
-          }
-
-          print('lhs: ${lhs?.deref().value}');
-          print('rhs: ${rhs?.deref().value}');
-          print('mm lhs: $mmLhs');
-          print('mm rhs: $mmRhs');
-
+          final ok = metamethod('__add', lhs, rhs);
+          if(ok != null) return ok;
           return asNum(lhs) + asNum(rhs);
         case TokenType.kMult:
+          final ok = metamethod('__mul', lhs, rhs);
+          if(ok != null) return ok;
           return asNum(lhs) * asNum(rhs);
         case TokenType.kLTE:
+          // TODO: verify
+          final ok = metamethod('__le', lhs, rhs);
+          if(ok != null) return ok;
           return asNum(lhs) <= asNum(rhs);
         case TokenType.kLT:
+          // TODO: verify
+          final ok = metamethod('__lt', lhs, rhs);
+          if(ok != null) return ok;
           return asNum(lhs) < asNum(rhs);
         case TokenType.kGT:
           return asNum(lhs) > asNum(rhs);
         case TokenType.kGTE:
           return asNum(lhs) >= asNum(rhs);
         case TokenType.kEQ:
+          // TODO: verify
+          final ok = metamethod('__eq', lhs, rhs);
+          if(ok != null) return ok;
+
           Object? lval = lhs;
 
           if (lhs is LuaObject) {
@@ -1253,9 +1291,15 @@ abstract class BaseRuntime extends Visitor<Object?> {
   @override
   Object? visitUnaryExpr(UnaryExpr expr) {
     final op = expr.prefix.type;
+    final rhs = expr.rhs.accept(this);
+
     if (op == TokenType.kHash) {
-      final rhs = expr.rhs.accept(this);
       if (rhs is LuaObject) {
+        // TODO: verify
+        final mm = rhs.readMetatable('__len')?.as<LuaObject>();
+        if(mm != null) {
+          return callLuaFunction(mm, args:[rhs]);
+        }
         return rhs.tableSize;
       } else if (rhs != null) {
         return 1;
@@ -1263,20 +1307,40 @@ abstract class BaseRuntime extends Visitor<Object?> {
         final String lineInfo = this.lineInfo(expr.prefix);
         throw '$lineInfo Length operator # used on nil value.';
       }
-    } else {
-      final ret = expr.rhs.accept(this);
-      if (ret != null) {
-        if (op == TokenType.kSub) {
-          return switch (ret) {
-            final int i => -i,
-            final double d => -d,
-            _ => ret,
-          };
+    } else if(op == TokenType.kBitNot) {
+      if (rhs is LuaObject) {
+        // TODO: verify
+        final mm = rhs.readMetatable('__bnot')?.as<LuaObject>();
+        if(mm != null) {
+          return callLuaFunction(mm, args:[rhs]);
         }
       }
 
-      return ret;
+      // ... else
+      return switch (rhs) {
+        final int i => ~i,
+        final double d => ~d.toInt(),
+        _ => throw 'Unsupported bitwise NOT on type ${rhs?.runtimeType}',
+      };
     }
+    else if(op == TokenType.kSub) {
+      if (rhs is LuaObject) {
+        // TODO: verify
+        final mm = rhs.readMetatable('__unm')?.as<LuaObject>();
+        if(mm != null) {
+          return callLuaFunction(mm, args:[rhs]);
+        }
+      }
+
+      // ... else
+      return switch (rhs) {
+        final int i => -i,
+        final double d => -d,
+        _ => throw 'Unsupported negation on type ${rhs?.runtimeType}',
+      };
+    }
+
+    throw 'Unsupported unary operator ${op.toString()}';
   }
 
   @override

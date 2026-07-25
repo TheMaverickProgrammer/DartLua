@@ -95,6 +95,8 @@ The DOT file will be embedded in an HTML page `my_script.lua.html`.
 - Parser, Evaluator, Interpreter classes extensible and modifiable.
 - `Truthy` and `Native2Lua` Dart class extensions for convenient bridge between userdata and lua types.
 - Globals provided by `_ENV` and legacy `_G` upvalues.
+- Metatables supported via `setmetatable(t, mt)` and `getmetatable(t)` as you'd expect.
+  - Metamethods: `__add`, `__sub`, `__mul`, `__div`, `__mod`, `__pow`, `__unm`, `__idiv`, `__band`, `__bor`, `__bxor`, `__bnot`, `__shl`, `__shr`, `__concat`, `__len`, `__eq`, `__lt`, `__le`.
 - Standard lua runtime libs (partial implementation).
   - strings
   - include
@@ -154,16 +156,14 @@ I will get around to that when I can!
 
 ## Missing Lua Lang Support
 Here's what's left to be compliant with the `Lua 5.5` specification:
+- Missing metamethods: `__call`, `__newindex`, and `__index`.
 - Missing a semantics pass for `goto` and `::label::` statements.
-- Metamethods.
-  - Particularly there is no support for metamethods except for `___call`.
-  - But metamethods are just function objects with a few places that lua calls as defined so this can be done easily.
 - Keyword `<const>` support not added.
 - Keyword `global` support not added. (But globals in scope are supported!)
 - `Coroutines` library **is** added but the runtime needs bytecode to make use of it.
+- No tail call support. This optimization also requires bytecode to be effective.
 - Lua uses semicolons for grammar disambiguities. Semicolons are not in this implementation atm.
 - Lua supports dropping the parenthesis for singular arg function args e.g. `print "hello!"`.
-- No tail call support.
 
 ## Extra Goals
 - Semantics: code path type unification.
