@@ -1,3 +1,4 @@
+import 'package:puredartlua/lua/passes/lexer.dart';
 import 'package:puredartlua/lua/visitors/visitor.dart';
 
 class Pretty extends Visitor<String> {
@@ -133,8 +134,7 @@ class Pretty extends Visitor<String> {
     final callee = mem.callee.accept(this);
     final args = mem.args.map((e) => e.accept(this)).join(',');
 
-    // TODO: replace with TokenType.kColon
-    if (mem.op.lexeme == ':') {
+    if (mem.op.type == TokenType.kColon) {
       return '$callee:$args';
     }
 

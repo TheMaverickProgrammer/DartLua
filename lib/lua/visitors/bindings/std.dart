@@ -452,6 +452,8 @@ table.insert(t, "foo")
   }
 
   void initStdMath() {
+    math.Random rand = math.Random();
+
     final defMath =
         LuaObject.table('math', {
             'abs': LuaFuncBuilder.create('abs')
@@ -659,6 +661,19 @@ table.insert(t, "foo")
                     return x - (x / y).truncateToDouble() * y;
                   },
                 ),
+            'ldexp': LuaFuncBuilder.create('ldexp')
+              .arg('m')
+              .arg('n')
+              .exec(call: () {
+                final m = findVar('m')?.valueAs<num>();
+                final n = findVar('n')?.valueAs<num>();
+
+                if(m == null || n == null) {
+                  throw 'Expected "m" and "n" to be numbers.';
+                }
+
+                return m * math.pow(2, n);
+              }),
             'frexp': LuaFuncBuilder.create('frexp')
                 .arg('x')
                 .exec(
@@ -667,10 +682,30 @@ table.insert(t, "foo")
                     if (x == null) {
                       throw 'Expected num argument "x" for "${context!.id}".';
                     }
-                    return x; // TODO
+
+                    if (x == 0.0 || x.isNaN || x.isInfinite) {
+                      return [x, 0];
+                    }
+
+                    final bool isNegative = x < 0;
+                    num absX = isNegative ? -x : x;
+                    int exponent = 0;
+
+                    if (absX >= 1.0) {
+                      while (absX >= 1.0) {
+                        absX /= 2.0;
+                        exponent++;
+                      }
+                    } else if (absX < 0.5) {
+                      while (absX < 0.5) {
+                        absX *= 2.0;
+                        exponent--;
+                      }
+                    }
+
+                    return [isNegative ? -absX : absX, exponent];
                   },
                 ),
-            // TODO: math.huge
             'log': LuaFuncBuilder.create('log')
                 .arg('x')
                 .exec(
@@ -679,6 +714,7 @@ table.insert(t, "foo")
                     if (x == null) {
                       throw 'Expected num argument "x" for "${context!.id}".';
                     }
+                    if(x <= 0) return double.nan;
                     return math.log(x);
                   },
                 ),
@@ -690,7 +726,8 @@ table.insert(t, "foo")
                     if (x == null) {
                       throw 'Expected num argument "x" for "${context!.id}".';
                     }
-                    return x; // TODO
+                    if(x <= 0) return double.nan;
+                    return  math.log(x) / math.ln10;
                   },
                 ),
             'pow': LuaFuncBuilder.create('pow')
@@ -770,7 +807,6 @@ table.insert(t, "foo")
                     return varargs!.fold(x, (v, n) => math.min(v, n));
                   },
                 ),
-            // Does nothing atm.
             'randomseed': LuaFuncBuilder.create('randomseed')
                 .arg('x')
                 .exec(
@@ -779,7 +815,7 @@ table.insert(t, "foo")
                     if (x == null) {
                       throw 'Expected num argument "x" for "${context!.id}".';
                     }
-                    return null;
+                    rand = math.Random(x.toInt());
                   },
                 ),
             'random': LuaFuncBuilder.create('random')
@@ -794,13 +830,13 @@ table.insert(t, "foo")
                       if (n != null) {
                         final m0 = math.min(m, n);
                         final n0 = math.max(m, n);
-                        return math.Random().nextInt(n0 - m0) + m0 + 1;
+                        return rand.nextInt(n0 - m0) + m0 + 1;
                       } else {
-                        return math.Random().nextInt(m) + 1;
+                        return rand.nextInt(m) + 1;
                       }
                     }
 
-                    return math.Random().nextDouble();
+                    return rand.nextDouble();
                   },
                 ),
           })
@@ -810,6 +846,8 @@ table.insert(t, "foo")
             The lua runtime math library.
             ''',
           );
+
+    defMath.writeField('huge', double.maxFinite.toInt());
 
     defGlobal(defMath);
   }

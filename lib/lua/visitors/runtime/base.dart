@@ -1298,11 +1298,21 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     if (op == TokenType.kHash) {
       if (rhs is LuaObject) {
-        // TODO: verify
         final mm = rhs.readMetatable('__len')?.as<LuaObject>();
-        if(mm != null) {
+
+        final v = rhs.value;
+        if(v is! String && mm != null) {
           return callLuaFunction(mm, args:[rhs]);
         }
+
+        if(v is String) {
+          return v.length;
+        }
+
+        if(rhs.isNotTable) {
+          throw '$lineInfo Length operator # used on a value.';
+        }
+
         return rhs.tableSize;
       } else if (rhs != null) {
         return 1;
