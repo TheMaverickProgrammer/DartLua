@@ -1,3 +1,18 @@
+## 1.0.10
+- Meta table support added.
+- `setmetatable(t, mt)` and `getmetatable(t)` work as expected.
+- Metamethods added to runtime.
+  - Includes new tests under  `/test/assets/metamethods`.
+- Multivalue arg unpacking behaves as expected.
+  - Return values support multiple values correctly.
+  - Variadic args support multiple values correctly.
+- Global upvalues now use `_ENV` and includes legacy `_G` which points to `_ENV`.
+- `Coroutine` API added to std library.
+  - Note that coroutines do not work at this time.
+- Entire `math` library completed.
+- Bitwise operations added.
+- Update to `README.md` includes a get starting section and lists the remaining unfinished features.
+
 ## 1.0.9
 - `token` is now a field on all grammar nodes via `Stmt` base class.
 - Started but did not complete coroutines.
