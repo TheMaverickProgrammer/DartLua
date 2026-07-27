@@ -160,11 +160,11 @@ Here's what's left to be compliant with the `Lua 5.5` specification:
 - Missing metamethods: `__call`, `__newindex`, and `__index`.
 - Missing a semantics pass for `goto` and `::label::` statements.
 - Keyword `<const>` support not added.
-- Keyword `global` support not added. (But globals in scope are supported!)
+- Keyword `global` support not added. (But globals in scope **are** supported!)
 - `Coroutines` library **is** added but the runtime needs bytecode to make use of it.
 - No tail call support. This optimization also requires bytecode to be effective.
-- Lua uses semicolons for grammar disambiguities. Semicolons are not in this implementation atm.
-- Lua supports dropping the parenthesis for singular arg function args e.g. `print "hello!"`.
+- Lua uses semicolons for grammar disambiguities. Semicolons are not in this implementation atm. I will add them later.
+- Lua supports dropping the parenthesis for singular arg function args e.g. `print "hello!"`. I will add this later.
 
 ## Extra Goals
 - Semantics: code path type unification.
@@ -173,7 +173,8 @@ Here's what's left to be compliant with the `Lua 5.5` specification:
     - This would allow invariant code paths to be protomoted to constant value generation.
 
 ## Unplanned
-This interpreter makes use of Dart's execution and memory model and it does not explicitly cleanup any memory. Therefore, anything related to Lua's garbage collector is not supported and not planned to be supported in the forseeable future.
+This interpreter makes use of Dart's execution stack and memory model and it does not explicitly cleanup any memory.
+Therefore, anything related to Lua's garbage collector is not supported and not planned to be supported in the forseeable future.
 
 This also means the metamethods related to GC such as `__mode`, `__close`, and `__gc` are not implemented either.
 

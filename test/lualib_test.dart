@@ -129,6 +129,18 @@ void main() {
   group('metamethods', () {
     final dir = './test/assets/metamethods';
 
+    test('__eq', () {
+      expect(runTest('$dir/__eq.lua'), true);
+    });
+
+    test('__lt', () {
+      expect(runTest('$dir/__lt.lua'), true);
+    });
+
+    test('__le', () {
+      expect(runTest('$dir/__le.lua'), true);
+    });
+
     test('__add', () {
       expect(runTest('$dir/__add.lua'), true);
     });
@@ -145,12 +157,52 @@ void main() {
       expect(runTest('$dir/__div.lua'), true);
     });
 
+    test('__idiv', () {
+      expect(runTest('$dir/__idiv.lua'), true);
+    });
+
     test('__pow', () {
       expect(runTest('$dir/__pow.lua'), true);
     });
 
+    test('__mod', () {
+      expect(runTest('$dir/__mod.lua'), true);
+    });
+
+    test('__shr', () {
+      expect(runTest('$dir/__shr.lua'), true);
+    });
+
+    test('__shl', () {
+      expect(runTest('$dir/__shl.lua'), true);
+    });
+
     test('__concat', () {
       expect(runTest('$dir/__concat.lua'), true);
+    });
+
+    test('__len', () {
+      expect(runTest('$dir/__len.lua'), true);
+    });
+
+    test('__unm', () {
+      expect(runTest('$dir/__unm.lua'), true);
+    });
+
+    test('__band', () {
+      expect(runTest('$dir/__band.lua'), true);
+    });
+
+    test('__bor', () {
+      expect(runTest('$dir/__bor.lua'), true);
+    });
+
+    test('__bxor', () {
+      expect(runTest('$dir/__bxor.lua'), true);
+    });
+
+    test('__bnot', () {
+      expect(runTest('$dir/__bnot.lua'), true);
     });
   });
 

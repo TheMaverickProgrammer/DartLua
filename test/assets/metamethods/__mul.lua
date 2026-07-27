@@ -1,13 +1,13 @@
-local A = '[]|'
+local A = {token='[]|'}
 
 setmetatable(A, {
     __mul = function(l, r)
-        local token = l
+        local out = l.token
         for i = 1, r-1 do
-            l = token .. l
+            out = out .. l.token
         end
 
-        return l
+        return out
     end
 })
 

@@ -559,53 +559,37 @@ abstract class BaseRuntime extends Visitor<Object?> {
     }
 
     int asInt(Object? obj) {
-      if (obj == null) throw '$lineInfo Operand was null for binary $op.';
+      if (obj == null) throw 'Operand was null for binary $op.';
       if (obj is LuaObject) {
         final value = obj.valueAs<num>();
         if (value == null) {
-          throw '$lineInfo Failed to convert lua type "${obj.typeinfo}" to "int".';
+          throw 'Failed to convert lua type "${obj.luaTypeInfo}" to "int".';
         }
         return value.toInt();
       } else if (obj is num) {
         return obj.toInt();
       }
 
-      throw '$lineInfo Unexpected type while casting to "int". Found "${obj.runtimeType}".';
+      throw 'Unexpected type while casting to "int". Found "${obj.runtimeType}".';
     }
 
     num asNum(Object? obj) {
-      if (obj == null) throw '$lineInfo Operand was null for binary $op.';
+      if (obj == null) throw 'Operand was null for binary $op.';
       if (obj is LuaObject) {
         final value = switch (obj.value) {
           final num n => n,
           _ => null,
         };
         if (value == null) {
-          throw '$lineInfo Failed to convert lua type "${obj.typeinfo}" to "int".';
+          throw 'Failed to convert lua type "${obj.luaTypeInfo}" to "int".';
         }
         return value;
       } else if (obj is num) {
         return obj;
       }
 
-      throw '$lineInfo Unexpected type while casting to "num". Found "${obj.runtimeType}".';
+      throw 'Unexpected type while casting to "num". Found "${obj.runtimeType}".';
     }
-
-    /*
-    bool asBool(Object? obj) {
-      if (obj == null) throw '$lineInfo Operand was null for binary $op.';
-      if (obj is LuaObject) {
-        final value = obj.valueAs<bool>();
-        if (value == null) {
-          throw '$lineInfo Failed to convert lua type "${obj.typeinfo}" to "bool".';
-        }
-        return value;
-      } else if (obj is bool) {
-        return obj;
-      }
-
-      throw '$lineInfo Unexpected type while casting to "bool". Found "${obj.runtimeType}".';
-    }*/
 
     String strConcat(Object? lhs, Object? rhs) {
       check(LuaObject obj) {
@@ -643,6 +627,49 @@ abstract class BaseRuntime extends Visitor<Object?> {
       return strL + strR;
     }
 
+    bool isEqual(LuaObject? lhs, LuaObject? rhs) {
+      if((lhs?.isTable ?? false) && (rhs?.isTable ?? false)) {
+        final ok = metamethod('__eq', lhs, rhs)?.unpack();
+        if(ok != null) return ok.isTruthy;
+      }
+
+      Object? lval = lhs;
+      if (lhs is LuaObject) {
+        lval = lhs.value;
+      }
+
+      Object? rval = rhs;
+      if (rhs is LuaObject) {
+        rval = rhs.value;
+      }
+
+      return lval == rval;
+    }
+
+    bool isLessThan(LuaObject? lhs, LuaObject? rhs) {
+      final ok = metamethod('__lt', lhs, rhs)?.unpack();
+      if(ok != null) return ok.isTruthy;
+
+      return switch((lhs?.value, rhs?.value)) {
+        (final String s, final String t) => s.compareTo(t) < 0,
+        (final num n, final num m) => n < m,
+        _ => throw 'reeee',
+      };
+    }
+
+    bool isLessThanOrEqual(LuaObject? lhs, LuaObject? rhs) {
+      if((lhs?.isTable ?? false) || (rhs?.isTable ?? false)) {
+        final ok = metamethod('__le', lhs, rhs)?.unpack();
+        if(ok != null) return ok.isTruthy;
+      }
+
+      return switch((lhs?.value, rhs?.value)) {
+        (final String s, final String t) => s.compareTo(t) <= 0,
+        (final num n, final num m) => n <= m,
+        _ => throw 'reeee',
+      };
+    }
+
     try {
       final lhs = expr.lhs.accept(this)?.unpack();
       final rhs = expr.rhs.accept(this)?.unpack();
@@ -665,7 +692,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
           if(ok != null) return ok;
           return asInt(lhs) ^ asInt(rhs);
         case TokenType.kBitAnd:
-          // TODO: verify https://www.lua.org/manual/5.5/manual.html#2.1
           final ok = metamethod('__band', lhs, rhs);
           if(ok != null) return ok;
           return asInt(lhs) & asInt(rhs);
@@ -690,17 +716,18 @@ abstract class BaseRuntime extends Visitor<Object?> {
           if(ok != null) return ok;
           return asNum(lhs) /
               switch (asNum(rhs)) {
-                == 0.0 => throw '$lineInfo Divide by zero.',
+                == 0.0 => throw 'Divide by zero.',
                 final num n => n,
               };
         case TokenType.kDivFloor:
           final ok = metamethod('__idiv', lhs, rhs);
           if(ok != null) return ok;
-          return asNum(lhs) /
+          final d = asNum(lhs) /
               switch (asNum(rhs)) {
-                == 0.0 => throw '$lineInfo Divide by zero.',
-                final num n => asNum(n.floor()),
+                == 0.0 => throw 'Divide by zero.',
+                final num n => n,
               };
+          return d.floor();
         case TokenType.kSub:
           final ok = metamethod('__sub', lhs, rhs);
           if(ok != null) return ok;
@@ -714,52 +741,19 @@ abstract class BaseRuntime extends Visitor<Object?> {
           if(ok != null) return ok;
           return asNum(lhs) * asNum(rhs);
         case TokenType.kLTE:
-          // TODO: verify
-          final ok = metamethod('__le', lhs, rhs);
-          if(ok != null) return ok;
-          return asNum(lhs) <= asNum(rhs);
+          return isLessThanOrEqual(lhs, rhs);
         case TokenType.kLT:
-          // TODO: verify
-          final ok = metamethod('__lt', lhs, rhs);
-          if(ok != null) return ok;
-          return asNum(lhs) < asNum(rhs);
+          return isLessThan(lhs, rhs);
         case TokenType.kGT:
-          return asNum(lhs) > asNum(rhs);
+          return isLessThan(rhs, lhs);
         case TokenType.kGTE:
-          return asNum(lhs) >= asNum(rhs);
+          return isLessThanOrEqual(rhs, lhs);
         case TokenType.kEQ:
-          // TODO: verify
-          final ok = metamethod('__eq', lhs, rhs);
-          if(ok != null) return ok;
-
-          Object? lval = lhs;
-
-          if (lhs is LuaObject) {
-            lval = lhs.deref().value;
-          }
-
-          Object? rval = rhs;
-
-          if (rhs is LuaObject) {
-            rval = rhs.deref().value;
-          }
-
-          return lval == rval;
+          return isEqual(lhs, rhs);
         case TokenType.kNEQ:
-          Object? lval = lhs;
-
-          if (lhs is LuaObject) {
-            lval = lhs.deref().value;
-          }
-
-          Object? rval = rhs;
-
-          if (rhs is LuaObject) {
-            rval = rhs.deref().value;
-          }
-          return lval != rval;
+          return !isEqual(lhs, rhs);
         default:
-          throw '$lineInfo Unsupported binary operation $op.';
+          throw 'Unsupported binary operation $op.';
       }
     } catch (e) {
       throw '$lineInfo ${e.toString()}';
@@ -1192,7 +1186,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     };
 
     // Primitives cannot have fields.
-    if (callee.type == LuaType.value) {
+    if (callee.deref().type == LuaType.value) {
       throw '$linePos "$callee" is a ${callee.luaTypeInfo} and cannot have fields.';
     }
 
@@ -1310,46 +1304,57 @@ abstract class BaseRuntime extends Visitor<Object?> {
         }
 
         if(rhs.isNotTable) {
-          throw '$lineInfo Length operator # used on a value.';
+          throw 'Length operator # used on a value.';
         }
 
         return rhs.tableSize;
-      } else if (rhs != null) {
-        return 1;
-      } else {
-        final String lineInfo = this.lineInfo(expr.prefix);
-        throw '$lineInfo Length operator # used on nil value.';
+      } else if (rhs == null) {
+        throw 'Length operator # used on nil value.';
       }
+      // else ...
+      throw 'Length operator # used on type ${rhs.runtimeType}.';
     } else if(op == TokenType.kBitNot) {
+      String type = rhs.runtimeType.toString();
+      Object? v = rhs;
       if (rhs is LuaObject) {
-        // TODO: verify
-        final mm = rhs.readMetatable('__bnot')?.as<LuaObject>();
-        if(mm != null) {
-          return callLuaFunction(mm, args:[rhs]);
+        type = rhs.luaTypeInfo;
+
+        if(rhs.isTable) {
+          final mm = rhs.readMetatable('__bnot')?.as<LuaObject>();
+          if(mm != null) {
+            return callLuaFunction(mm, args:[rhs]);
+          }
+        } else {
+          v = rhs.value;
         }
       }
 
       // ... else
-      return switch (rhs) {
-        final int i => ~i,
-        final double d => ~d.toInt(),
-        _ => throw 'Unsupported bitwise NOT on type ${rhs?.runtimeType}',
+      return switch (v) {
+        final num n => ~n.toInt(),
+        _ => throw 'Unsupported bitwise NOT on $type.',
       };
     }
     else if(op == TokenType.kSub) {
+      String type = rhs.runtimeType.toString();
+      Object? v = rhs;
       if (rhs is LuaObject) {
-        // TODO: verify
-        final mm = rhs.readMetatable('__unm')?.as<LuaObject>();
-        if(mm != null) {
-          return callLuaFunction(mm, args:[rhs]);
+        type = rhs.luaTypeInfo;
+
+        if(rhs.isTable) {
+          final mm = rhs.readMetatable('__unm')?.as<LuaObject>();
+          if(mm != null) {
+            return callLuaFunction(mm, args:[rhs, rhs]);
+          }
+        } else {
+          v = rhs.value;
         }
       }
 
       // ... else
-      return switch (rhs) {
-        final int i => -i,
-        final double d => -d,
-        _ => throw 'Unsupported negation on type ${rhs?.runtimeType}',
+      return switch (v) {
+        final num n => -n,
+        _ => throw 'Unsupported negation on $type.',
       };
     }
 

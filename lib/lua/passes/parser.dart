@@ -594,6 +594,7 @@ class Parser {
     final bitops = [
       TokenType.kBitAnd,
       TokenType.kBitOr,
+      TokenType.kBitNot, // BXOR
       TokenType.kBitLShift,
       TokenType.kBitRShift,
     ];
