@@ -437,14 +437,7 @@ table.insert(t, "foo")
       tostring(LuaObject e) {
         final mm = e.readMetatable('__tostring')?.as<LuaObject>();
         if(mm == null) {
-          // Find the best string representation of this lua value.
-          // Values can be printed as-is.
-          // More complex types just print their LUA typeinfo.
-          final v = e.deref();
-          return switch(v.type) {
-            LuaType.value => v.toString(),
-            LuaType _ => v.luaTypeInfo,
-          };
+          return e.toString();
         }
         return callLuaFunction(mm, args: [e]).unpack();
       }

@@ -16,6 +16,8 @@
   - [Unplanned](#unplanned)
 <!-- /TOC -->
 
+![REPL in action](./media/repl.gif)
+
 This is a custom a custom `Lua 5.5` interpreter and utilities written from scratch in pure Dart.
 I wrote this as a part of a series of learning exercises on how to write my own compilers and programming languages.
 
@@ -57,6 +59,9 @@ use the specific `(bool, LuaObject) runner(AST, constructor)` utility function.
 ```dart
 import 'package:puredartlua/runner.dart';
 
+/// This example driver shows the user how to define custom methods in dart,
+/// run lua programs calling custom methods,
+/// and find the result from lua back to dart.
 void main() {
   final evaluator = Evaluator();
 
@@ -81,25 +86,40 @@ void main() {
 See the implementation for the ready-to-use `Evaluator` class in [`lib/lua/lua.dart`](./lib/lua/lua.dart).
 
 ### As An Interpreter
-To make a REPL LUA interpreter, simply feed `runner(...)` the result of the user's parsed input.
+To make a LUA interpreter, simply feed `runner(...)` the result of the user's parsed input.
 The runner returns a tuple of type `(bool ok, LuaObject out)`. You can print the result to the user.
 Quit the loop when the user types a signal. For example `exit`.
 
 ```dart
+import 'dart:convert';
 import 'package:puredartlua/runner.dart';
-import 'dart:io';
 
+/// This example driver demonstrates a very simple REPL interpreter.
+/// Read Evaluate Print Loop.
 void main() {
   final evaluator = Evaluator();
-  bool loop = true;
+  print('Inputs ending with "\\" continue next line.');
+  print('Type "exit" to quit.');
+  print('-------------------');
+  String content = '';
   while(true) {
-    final String input = stdin.readLineSync(encoding: utf8)?.trim()?.toLowerCase();
-    if(input == 'exit') break;
+    stdout.add('\$ '.codeUnits);
+    final String input = stdin.readLineSync(encoding: utf8)?.trim().toLowerCase() ?? '';
 
-    final ast = parse(input);
+    if(input.endsWith('\\')) {
+      content += input.substring(0, input.length-1);
+      continue;
+    } else {
+      content += input;
+    }
+
+    if(content == 'exit') break;
+
+    final ast = parse(content);
+    content = '';
     if(ast == null) continue;
 
-    final (ok, out) = runner(ast, constructor: () => evaluator);
+    final (ok, out) = runner(ast, constructor: () => evaluator..clearResults());
     print(out);
   }
 }

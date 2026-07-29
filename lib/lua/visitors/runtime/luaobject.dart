@@ -257,6 +257,7 @@ class LuaObject {
   /// - [isNil]
   /// - [isRef]
   /// - [isFunc]
+  /// - [isThread]
   /// - [isTable]
   /// - [isValue]
   ///
@@ -265,6 +266,7 @@ class LuaObject {
     if (isNil) return LuaType.nil;
     if (isRef) return LuaType.ref;
     if (isFunc) return LuaType.func;
+    if (isThread) return LuaType.thread;
     if (isTable) return LuaType.table;
     if (isValue) return LuaType.value;
     return LuaType.unresolved;
@@ -747,14 +749,17 @@ class LuaObject {
   /// Due to a dart bug, I cannot throw if we're converting a table
   /// or some other unknown data type to a string.
   /// Instead, unhandled types return their variable name wrapped
-  /// in angle brackets <>. I'll check for string type conversion
-  /// as-needed instead.
+  /// in angle brackets <>. I'll perform strict type checks as-needed
+  /// for known types.
   @override
   String toString() {
     // A thread is also a valid value, but we wish to print
     // the type info in this case.
     if(isThread) {
       return 'thread';
+    }
+    else if(isFunc) {
+      return 'function';
     }
     else if (isValue) {
       return switch (value) {
