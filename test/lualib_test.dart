@@ -16,8 +16,10 @@ class ExpectationLine {
 /// The pattern is case-sensitive regarding "Expect: " but ignores
 /// leading whitespace.
 class ExpectationParser {
-  static final RegExp _pattern =
-    RegExp(r'^\s*--\s*Expect:\s*(.*)$', caseSensitive: false);
+  static final RegExp _pattern = RegExp(
+    r'^\s*--\s*Expect:\s*(.*)\r?$',
+    caseSensitive: false,
+  );
 
   /// Takes file contents as a string and
   /// returns a list of captured expectations.
@@ -30,8 +32,8 @@ class ExpectationParser {
       if (match != null) {
         String? captured = match.group(1)?.trim();
         if (captured != null && captured.isNotEmpty) {
-          if(captured == '\\n') captured = '\n';
-          results.add(ExpectationLine(i+1, captured));
+          if (captured == '\\n') captured = '\n';
+          results.add(ExpectationLine(i + 1, captured));
         }
       }
     }
@@ -49,14 +51,14 @@ bool runTest(String path) {
     final String content = File(path).readAsStringSync();
 
     final AST? ast = parse(content);
-    if(ast == null) {
+    if (ast == null) {
       print('AST was null!');
       return false;
     }
     final Evaluator evaluator = Evaluator();
     (ok, _) = runner(ast, constructor: () => evaluator);
 
-    if(!ok) {
+    if (!ok) {
       print(evaluator.errors.join('\n'));
       return false;
     }
@@ -67,15 +69,15 @@ bool runTest(String path) {
     final int outLen = evaluator.impl.stdOut.length;
     final int expLen = expected.length;
 
-    for(int i = 0; i < expLen; i++) {
+    for (int i = 0; i < expLen; i++) {
       final int line = expected[i].line;
       final String e = expected[i].captured;
-      final String o = switch(i < outLen) {
+      final String o = switch (i < outLen) {
         true => evaluator.impl.stdOut[i],
-        false => 'N/A'
+        false => 'N/A',
       };
 
-      if(e.compareTo(o) != 0) {
+      if (e.compareTo(o) != 0) {
         print('[Line $line] Expected "$e". Was "$o".');
         ok = false;
       }
@@ -85,7 +87,7 @@ bool runTest(String path) {
     ok = false;
   }
 
-  if(ok) print('OK');
+  if (ok) print('OK');
 
   return ok;
 }
@@ -126,7 +128,6 @@ void main() {
   test('pcall', () {
     expect(runTest('./test/assets/pcall.lua'), true);
   });
-
 
   group('metamethods', () {
     final dir = './test/assets/metamethods';

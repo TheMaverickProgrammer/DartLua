@@ -23,13 +23,13 @@ I wrote this as a part of a series of learning exercises on how to write my own 
 
 ## Tutorial
 This package exports a full fledged library and a simple executable for running lua scripts.
-Runnable examples below can be found under [`'./bin/examples/'](./bin/examples/).
+Runnable examples below can be found under [`./bin/examples/`](./bin/examples/).
 
-- Basic interpreter: ['repl.dart'](./bin/examples/repl.dart)
-- Read data in dart: ['integrate.dart'](./bin/examples/integrate.dart)
+- Basic interpreter: [`repl.dart`](./bin/examples/repl.dart)
+- Read data in dart: [`integrate.dart`](./bin/examples/integrate.dart)
 
 ### Run The Driver
-To get started, run `bin/input.lua`. Everything after the file path is passed into the `run()`
+To get started, run [`bin/input.lua`](./bin/input.lua). Everything after the file path is passed into the `run()`
 starter as input arguments table `arg`.
 
 ```bash

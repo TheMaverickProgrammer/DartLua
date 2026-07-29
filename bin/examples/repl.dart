@@ -9,22 +9,24 @@ void main() {
   print('Type "exit" to quit.');
   print('-------------------');
   String content = '';
-  while(true) {
+  while (true) {
     stdout.add('\$ '.codeUnits);
-    final String input = stdin.readLineSync(encoding: utf8)?.trim().toLowerCase() ?? '';
+    final String input =
+        stdin.readLineSync(encoding: utf8)?.trim().toLowerCase() ?? '';
 
-    if(input.endsWith('\\')) {
-      content += input.substring(0, input.length-1);
+    if (input.endsWith('\\')) {
+      // Stitch the lines together.
+      content += '${input.substring(0, input.length - 1)}\n';
       continue;
     } else {
       content += input;
     }
 
-    if(content == 'exit') break;
+    if (content == 'exit') break;
 
     final ast = parse(content);
     content = '';
-    if(ast == null) continue;
+    if (ast == null) continue;
 
     final (ok, out) = runner(ast, constructor: () => evaluator..clearResults());
     print(out);
