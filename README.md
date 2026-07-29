@@ -2,10 +2,11 @@
 
 <!-- TOC -->
 - [PureDartLua](#puredartlua)
-  - [Getting Started](#getting-started)
+  - [Tutorial](#tutorial)
     - [Run The Driver](#run-the-driver)
     - [Use In Your Own Code](#use-in-your-own-code)
     - [Custom Data](#custom-data)
+    - [As An Interpreter](#as-an-interpreter)
   - [DOT File Visualizer](#dot-file-visualizer)
   - [All Features](#all-features)
 - [Tests](#tests)
@@ -18,8 +19,12 @@
 This is a custom a custom `Lua 5.5` interpreter and utilities written from scratch in pure Dart.
 I wrote this as a part of a series of learning exercises on how to write my own compilers and programming languages.
 
-## Getting Started
+## Tutorial
 This package exports a full fledged library and a simple executable for running lua scripts.
+Runnable examples below can be found under [`'./bin/examples/'](./bin/examples/).
+
+- Basic interpreter: ['repl.dart'](./bin/examples/repl.dart)
+- Read data in dart: ['integrate.dart'](./bin/examples/integrate.dart)
 
 ### Run The Driver
 To get started, run `bin/input.lua`. Everything after the file path is passed into the `run()`
@@ -47,31 +52,58 @@ But you probably want to define your own tables and functions in lua. And probab
 values back in dart too.
 
 For this, you need a custom runtime via the `Evaluator` class and
-use the specific `runner(AST, constructor)` utility function.
+use the specific `(bool, LuaObject) runner(AST, constructor)` utility function.
 
 ```dart
-import 'package:puredartlua/utils.dart';
+import 'package:puredartlua/runner.dart';
 
 void main() {
   final evaluator = Evaluator();
 
-  final add_one = LuaFuncBuilder.create('add_one')
+  final addOne = LuaFuncBuilder.create('add_one')
           .arg('n')
           .exec(call: () {
-            final n = findVar('n')?.valueAsInt() ?? 0;
+            final n = evaluator.findVar('n')?.valueAsInt() ?? 0;
             return n+1;
           });
 
-  evaluator.defGlobal(add_one);
+  evaluator.defGlobal(addOne);
 
-  runner(parse("x = add_one(5)")!, constructor: () => evaluator);
+  runner(parse("x = add_one(6)")!, constructor: () => evaluator);
 
   int? result = evaluator.findVar('x')?.valueAsInt();
 
-  // Do something with `result`.
+  // Prints: 7
+  print(result);
 }
 ```
+
 See the implementation for the ready-to-use `Evaluator` class in [`lib/lua/lua.dart`](./lib/lua/lua.dart).
+
+### As An Interpreter
+To make a REPL LUA interpreter, simply feed `runner(...)` the result of the user's parsed input.
+The runner returns a tuple of type `(bool ok, LuaObject out)`. You can print the result to the user.
+Quit the loop when the user types a signal. For example `exit`.
+
+```dart
+import 'package:puredartlua/runner.dart';
+import 'dart:io';
+
+void main() {
+  final evaluator = Evaluator();
+  bool loop = true;
+  while(true) {
+    final String input = stdin.readLineSync(encoding: utf8)?.trim()?.toLowerCase();
+    if(input == 'exit') break;
+
+    final ast = parse(input);
+    if(ast == null) continue;
+
+    final (ok, out) = runner(ast, constructor: () => evaluator);
+    print(out);
+  }
+}
+```
 
 ## DOT File Visualizer
 Run
@@ -93,7 +125,8 @@ The DOT file will be embedded in an HTML page `my_script.lua.html`.
 - Emit custom warnings, diagnostic info, or errors.
 - Aims to be Lua 5.5 compliant.
   - See this [section](#missing-lua-lang-support) for remaining issues.
-- Parser, Evaluator, Interpreter classes extensible and modifiable.
+- Parser, Evaluator, and StdRuntime classes extensible and modifiable.
+- Built in interpreter via `run()` and `runner()` utility functions for easy use.
 - `Truthy` and `Native2Lua` Dart class extensions for convenient bridge between userdata and lua types.
 - Globals provided by `_ENV` and legacy `_G` upvalues.
 - Metatables supported via `setmetatable(t, mt)` and `getmetatable(t)` as you'd expect.
@@ -106,6 +139,8 @@ The DOT file will be embedded in an HTML page `my_script.lua.html`.
   - table
   - print
   - math
+- `pcall()` implementation.
+  - `xpcall()` is just another call to `pcall()` in this runtime.
 
 > Because this is a pure dart lua interpreter, it is not expected to be as fast
 > as the C ffi alternative libs for Dart. However, it is much more programmer friendly!
@@ -176,6 +211,7 @@ Here's what's left to be compliant with the `Lua 5.5` specification:
 This interpreter makes use of Dart's execution stack and memory model and it does not explicitly cleanup any memory.
 Therefore, anything related to Lua's garbage collector is not supported and not planned to be supported in the forseeable future.
 
-This also means the metamethods related to GC such as `__mode`, `__close`, and `__gc` are not implemented either.
+This also means the metamethods related to GC such as `__mode`, `__close`, and `__gc` are not implemented either. If you use
+them your scripts will run fine, but any side effects these metamethods have will do nothing in this runtime.
 
 [AUTODOC]: ./lib/docs/autodoc.dart

@@ -11,6 +11,8 @@
   - Note that coroutines do not work at this time.
 - Entire `math` library completed.
 - Bitwise operations added.
+- All functions rethrow now on exceptions unless `callLuaFunction` is used with an exception handler.
+- `pcall()` implementation follows from the new function exception behavior.
 - Update to `README.md` includes a get starting section and lists the remaining unfinished features.
 
 ## 1.0.9

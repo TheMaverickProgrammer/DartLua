@@ -1,9 +1,5 @@
-import 'dart:io';
-
-import 'package:puredartlua/lua/lua.dart';
-import 'package:puredartlua/lua/visitors/runtime/luaobject.dart';
 import 'package:puredartlua/lua/visitors/visualizer.dart';
-import 'package:puredartlua/utils.dart';
+import 'package:puredartlua/runner.dart';
 
 void help() {
   print('''  -h            Show help.
@@ -13,6 +9,9 @@ void help() {
 	''');
 }
 
+/// This driver runs lua scripts given by path in `-e` and accepts input arguments.
+/// Generate helpful DOT file graphs in HTML with `-v` command.
+/// Print help menu by running with `-h`.
 void main(List<String> args) {
   // Help user.
   if (args.isEmpty || args.first == '-h') {

@@ -16,11 +16,30 @@ class Evaluator with EvaluatorMixin {
   final results = StdRuntimeResults();
   late final impl = StdRuntime(results);
 
+  /// The [results] field is intended to be used
+  /// to collect runtime information while evaluating
+  /// scripts or performing extra passes on IR.
+  /// In REPL, we need to clear the results so as
+  /// to not populate the console with older messages.
+  void clearResults() => results.clear();
+
+  /// Forward to [StdRuntimeResults.errors] and
+  /// returns as a [List].
   @override
   List<String> get errors => results.errors.toList();
 
+  /// Forward to [StdRuntime.visitAST].
   @override
   Object? visitAST(AST ast) => impl.visitAST(ast);
+
+  /// Forward to [StdRuntime.findVar].
+  LuaObject? findVar(String id) => impl.findVar(id);
+
+  /// Forward to [StdRuntime.defGlobal].
+  LuaObject defGlobal(LuaObject value) => impl.defGlobal(value);
+
+  /// Forward to [StdRuntime.defLocal].
+  LuaObject defLocal(LuaObject value) => impl.defLocal(value);
 }
 
 /// Enables any class inheritting [BaseRuntime] to be made

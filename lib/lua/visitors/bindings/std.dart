@@ -70,6 +70,7 @@ mixin Std on BaseRuntime {
     initStdTable();
     initStdPrint();
     initStdMath();
+    initMiscRuntime();
   }
 
   void initStdMetatables() {
@@ -379,7 +380,7 @@ print(f(7)) -- prints 13
                   },
                 )
               ..doc = LuaDoc(
-                category: 'Runtime',
+                category: catRuntime,
                 html: '''
                 Inserts <code>value</code> into table <code>t</code> at <code>position</code>.<br/>
                 <br/>
@@ -415,7 +416,7 @@ table.insert(t, "foo")
             ),
       }),
     ).doc = LuaDoc(
-      category: 'Runtime',
+      category: catRuntime,
       html: '''
       Tables are to lua what classes are to other modern programming languages.<br/>
       They can also be used as lists.
@@ -443,7 +444,7 @@ table.insert(t, "foo")
     }
 
     defGlobal(LuaObject.func('print', defPrint, exec)).doc = LuaDoc(
-      category: 'Runtime',
+      category: catRuntime,
       html: '''
           Converts a lua object to a string and then
           displays to console. See <a href="#tostring">tostring</a>.
@@ -841,7 +842,7 @@ table.insert(t, "foo")
                 ),
           })
           ..doc = LuaDoc(
-            category: 'Runtime',
+            category: catRuntime,
             html: '''
             The lua runtime math library.
             ''',
@@ -937,9 +938,55 @@ table.insert(t, "foo")
     defGlobal(defCoroutine).doc = LuaDoc(
       category: catRuntime,
       html: '''
-      Lua offsers asymmetric coroutines as a way to reason about statefulness without
+      Lua offers asymmetric coroutines as a way to reason about statefulness without
       resorting to bloated abstractions to keep track of state and execution.
       ''',
+    );
+  }
+
+  // I don't have a better name for this group.
+  void initMiscRuntime() {
+    final pCall = defGlobal(
+      LuaFuncBuilder
+        .create('pcall')
+        .arg('fn')
+        .exec(call: () {
+          final fn = findVar('fn')?.toLuaRet();
+          if(fn == null || fn.isNotFunc) {
+            throw 'pcall expects a function argument!';
+          }
+
+          String err = '';
+          except(e) {
+            err = e.toString();
+          }
+
+          final results = callLuaFunction(fn, onException: except);
+
+          if(err.isNotEmpty) {
+            return [false.toLuaRet(), err.toLuaRet()];
+          }
+
+          // OK
+          return [true.toLuaRet(), ...results];
+        })
+      )..doc = LuaDoc(
+        category: catRuntime,
+        html: '''
+        The <code>pcall</code> function calls its first argument in protected mode,
+        so that it catches any errors while the function is running. If there are no errors,
+        <code>pcall</code> returns <code>true</code> plus any values returned by the call.
+        Otherwise, it returns <code>false</code> plus the error message.'
+        ''');
+
+    defGlobal(LuaObject.variable('xpcall', pCall))
+    .doc = LuaDoc(
+      category: catRuntime,
+      html: '''
+      This lua runtime does not support the debug library nor stack traces at runtime.
+      Therefore the function <code>xpcall</code> is another name for <code>pcall</code>.
+      They do the same thing.
+      '''
     );
   }
 }

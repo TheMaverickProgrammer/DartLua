@@ -1,9 +1,6 @@
-import 'dart:io';
-
-import 'package:puredartlua/lua/lua.dart';
 import 'package:test/expect.dart';
 import 'package:test/scaffolding.dart';
-import 'package:puredartlua/utils.dart';
+import 'package:puredartlua/runner.dart';
 
 /// A simple utility class for holding the location
 /// of the expectation [line] and the content [captured].
@@ -57,7 +54,7 @@ bool runTest(String path) {
       return false;
     }
     final Evaluator evaluator = Evaluator();
-    ok = runner(ast, constructor: () => evaluator);
+    (ok, _) = runner(ast, constructor: () => evaluator);
 
     if(!ok) {
       print(evaluator.errors.join('\n'));
@@ -125,6 +122,11 @@ void main() {
   test('while loops', () {
     expect(runTest('./test/assets/while_loops.lua'), true);
   });
+
+  test('pcall', () {
+    expect(runTest('./test/assets/pcall.lua'), true);
+  });
+
 
   group('metamethods', () {
     final dir = './test/assets/metamethods';

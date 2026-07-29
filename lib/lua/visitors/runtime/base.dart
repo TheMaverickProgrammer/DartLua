@@ -42,6 +42,21 @@ class RuntimeCallbacks {
   }
 }
 
+/// Given an instance of [Object?], return a [String]
+/// value of the best-representing lua type.
+/// If [o] is [LuaObject], then calls [LuaObject.luaTypeInfo].
+/// If the instance cannot be resolved to a lua type, fallback
+/// on [Object.runtimeType]. This is used in error reporting to the user
+/// so as not to confuse users if a [o] is a type native to dart.
+String debugLuaTypeInfo(Object? o) => switch(o) {
+        null => 'nil',
+        final num _ => 'number',
+        final bool _ => 'boolean',
+        final Function _ => 'function',
+        final LuaObject lo => lo.luaTypeInfo,
+        final Object o => o.runtimeType.toString(),
+      };
+
 /// The result of processing a lua script can omit
 /// errors, warnings, or custom diagnostic info.
 /// This results class collects such information at run-time
@@ -62,6 +77,13 @@ abstract class BaseResults {
   void addAllWarnings(List<String> warns) => this.warns.addAll(warns);
   void addDiagnostic(String info) => infos.add(info);
   void addAllDiagnostics(List<String> infos) => this.infos.addAll(infos);
+
+  /// Wipes the instance of all collected results for re-use.
+  void clear() {
+    errors.clear();
+    warns.clear();
+    infos.clear();
+  }
 }
 
 /// Normal lua runtime behavior implementation for [ReturnStmt].
@@ -337,10 +359,10 @@ abstract class BaseRuntime extends Visitor<Object?> {
     } catch (e) {
       if (e is LuaReturnValueException) {
         res = e.argpack;
-      } else if (onException == null) {
-        addError(e.toString());
-      } else {
+      } else if (onException != null) {
         onException.call(e);
+      } else {
+        rethrow;
       }
     }
     popScope();
@@ -391,7 +413,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
             ret = e.argpack;
             break;
           } else {
-            addError(e.toString());
+            rethrow;
           }
         }
       }
@@ -976,7 +998,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
     Object? callee = memoryAccess.callee.accept(this);
 
     if (callee is! LuaObject) {
-      throw '$linePos Expected lua object for operator "${memoryAccess.op.lexeme}", found value: $callee.';
+      final v = debugLuaTypeInfo(callee);
+      throw '$linePos Expected lua object for operator "${memoryAccess.op.lexeme}". Was $v.';
     }
 
     final bool indexedTable = memoryAccess.type == MemoryAccessType.table;

@@ -1,22 +1,13 @@
-import 'package:colorize/colorize.dart';
 import 'package:puredartlua/lua/lua.dart';
 import 'package:puredartlua/lua/passes/lexer.dart';
 import 'package:puredartlua/lua/passes/parser.dart';
 import 'dart:io';
 
-String green(Object obj) => obj.toString().green;
-String yellow(Object obj) => obj.toString().yellow;
-String red(Object obj) => obj.toString().red;
-String blue(Object obj) => obj.toString().blue;
-String magenta(Object obj) => obj.toString().magenta;
+import 'package:puredartlua/lua/visitors/runtime/luaobject.dart';
 
-extension ColoredStrings on String {
-  String get red => Colorize(this).red().toString();
-  String get yellow => Colorize(this).yellow().toString();
-  String get green => Colorize(this).green().toString();
-  String get blue => Colorize(this).blue().toString();
-  String get magenta => Colorize(this).magenta().toString();
-}
+export 'package:puredartlua/lua/lua.dart';
+export 'package:puredartlua/lua/visitors/runtime/luaobject.dart';
+export 'dart:io';
 
 /// Prints [errs] using [verb] for readability.
 bool displayStdErr(List<String> errs, {required String verb}) {
@@ -57,17 +48,17 @@ AST? parse(String content) {
 /// and evaluate the scriptlet or program.
 ///
 /// If there was an error returns false.
-/// On complete, returns true.
-bool runner(AST ast, {required EvaluatorMixin Function() constructor}) {
+/// On complete, returns a tuple [(bool, LuaObject)] containing the result, if any.
+/// If the result would be [null], then returns an instance of [LuaObject.nil].
+(bool, LuaObject) runner(AST ast, {required EvaluatorMixin Function() constructor}) {
   final eval = constructor.call();
   final out = eval.visitAST(ast);
 
-  if (displayStdErr(eval.errors, verb: 'running')) return false;
-  if (out != null) print(out.toString());
+  if (displayStdErr(eval.errors, verb: 'running')) return (false, LuaObject.nil('out'));
 
-  return true;
+  return (true, out?.toLua('out') ?? LuaObject.nil('out'));
 }
 
 /// Implementation over [runner] uses [Evaluator] machinery for the runtime.
-bool run(AST ast) => runner(ast, constructor: () => Evaluator());
+(bool, LuaObject) run(AST ast) => runner(ast, constructor: () => Evaluator());
 
