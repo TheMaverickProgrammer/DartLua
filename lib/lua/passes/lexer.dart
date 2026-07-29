@@ -540,15 +540,16 @@ class Lexer {
     String lexeme = '';
     StreamChar prev = peek(offset: -1);
     bool loop = true;
+    bool terminalFound = false;
 
     while (!eof() && loop) {
       // NOTE: will consume the terminating quote
       // as a side-effect.
       final next = advance();
-      final bool found = next.lexeme == end;
+      terminalFound = next.lexeme == end;
 
       prev = peek(offset: -2);
-      loop = !found || (found && prev.lexeme == '\\');
+      loop = !terminalFound || (terminalFound && prev.lexeme == '\\');
 
       // Only append to the string if the lexeme is not used
       // as a terminating quote.
@@ -557,7 +558,8 @@ class Lexer {
       }
     }
 
-    if (eof()) {
+    // We reached the end of the stream without closing.
+    if (eof() && !terminalFound) {
       final String lineInfo = '$startLine:$startIdx';
       addError('Unterminated string starting on line $lineInfo');
 

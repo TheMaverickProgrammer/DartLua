@@ -1,3 +1,6 @@
+-- Expect: nil
+print(xyz)
+
 -- This is why we're here.
 local str = 'Hello, world'
 
@@ -14,3 +17,4 @@ print()
 
 -- Expect: 1
 print(1)
+

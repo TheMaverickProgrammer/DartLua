@@ -6,7 +6,10 @@ import 'package:puredartlua/lua/visitors/visitor.dart';
 /// represents these as [LuaType.nil].
 typedef LuaFieldsMap = Map<String, LuaObject?>;
 
-/// Strong type enumerations for all possible lua primitives.
+/// Strong type enumerations for all possible internal lua primitives.
+/// [LuaType.unresolved] is used for strong type deduction.
+/// [LuaType.ref] is used to help identify control flow.
+/// All of the others are the expected user-facing lua types.
 enum LuaType { unresolved, nil, table, ref, func, value, thread }
 
 /// Coroutine status values.
@@ -273,8 +276,8 @@ class LuaObject {
   ///
   /// **CAUTION**
   /// Note that this is not a substitution for the
-  /// std function "typeof". This is for debugging
-  /// the runtime if needed.
+  /// std function "typeof". This is for coders
+  /// debugging the runtime if needed!
   String get typeinfo {
     final String meta = switch (skipSemanitcs) {
       true => '<noSemantics> ',
@@ -302,6 +305,7 @@ class LuaObject {
   String get luaTypeInfo {
     if (isTable) return 'table';
     if (isFunc) return 'function';
+    if (isThread) return 'thread';
     return switch (deref().value) {
       null => 'nil',
       final int _ => 'num',
@@ -747,7 +751,12 @@ class LuaObject {
   /// as-needed instead.
   @override
   String toString() {
-    if (isValue) {
+    // A thread is also a valid value, but we wish to print
+    // the type info in this case.
+    if(isThread) {
+      return 'thread';
+    }
+    else if (isValue) {
       return switch (value) {
         // Lua promotes decimal values without fractional parts to int.
         final double d => switch ((d - d.toInt()) == 0.0) {

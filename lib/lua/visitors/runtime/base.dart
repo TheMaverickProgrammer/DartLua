@@ -1432,7 +1432,8 @@ extension VisitArgPack on List<MathExpr> {
           false => [?p.firstOrNull]
         },
         final LuaObject o => [o],
-        final Object? o => [?o?.toLua('arg$i')],
+        // final Object? o => [?o?.toLua('arg$i')],
+        final Object? o => [o?.toLua('arg$i') ?? LuaObject.nil('arg$i')],
       }.nonNulls.toList(growable: false);
       out.addAll(vs);
     }
