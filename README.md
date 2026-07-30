@@ -40,7 +40,7 @@ dart bin/main.dart -e bin/input.lua hello world!
 It's easy. Just include the utilities file that includes default runtime behaviors and the Std library.
 
 ```dart
-import 'package:puredartlua/utils.dart';
+import 'package:puredartlua/runner.dart';
 
 void main() {
   run(parse("print('hello, world!')")!);
@@ -100,29 +100,41 @@ void main() {
   final evaluator = Evaluator();
   print('Inputs ending with "\\" continue next line.');
   print('Type "exit" to quit.');
+  print('Type "dump_scope" to write the global scope to console.');
   print('-------------------');
   String content = '';
-  while(true) {
+  bool loop = true;
+  while (loop) {
     stdout.add('\$ '.codeUnits);
-    final String input = stdin.readLineSync(encoding: utf8)?.trim().toLowerCase() ?? '';
+    final String input = stdin.readLineSync(encoding: utf8)?.trim() ?? '';
 
-    if(input.endsWith('\\')) {
-      content += input.substring(0, input.length-1);
+    if (input.endsWith('\\')) {
+      // Stitch the lines together.
+      content += '${input.substring(0, input.length - 1)}\n';
       continue;
     } else {
       content += input;
     }
 
-    if(content == 'exit') break;
+    switch (content.toLowerCase()) {
+      case 'exit':
+        loop = false;
+        continue;
+      case 'dump_scope':
+        evaluator.impl.scope.dump();
+        content = '';
+        continue;
+    }
 
     final ast = parse(content);
     content = '';
-    if(ast == null) continue;
+    if (ast == null) continue;
 
     final (ok, out) = runner(ast, constructor: () => evaluator..clearResults());
     print(out);
   }
 }
+
 ```
 
 ## DOT File Visualizer

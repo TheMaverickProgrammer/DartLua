@@ -1,3 +1,7 @@
+## 1.0.11
+- Fixed REPL lower-casing all user input. This prevented global vars from being read.
+- `LuaObject.toString()` maps to `table` for table objects. Before it was printing their name if they had an id.
+
 ## 1.0.10
 - Meta table support added.
 - `setmetatable(t, mt)` and `getmetatable(t)` work as expected.

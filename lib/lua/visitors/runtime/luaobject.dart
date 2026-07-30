@@ -463,6 +463,7 @@ class LuaObject {
 
     return null;
   }
+
   /// Returns the stored [_fields] value
   LuaFieldsMap? get fields => deref()._fields;
 
@@ -556,7 +557,8 @@ class LuaObject {
   }
 
   /// Returns the [_metatable] or [LuaObject.nil].
-  LuaObject getMetatable() => deref()._metatable ?? LuaObject.nil('$id.metatable');
+  LuaObject getMetatable() =>
+      deref()._metatable ?? LuaObject.nil('$id.metatable');
 
   /// Inspects the result of [readField] with [key].
   /// If the result's type is [LuaObject], then
@@ -605,7 +607,7 @@ class LuaObject {
   Object? writeField(String key, Object? value) {
     if (skipSemanitcs) return LuaObject.noSemantics(key);
 
-    if(isNil) {
+    if (isNil) {
       throw 'Tried to add field "$key" on nil "$id".';
     }
 
@@ -712,7 +714,7 @@ class LuaObject {
       LuaObject.table(id, {for (final o in toFields) o.id: o});
 
   /// Constructs a lua function with [id] for its function name
-  /// in scope with some [closure] to be written to [value]. 
+  /// in scope with some [closure] to be written to [value].
   /// A required [def] is needed to determine the input
   /// arguments and other runtime information.
   LuaObject.func(this.id, FuncExpr def, Function closure) : super() {
@@ -755,13 +757,13 @@ class LuaObject {
   String toString() {
     // A thread is also a valid value, but we wish to print
     // the type info in this case.
-    if(isThread) {
+    if (isThread) {
       return 'thread';
-    }
-    else if(isFunc) {
+    } else if (isFunc) {
       return 'function';
-    }
-    else if (isValue) {
+    } else if (isTable) {
+      return 'table';
+    } else if (isValue) {
       return switch (value) {
         // Lua promotes decimal values without fractional parts to int.
         final double d => switch ((d - d.toInt()) == 0.0) {
@@ -792,6 +794,7 @@ class LuaThread {
 /// This type is used for multi variable value assignment
 /// and for multiple return values.
 typedef LuaArgPack = List<LuaObject>;
+
 extension LuaArgPackUnpack on LuaArgPack {
   /// Lua tables returned by functions whose field length
   /// is of size 1 can be unpacked into a single lua object.
@@ -815,13 +818,13 @@ class LuaObjectNoSemantics extends LuaObject {
 /// [LuaObject] instances in-place.
 ///
 /// See [Object.toLua].
-/// 
+///
 /// Additionally has shorthand functions for common
 /// internal mechanisms such as [LuaArgPack] unpacking.
 extension Native2Lua on Object {
   /// A new [LuaObject.variable] instance
   /// is returned whose variable name in scope is [id].
-  LuaObject toLua(String id) => switch(this) {
+  LuaObject toLua(String id) => switch (this) {
     final LuaFieldsMap m => LuaObject.table(id, m),
     _ => LuaObject.variable(id, this),
   };
@@ -843,7 +846,7 @@ extension Native2Lua on Object {
   /// If [this] is [LuaObject] there's nothing to unpack.
   /// If [this] is [LuaArgPack] use the method.
   /// If [this] is anything else, convert to a lua object.
-  LuaObject? unpack() => switch(this) {
+  LuaObject? unpack() => switch (this) {
     final LuaObject obj => obj,
     final LuaArgPack p => p.unpack(),
     final Object o => o.toLua('arg'),

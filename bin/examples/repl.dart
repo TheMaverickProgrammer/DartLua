@@ -7,12 +7,13 @@ void main() {
   final evaluator = Evaluator();
   print('Inputs ending with "\\" continue next line.');
   print('Type "exit" to quit.');
+  print('Type "dump_scope" to write the global scope to console.');
   print('-------------------');
   String content = '';
-  while (true) {
+  bool loop = true;
+  while (loop) {
     stdout.add('\$ '.codeUnits);
-    final String input =
-        stdin.readLineSync(encoding: utf8)?.trim().toLowerCase() ?? '';
+    final String input = stdin.readLineSync(encoding: utf8)?.trim() ?? '';
 
     if (input.endsWith('\\')) {
       // Stitch the lines together.
@@ -22,7 +23,15 @@ void main() {
       content += input;
     }
 
-    if (content == 'exit') break;
+    switch (content.toLowerCase()) {
+      case 'exit':
+        loop = false;
+        continue;
+      case 'dump_scope':
+        evaluator.impl.scope.dump();
+        content = '';
+        continue;
+    }
 
     final ast = parse(content);
     content = '';
