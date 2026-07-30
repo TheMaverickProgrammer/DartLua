@@ -1,7 +1,10 @@
+## 1.0.13
+- Forgot to drop comments after the lexing phase. This caused runtime problems with the repl.
+
 ## 1.0.12
 - Fixed `math` function errors causing unhelpful errors because `context.id` is no longer storing current function call information.
 - Fixed `math.min` and `math.max` not behaving correctly.
-  
+
 ## 1.0.11
 - Fixed REPL lower-casing all user input. This prevented global vars from being read.
 - `LuaObject.toString()` maps to `table` for table objects. Before it was printing their name if they had an id.
