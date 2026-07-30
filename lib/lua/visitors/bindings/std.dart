@@ -82,11 +82,11 @@ mixin Std on BaseRuntime {
             final t = findVar('t');
             final mt = findVar('mt');
 
-            if(t == null || t.isNotTable) {
+            if (t == null || t.isNotTable) {
               throw 'Expected lua table as first argument.';
             }
 
-            if(mt == null || mt.isNotTable) {
+            if (mt == null || mt.isNotTable) {
               throw 'Expected lua table as second argument.';
             }
 
@@ -108,7 +108,7 @@ mixin Std on BaseRuntime {
           call: () {
             final t = findVar('t');
 
-            if(t == null) {
+            if (t == null) {
               throw 'Expected lua object as first argument.';
             }
 
@@ -257,9 +257,9 @@ print(f(7)) -- prints 13
       final Map<String, LuaObject> newFields = {};
 
       int i = 0;
-      while(i < fields.length) {
-        final String key = '${i+1}';
-        if(fields.containsKey(key)) {
+      while (i < fields.length) {
+        final String key = '${i + 1}';
+        if (fields.containsKey(key)) {
           newFields[key] = fields[key]!;
           i++;
         } else {
@@ -309,14 +309,13 @@ print(f(7)) -- prints 13
       // I don't remove them in this implementation,
       // but we do exclude them from all operations that
       // expose keys.
-      final newFields =
-        fields
-          .entries
+      final newFields = fields.entries
           .where((e) => e.value?.isNil == false)
           .map((e) => MapEntry(e.key, e.value!));
 
-      return LuaObject.table('ipairs_$name',
-        Map<String, LuaObject>.fromEntries(newFields)
+      return LuaObject.table(
+        'ipairs_$name',
+        Map<String, LuaObject>.fromEntries(newFields),
       );
     }
 
@@ -436,7 +435,7 @@ table.insert(t, "foo")
     exec() {
       tostring(LuaObject e) {
         final mm = e.readMetatable('__tostring')?.as<LuaObject>();
-        if(mm == null) {
+        if (mm == null) {
           return e.toString();
         }
         return callLuaFunction(mm, args: [e]).unpack();
@@ -465,7 +464,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return x.abs();
                   },
@@ -476,7 +475,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return math.acos(x);
                   },
@@ -487,7 +486,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return math.asin(x);
                   },
@@ -498,7 +497,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return math.atan(x);
                   },
@@ -510,12 +509,12 @@ table.insert(t, "foo")
                   call: () {
                     final y = findVar('y')?.valueAs<num>();
                     if (y == null) {
-                      throw 'Expected num argument "y" for "${context!.id}".';
+                      throw 'Expected number argument for "y".';
                     }
 
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
 
                     return math.atan2(y, x);
@@ -527,7 +526,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return x.ceil();
                   },
@@ -538,7 +537,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return math.cos(x);
                   },
@@ -549,7 +548,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return math.sin(x);
                   },
@@ -560,7 +559,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return math.tan(x);
                   },
@@ -571,7 +570,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return (math.exp(x) + math.exp(-x)) * 0.5;
                   },
@@ -582,7 +581,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return (math.exp(x) - math.exp(-x)) * 0.5;
                   },
@@ -593,7 +592,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     final expPos = math.exp(x);
                     final expNeg = math.exp(-x);
@@ -606,7 +605,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return x * 180.0 / math.pi;
                   },
@@ -617,7 +616,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return x * math.pi / 180.0;
                   },
@@ -628,7 +627,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return math.exp(x);
                   },
@@ -639,7 +638,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     return x.floor();
                   },
@@ -651,11 +650,11 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     final y = findVar('y')?.valueAs<num>();
                     if (y == null) {
-                      throw 'Expected num argument "y" for "${context!.id}".';
+                      throw 'Expected number argument for "y".';
                     }
                     if (y == 0) {
                       throw 'Division by zero in fmod.';
@@ -665,25 +664,27 @@ table.insert(t, "foo")
                   },
                 ),
             'ldexp': LuaFuncBuilder.create('ldexp')
-              .arg('m')
-              .arg('n')
-              .exec(call: () {
-                final m = findVar('m')?.valueAs<num>();
-                final n = findVar('n')?.valueAs<num>();
+                .arg('m')
+                .arg('n')
+                .exec(
+                  call: () {
+                    final m = findVar('m')?.valueAs<num>();
+                    final n = findVar('n')?.valueAs<num>();
 
-                if(m == null || n == null) {
-                  throw 'Expected "m" and "n" to be numbers.';
-                }
+                    if (m == null || n == null) {
+                      throw 'Expected "m" and "n" to be numbers.';
+                    }
 
-                return m * math.pow(2, n);
-              }),
+                    return m * math.pow(2, n);
+                  },
+                ),
             'frexp': LuaFuncBuilder.create('frexp')
                 .arg('x')
                 .exec(
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
 
                     if (x == 0.0 || x.isNaN || x.isInfinite) {
@@ -715,9 +716,9 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
-                    if(x <= 0) return double.nan;
+                    if (x <= 0) return double.nan;
                     return math.log(x);
                   },
                 ),
@@ -727,10 +728,10 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
-                    if(x <= 0) return double.nan;
-                    return  math.log(x) / math.ln10;
+                    if (x <= 0) return double.nan;
+                    return math.log(x) / math.ln10;
                   },
                 ),
             'pow': LuaFuncBuilder.create('pow')
@@ -740,12 +741,12 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
 
                     final y = findVar('y')?.valueAs<num>();
                     if (y == null) {
-                      throw 'Expected num argument "y" for "${context!.id}".';
+                      throw 'Expected number argument for "y".';
                     }
 
                     return math.pow(x, y);
@@ -757,26 +758,26 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number arguments only.';
                     }
                     return math.sqrt(x);
                   },
                 ),
             'max': LuaFuncBuilder.create('max')
                 .arg('x')
+                .varargs()
                 .exec(
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number arguments only.';
                     }
 
                     final varargs = findVarArgs()
                         ?.map(
                           (e) => switch (e.valueAs<num>()) {
                             final num n => n,
-                            _ =>
-                              throw 'Expected number arguments for "${context!.id}".',
+                            _ => throw 'Expected number arguments only.',
                           },
                         )
                         .toList();
@@ -788,19 +789,19 @@ table.insert(t, "foo")
                 ),
             'min': LuaFuncBuilder.create('min')
                 .arg('x')
+                .varargs()
                 .exec(
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number arguments only.';
                     }
 
                     final varargs = findVarArgs()
                         ?.map(
                           (e) => switch (e.valueAs<num>()) {
                             final num n => n,
-                            _ =>
-                              throw 'Expected number arguments for "${context!.id}".',
+                            _ => throw 'Expected number arguments only.',
                           },
                         )
                         .toList();
@@ -816,7 +817,7 @@ table.insert(t, "foo")
                   call: () {
                     final x = findVar('x')?.valueAs<num>();
                     if (x == null) {
-                      throw 'Expected num argument "x" for "${context!.id}".';
+                      throw 'Expected number argument for "x".';
                     }
                     rand = math.Random(x.toInt());
                   },
@@ -855,7 +856,7 @@ table.insert(t, "foo")
     defGlobal(defMath);
   }
 
-    void initStdCoroutines({required CoroutineCallbacks impl}) {
+  void initStdCoroutines({required CoroutineCallbacks impl}) {
     coroutineImpls = impl;
     final defCoroutine = LuaObject.tableFrom('coroutine', [
       LuaFuncBuilder.create('create')
@@ -891,8 +892,7 @@ table.insert(t, "foo")
               final vs = findVarArgs();
               if (co?.isThread ?? false) {
                 final thread = co!.value as LuaThread;
-                return impl.onCoroutineResume
-                    .call(thread.addr, vs ?? []);
+                return impl.onCoroutineResume.call(thread.addr, vs ?? []);
               }
 
               throw 'Expected coroutine for "resume".';
@@ -948,47 +948,50 @@ table.insert(t, "foo")
 
   // I don't have a better name for this group.
   void initMiscRuntime() {
-    final pCall = defGlobal(
-      LuaFuncBuilder
-        .create('pcall')
-        .arg('fn')
-        .exec(call: () {
-          final fn = findVar('fn')?.toLuaRet();
-          if(fn == null || fn.isNotFunc) {
-            throw 'pcall expects a function argument!';
-          }
+    final pCall =
+        defGlobal(
+            LuaFuncBuilder.create('pcall')
+                .arg('fn')
+                .exec(
+                  call: () {
+                    final fn = findVar('fn')?.toLuaRet();
+                    if (fn == null || fn.isNotFunc) {
+                      throw 'pcall expects a function argument!';
+                    }
 
-          String err = '';
-          except(e) {
-            err = e.toString();
-          }
+                    String err = '';
+                    except(e) {
+                      err = e.toString();
+                    }
 
-          final results = callLuaFunction(fn, onException: except);
+                    final results = callLuaFunction(fn, onException: except);
 
-          if(err.isNotEmpty) {
-            return [false.toLuaRet(), err.toLuaRet()];
-          }
+                    if (err.isNotEmpty) {
+                      return [false.toLuaRet(), err.toLuaRet()];
+                    }
 
-          // OK
-          return [true.toLuaRet(), ...results];
-        })
-      )..doc = LuaDoc(
-        category: catRuntime,
-        html: '''
+                    // OK
+                    return [true.toLuaRet(), ...results];
+                  },
+                ),
+          )
+          ..doc = LuaDoc(
+            category: catRuntime,
+            html: '''
         The <code>pcall</code> function calls its first argument in protected mode,
         so that it catches any errors while the function is running. If there are no errors,
         <code>pcall</code> returns <code>true</code> plus any values returned by the call.
         Otherwise, it returns <code>false</code> plus the error message.'
-        ''');
+        ''',
+          );
 
-    defGlobal(LuaObject.variable('xpcall', pCall))
-    .doc = LuaDoc(
+    defGlobal(LuaObject.variable('xpcall', pCall)).doc = LuaDoc(
       category: catRuntime,
       html: '''
       This lua runtime does not support the debug library nor stack traces at runtime.
       Therefore the function <code>xpcall</code> is another name for <code>pcall</code>.
       They do the same thing.
-      '''
+      ''',
     );
   }
 }
