@@ -31,7 +31,7 @@ AST? parseFile(String path) =>
 /// If there was an error, calls [displayStdErr] an returns null.
 /// Otherwise returns the constructed [AST].
 AST? parse(String content) {
-  final Lexer lexer = Lexer.tokenize(content);
+  final Lexer lexer = Lexer.tokenize(content)..dropComments();
 
   if (displayStdErr(lexer.errors, verb: 'tokenizing')) return null;
 

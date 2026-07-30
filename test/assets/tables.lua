@@ -1,10 +1,10 @@
 -- What sounds do these animals make?
 local animals = {
-	cat='meow',
-	dog='woof',
-	fish='blub',
-	bird='tweet',
-	bear='growl'
+	cat='meow', -- of course
+	dog='woof', -- as expected
+	fish='blub', -- subjective
+	bird='tweet', -- indeed
+	bear='growl' -- no contest
 }
 
 -- Expect: type(animals)=table
