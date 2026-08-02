@@ -339,19 +339,20 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     List<LuaObject> res = [];
     pushScope();
-    final defArgs = obj.funcDef!.args;
-    final nilCount = defArgs.length - args.length;
-
-    for (int i = 0; i < defArgs.length; i++) {
-      final id = defArgs[i].lexeme;
-      defLocal(args[i]?.toLua(id) ?? LuaObject.nil(id));
-    }
-
-    for (int i = 0; i < nilCount; i++) {
-      defLocal(LuaObject.nil(defArgs[args.length + i].lexeme));
-    }
 
     try {
+      final defArgs = obj.funcDef!.args;
+      final nilCount = defArgs.length - args.length;
+
+      for (int i = 0; i < defArgs.length; i++) {
+        final id = defArgs[i].lexeme;
+        defLocal(args[i]?.toLua(id) ?? LuaObject.nil(id));
+      }
+
+      for (int i = 0; i < nilCount; i++) {
+        defLocal(LuaObject.nil(defArgs[args.length + i].lexeme));
+      }
+
       // For the public API utilites,
       // we expect friendly non-null values.
       // Return an empty list if null.
@@ -364,8 +365,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
       } else {
         rethrow;
       }
+    } finally {
+      popScope();
     }
-    popScope();
 
     return res;
   }
@@ -846,45 +848,50 @@ abstract class BaseRuntime extends Visitor<Object?> {
   Object? visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
     pushScope();
 
-    final key = forIterLoopStmt.key.lexeme;
-    final val = forIterLoopStmt.value?.lexeme;
+    try{
+      final key = forIterLoopStmt.key.lexeme;
+      final val = forIterLoopStmt.value?.lexeme;
 
-    final iterExpr = forIterLoopStmt.iterExpr.accept(this);
+      final iterExpr = forIterLoopStmt.iterExpr.accept(this);
 
-    // TODO: iter expr should be a function, not a table.
-    // See https://github.com/TheMaverickProgrammer/DartLua/issues/5
-    if (iterExpr is! LuaObject || !iterExpr.isTable) {
-      final String lineInfo = this.lineInfo(forIterLoopStmt.token);
-      popScope();
-      throw '$lineInfo Evaluation has encountered an unrecoverable scenario: iterator expression was not a table.';
-    }
+      // TODO: iter expr should be a function, not a table.
+      // See https://github.com/TheMaverickProgrammer/DartLua/issues/5
+      if (iterExpr is! LuaObject || !iterExpr.isTable) {
+        final String lineInfo = this.lineInfo(forIterLoopStmt.token);
+        popScope();
+        throw '$lineInfo Evaluation has encountered an unrecoverable scenario: iterator expression was not a table.';
+      }
 
-    final iterLen = iterExpr.length;
-    defLocal(LuaObject.nil(key));
-
-    if(val != null) {
-      defLocal(LuaObject.nil(val));
-    }
-
-    for (int i = 0; i < iterLen; i++) {
-      final iterKey = findVar(key);
-      final entry = iterExpr.fields!.entries.elementAtOrNull(i);
-      iterKey?.value = entry?.key;
+      final iterLen = iterExpr.length;
+      defLocal(LuaObject.nil(key));
 
       if(val != null) {
-        final iterVal = findVar(val);
-        iterVal?.value = entry?.value;
+        defLocal(LuaObject.nil(val));
       }
 
-      for (Stmt stmt in forIterLoopStmt.body) {
-        try {
-          stmt.accept(this);
-        } catch (e) {
-          addError(e.toString());
+      for (int i = 0; i < iterLen; i++) {
+        final iterKey = findVar(key);
+        final entry = iterExpr.fields!.entries.elementAtOrNull(i);
+        iterKey?.value = entry?.key;
+
+        if(val != null) {
+          final iterVal = findVar(val);
+          iterVal?.value = entry?.value;
+        }
+
+        for (Stmt stmt in forIterLoopStmt.body) {
+          try {
+            stmt.accept(this);
+          } catch (e) {
+            addError(e.toString());
+          }
         }
       }
-    }
+  } catch(e) {
+    rethrow;
+  } finally {
     popScope();
+  }
 
     return null;
   }
@@ -892,57 +899,63 @@ abstract class BaseRuntime extends Visitor<Object?> {
   @override
   Object? visitForLoopStmt(ForLoopStmt forLoopStmt) {
     pushScope();
-    Object? control = forLoopStmt.control.accept(this);
 
-    evalVar(Object? v) {
-      if (v is LuaObject && v.valueAsInt() is int) {
-        final String id = v.id;
-        return (id, v.valueAsInt()!);
-      } else {
-        final String lineInfo = this.lineInfo(forLoopStmt.token);
-        popScope();
-        throw '$lineInfo For-loop control did not evaluate to a variable!';
-      }
-    }
+    try {
+      Object? control = forLoopStmt.control.accept(this);
 
-    evalNum(Object? n, String label) {
-      if (n == null) {
-        return 1;
-      } else if (n is LuaObject && n.valueAsInt() is int) {
-        return n.valueAsInt();
-      } else if (n is num) {
-        return n;
-      }
-
-      // n is not num
-      popScope();
-      throw '$lineInfo For-loop $label did not evaluate to an integer value!';
-    }
-
-    final String controlId;
-    num ncontrol;
-    (controlId, ncontrol) = evalVar(control);
-
-    final num end = evalNum(forLoopStmt.endExpr.accept(this), 'end')!;
-    final num step = evalNum(forLoopStmt.stepExpr.accept(this), 'step')!;
-
-    while (ncontrol <= end) {
-      defLocal(LuaObject.variable(controlId, ncontrol));
-
-      for (int i = 0; i < forLoopStmt.body.length; i++) {
-        final stmt = forLoopStmt.body[i];
-        try {
-          stmt.accept(this);
-        } on LuaReturnValueException {
-          rethrow;
-        } catch (e) {
-          addError(e.toString());
+      evalVar(Object? v) {
+        if (v is LuaObject && v.valueAsInt() is int) {
+          final String id = v.id;
+          return (id, v.valueAsInt()!);
+        } else {
+          final String lineInfo = this.lineInfo(forLoopStmt.token);
+          popScope();
+          throw '$lineInfo For-loop control did not evaluate to a variable!';
         }
       }
-      ncontrol += step;
+
+      evalNum(Object? n, String label) {
+        if (n == null) {
+          return 1;
+        } else if (n is LuaObject && n.valueAsInt() is int) {
+          return n.valueAsInt();
+        } else if (n is num) {
+          return n;
+        }
+
+        // n is not num
+        popScope();
+        throw '$lineInfo For-loop $label did not evaluate to an integer value!';
+      }
+
+      final String controlId;
+      num ncontrol;
+      (controlId, ncontrol) = evalVar(control);
+
+      final num end = evalNum(forLoopStmt.endExpr.accept(this), 'end')!;
+      final num step = evalNum(forLoopStmt.stepExpr.accept(this), 'step')!;
+
+      while (ncontrol <= end) {
+        defLocal(LuaObject.variable(controlId, ncontrol));
+
+        for (int i = 0; i < forLoopStmt.body.length; i++) {
+          final stmt = forLoopStmt.body[i];
+          try {
+            stmt.accept(this);
+          } on LuaReturnValueException {
+            rethrow;
+          } catch (e) {
+            addError(e.toString());
+          }
+        }
+        ncontrol += step;
+      }
+    } catch(e) {
+      rethrow;
+    } finally {
+      popScope();
     }
 
-    popScope();
     return null;
   }
 
@@ -963,17 +976,23 @@ abstract class BaseRuntime extends Visitor<Object?> {
     if (visitBody) {
       Object? res;
       pushScope();
-      for (Stmt s in stmt.body) {
-        final out = s.accept(this);
+      try {
+        for (Stmt s in stmt.body) {
+          final out = s.accept(this);
 
-        // One of these code paths must be non-null
-        // unless all paths are null.
-        // TODO: better value inference.
-        if (out != null) {
-          res = out;
+          // One of these code paths must be non-null
+          // unless all paths are null.
+          // TODO: better value inference.
+          if (out != null) {
+            res = out;
+          }
         }
+      }catch (e) {
+        rethrow;
+      } finally {
+        popScope();
       }
-      popScope();
+
       return res?.toLua('ret');
     }
 
@@ -1138,52 +1157,52 @@ abstract class BaseRuntime extends Visitor<Object?> {
       }
 
       pushScope(/*context: callee*/);
+      Object? ret;
 
-      if (fwdSelfArg) {
-        defLocal(LuaObject.variable('self', callee));
-      }
+      try {
+        if (fwdSelfArg) {
+          defLocal(LuaObject.variable('self', callee));
+        }
 
-      final List<LuaObject> varg = [];
-      final int fwdArgCount = fwdSelfArg ? 1 : 0;
-      final int argCount = switch (isVariadic) {
-        true => args.length - fwdArgCount,
-        false => defInLen - fwdArgCount,
-      };
+        final List<LuaObject> varg = [];
+        final int fwdArgCount = fwdSelfArg ? 1 : 0;
+        final int argCount = switch (isVariadic) {
+          true => args.length - fwdArgCount,
+          false => defInLen - fwdArgCount,
+        };
 
-      bool buildVarArgTable = false;
+        bool buildVarArgTable = false;
 
-      for (int i = 0; i < argCount; i++) {
-        // Var args are bundled under a hidden variable
-        // named `arg`. They do not count towards the
-        // function definition parameter list.
-        String lexeme = 'arg${i + fwdArgCount}';
-        if (i + fwdArgCount < func.args.length) {
-          final arg = func.args.elementAt(i + fwdArgCount);
-          if (arg.id.type == TokenType.kSpread) {
-            buildVarArgTable = true;
+        for (int i = 0; i < argCount; i++) {
+          // Var args are bundled under a hidden variable
+          // named `arg`. They do not count towards the
+          // function definition parameter list.
+          String lexeme = 'arg${i + fwdArgCount}';
+          if (i + fwdArgCount < func.args.length) {
+            final arg = func.args.elementAt(i + fwdArgCount);
+            if (arg.id.type == TokenType.kSpread) {
+              buildVarArgTable = true;
+            } else {
+              lexeme = arg.lexeme;
+            }
+          }
+
+          final arg = args.elementAt(i);
+          final next = LuaObject.variable(lexeme, arg);
+
+          if (buildVarArgTable) {
+            varg.add(next);
           } else {
-            lexeme = arg.lexeme;
+            defLocal(next);
           }
         }
 
-        final arg = args.elementAt(i);
-        final next = LuaObject.variable(lexeme, arg);
+        defLocal(
+          LuaObject.table('arg', {
+            for (int i = 0; i < varg.length; i++) '${i + 1}': varg[i],
+          }),
+        );
 
-        if (buildVarArgTable) {
-          varg.add(next);
-        } else {
-          defLocal(next);
-        }
-      }
-
-      defLocal(
-        LuaObject.table('arg', {
-          for (int i = 0; i < varg.length; i++) '${i + 1}': varg[i],
-        }),
-      );
-
-      Object? ret;
-      try {
         ret = callable!.call();
       } on LuaReturnValueException {
         rethrow;
@@ -1265,10 +1284,14 @@ abstract class BaseRuntime extends Visitor<Object?> {
     while (true) {
       try {
         for (Stmt stmt in repeatUntilLoopStmt.body) {
-          stmt.accept(this);
+          try {
+            stmt.accept(this);
+          } catch(e) {
+            addError(e.toString());
+          }
         }
         final cond = repeatUntilLoopStmt.untilExpr.accept(this);
-        if (cond == false || cond == null) {
+        if (cond?.isTruthy ?? false) {
           break;
         }
       } catch (e) {
@@ -1387,15 +1410,26 @@ abstract class BaseRuntime extends Visitor<Object?> {
   @override
   Object? visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
     while (true) {
-      final cond = switch(whileLoopStmt.expr.accept(this)) {
-        final List ls => ls.firstOrNull?.isTruthy,
-        final Object? o => o.isTruthy,
-      };
+      pushScope();
+      try {
+        final cond = switch(whileLoopStmt.expr.accept(this)) {
+          final List ls => ls.firstOrNull?.isTruthy,
+          final Object? o => o.isTruthy,
+        };
 
-      if (!cond) break;
+        if (!cond) break;
 
-      for (Stmt stmt in whileLoopStmt.body) {
-        stmt.accept(this);
+        for (Stmt stmt in whileLoopStmt.body) {
+          try {
+            stmt.accept(this);
+          } catch (e) {
+            addError(e.toString());
+          }
+        }
+      } catch (e) {
+        rethrow;
+      } finally {
+        popScope();
       }
     }
     return null;

@@ -1,3 +1,10 @@
+## 1.0.14
+- Ensured by hand that all the scopes were popped on exceptions. Some cases were missed in ForIterLoop and other loops.
+- Fixed `repeat... until` loop condition.
+- `LuaObject.value` setter now copies the function definition information so this doesn't have to be repeated in other parts of the codebase.
+  - As a consequence, value must be set first and then the function definition is copied in the function special constructor.
+- Moved passing tests into `/pass` to prepare for tests that **are** expected to fail in the future.
+
 ## 1.0.13
 - Forgot to drop comments after the lexing phase. This caused runtime problems with the repl.
 

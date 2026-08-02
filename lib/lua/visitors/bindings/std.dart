@@ -196,7 +196,7 @@ mixin Std on BaseRuntime {
       final v = modname?.valueAs<String>();
       if (v == null) {
         final type = v.runtimeType;
-        throw 'Expected string for modname in `require(modname)`. Found $type.';
+        throw 'Expected string for modname in `require(modname)`. Was $type.';
       }
 
       Object? result;
@@ -230,7 +230,7 @@ mixin Std on BaseRuntime {
       between files.
 <pre>
 <code class="language-lua">local f = require('fibonacci.lua')
-print(f(7)) -- prints 13 
+print(f(7)) -- prints 13
 </code>
 </pre>
       ''',
@@ -247,7 +247,7 @@ print(f(7)) -- prints 13
 
       if (!(t?.isTable ?? false)) {
         final type = t?.typeinfo;
-        throw 'Expected table input for ipairs(...), found $type.';
+        throw 'Expected table input for ipairs(...). Was $type.';
       }
 
       t as LuaObject;
@@ -296,7 +296,7 @@ print(f(7)) -- prints 13
 
       if (!(t?.isTable ?? false)) {
         final type = t?.typeinfo;
-        throw 'Expected table input for pairs(...), found $type.';
+        throw 'Expected table input for pairs(...). Was $type.';
       }
 
       t as LuaObject;
@@ -349,7 +349,7 @@ print(f(7)) -- prints 13
                     LuaObject? tableData = findVar('t');
 
                     if ((tableData?.isNil ?? true) || tableData!.isNotTable) {
-                      throw 'Expected table argument "t" for "${context!.id}".';
+                      throw 'Expected table argument "t" for function.';
                     }
 
                     LuaObject? value = findVar('value');
@@ -367,7 +367,7 @@ print(f(7)) -- prints 13
                       position = pos?.valueAsInt();
 
                       if ((pos?.isNil ?? true) || position == null) {
-                        throw 'Expected integer "position" for "${context!.id}".';
+                        throw 'Expected integer "position" for function.';
                       }
                     }
 
@@ -401,13 +401,13 @@ table.insert(t, "foo")
                 LuaObject? tableData = findVar('tableData');
 
                 if ((tableData?.isNil ?? true) || tableData!.isNotTable) {
-                  throw 'Expected table argument "tableData" for "${context!.id}".';
+                  throw 'Expected table argument "tableData" for function.';
                 }
 
                 int? position = findVar('value')?.valueAsInt();
 
                 if (position == null) {
-                  throw 'Expected integer "position" for "${context!.id}".';
+                  throw 'Expected integer "position" for function.';
                 }
 
                 return tableData.tableRemove(position);

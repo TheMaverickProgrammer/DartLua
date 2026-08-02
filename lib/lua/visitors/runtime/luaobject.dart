@@ -472,6 +472,7 @@ class LuaObject {
   /// depending on the type of [from].
   set value(Object? from) {
     uses++;
+    funcDef = null;
     if (from == null) {
       _value = null;
       _fields = null;
@@ -481,6 +482,12 @@ class LuaObject {
     } else if (from is LuaObject) {
       _value = from.deref();
       _fields = null;
+
+      if(from.isFunc) {
+        // Functions carry function definition information.
+        // Copy this too.
+        funcDef = from.funcDef;
+      }
     } else {
       _value = from;
       _fields = null;
@@ -680,9 +687,6 @@ class LuaObject {
       _fields = value;
     } else if (value is LuaObject) {
       this.value = value.deref();
-      if (value.isFunc) {
-        funcDef = value.funcDef;
-      }
     } else {
       this.value = value;
     }
@@ -719,8 +723,10 @@ class LuaObject {
   /// arguments and other runtime information.
   LuaObject.func(this.id, FuncExpr def, Function closure) : super() {
     _fields = {};
-    funcDef = def;
+
+    // Order here matters. value will clear funcDef.
     value = closure;
+    funcDef = def;
   }
 
   /// Constructs a lua object with null values and fields.

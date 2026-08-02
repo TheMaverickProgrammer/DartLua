@@ -94,43 +94,43 @@ bool runTest(String path) {
 
 void main() {
   test('simple assignment', () {
-    expect(runTest('./test/assets/assignment.lua'), true);
+    expect(runTest('./test/assets/pass/assignment.lua'), true);
   });
 
   test('multi value assignment', () {
-    expect(runTest('./test/assets/multivalues.lua'), true);
+    expect(runTest('./test/assets/pass/multivalues.lua'), true);
   });
 
   test('scope', () {
-    expect(runTest('./test/assets/scope.lua'), true);
+    expect(runTest('./test/assets/pass/scope.lua'), true);
   });
 
   test('globals, _ENV, and _G', () {
-    expect(runTest('./test/assets/globals.lua'), true);
+    expect(runTest('./test/assets/pass/globals.lua'), true);
   });
 
   test('basic tables', () {
-    expect(runTest('./test/assets/tables.lua'), true);
+    expect(runTest('./test/assets/pass/tables.lua'), true);
   });
 
   test('bitops', () {
-    expect(runTest('./test/assets/bitops.lua'), true);
+    expect(runTest('./test/assets/pass/bitops.lua'), true);
   });
 
   test('basic for loops', () {
-    expect(runTest('./test/assets/for_loop.lua'), true);
+    expect(runTest('./test/assets/pass/for_loop.lua'), true);
   });
 
   test('while loops', () {
-    expect(runTest('./test/assets/while_loops.lua'), true);
+    expect(runTest('./test/assets/pass/while_loops.lua'), true);
   });
 
   test('pcall', () {
-    expect(runTest('./test/assets/pcall.lua'), true);
+    expect(runTest('./test/assets/pass/pcall.lua'), true);
   });
 
   group('metamethods', () {
-    final dir = './test/assets/metamethods';
+    final dir = './test/assets/pass/metamethods';
 
     test('__eq', () {
       expect(runTest('$dir/__eq.lua'), true);
@@ -210,6 +210,6 @@ void main() {
   });
 
   test('coroutines', () {
-    expect(runTest('./test/assets/coroutines.lua'), true);
+    expect(runTest('./test/assets/pass/coroutines.lua'), true);
   });
 }
