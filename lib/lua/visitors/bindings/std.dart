@@ -192,11 +192,11 @@ mixin Std on BaseRuntime {
 
   void initStdRequire() {
     exec() {
-      final modname = findVar('modname');
-      final v = modname?.valueAs<String>();
+      final path = findVar('path');
+      final v = path?.valueAs<String>();
       if (v == null) {
         final type = v.runtimeType;
-        throw 'Expected string for modname in `require(modname)`. Was $type.';
+        throw 'Expected string for "path" in `require(path)`. Was $type.';
       }
 
       Object? result;
@@ -211,21 +211,21 @@ mixin Std on BaseRuntime {
 
       onRequireImplComplete?.call(v);
 
-      return result?.makeLuaRef()?.unpack() ?? LuaObject.nil(v);
+      return result;
     }
 
     final token = Token.synthesized('require');
     final defRequire = FuncExpr.named(
       token,
       body: [],
-      args: [DeclArg(Token.synthesized('modname'))],
+      args: [DeclArg(Token.synthesized('path'))],
       idParts: [RawExpr(token)],
     );
 
     defGlobal(LuaObject.func('require', defRequire, exec)).doc = LuaDoc(
       category: catRuntime,
       html: '''
-      The runtime resolves the lua script identified by <code>modname</code>, executes,
+      The runtime resolves the lua script identified by <code>path</code>, executes,
       and returns any values. This enables passing lua objects
       between files.
 <pre>

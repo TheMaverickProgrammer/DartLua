@@ -483,7 +483,7 @@ class LuaObject {
       _value = from.deref();
       _fields = null;
 
-      if(from.isFunc) {
+      if (from.isFunc) {
         // Functions carry function definition information.
         // Copy this too.
         funcDef = from.funcDef;
@@ -802,7 +802,7 @@ class LuaThread {
 typedef LuaArgPack = List<LuaObject>;
 
 extension LuaArgPackUnpack on LuaArgPack {
-  /// Lua tables returned by functions whose field length
+  /// Lua multiargs returned by functions whose length
   /// is of size 1 can be unpacked into a single lua object.
   LuaObject? unpack() {
     if (isNotEmpty) {
