@@ -1,5 +1,8 @@
 ## 1.0.14
 - Functions can return multiple arguments but any field access operation acts on the first argument only.
+- Added semicolon support.
+- Updated missing features section in the readme.
+- Discovered `break` keyword logic was not added yet! Added.
 
 ## 1.0.13
 - Forgot to drop comments after the lexing phase. This caused runtime problems with the repl.

@@ -10,6 +10,10 @@ T echo<T extends Stmt>(T t) {
 const List<TokenType> vars = [TokenType.kSelf, TokenType.kRaw];
 
 class Parser {
+  /// Loop control optional pointer. If set, we are in a loop.
+  /// This is used to detect the correctness of the "break" keyword.
+  Token? loopCtrl;
+
   final List<String> errors = [];
   final List<String> warns = [];
   final List<Token> tokens;
@@ -202,6 +206,9 @@ class Parser {
 
   Stmt breakStmt() {
     final token = consume(TokenType.kBreak, 'Expected "break" keyword.');
+    if(loopCtrl == null) {
+      throw '${token.pos} Keyword "break" outside of loop.';
+    }
     return BreakStmt(token);
   }
 
@@ -260,6 +267,7 @@ class Parser {
 
   Stmt forLoopStmt() {
     final token = consume(TokenType.kFor, 'Expected "for" keyword.');
+    loopCtrl = token;
 
     // Look-ahead to determine for-loop type.
     final next = peek(offset: 1);
@@ -277,6 +285,7 @@ class Parser {
       final iterExpr = math();
       consume(TokenType.kDo, 'Expected "do" before for-in loop body.');
       final body = bodyStmt(terminal: TokenType.kEnd);
+      loopCtrl = null;
       consume(
         TokenType.kEnd,
         'Expected "end" keyword to terminate for-in loop.',
@@ -313,6 +322,8 @@ class Parser {
     consume(TokenType.kDo, 'Expected "do" before for-loop body.');
 
     final body = bodyStmt(terminal: TokenType.kEnd);
+    loopCtrl = null;
+
     consume(TokenType.kEnd, 'Expected for-loop to terminate with "end".');
 
     return ForLoopStmt(
@@ -328,7 +339,9 @@ class Parser {
     final token = consume(TokenType.kWhile, 'Expected "while" keyword.');
     final expr = math();
     consume(TokenType.kDo, 'Expected while-loop to begin with "do" keyword.');
+    loopCtrl = token;
     final body = bodyStmt(terminal: TokenType.kEnd);
+    loopCtrl = null;
     consume(
       TokenType.kEnd,
       'Expected while-loop to terminate with "end" keyword.',
@@ -338,7 +351,9 @@ class Parser {
 
   Stmt repeatUntilLoopStmt() {
     final token = consume(TokenType.kRepeat, 'Expected "repeat" keyword.');
+    loopCtrl = token;
     final body = bodyStmt(terminal: TokenType.kUntil);
+    loopCtrl = null;
     consume(
       TokenType.kUntil,
       'Expected repeat-loop to terminate with "until" expression.',
