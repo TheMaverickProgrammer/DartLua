@@ -173,6 +173,8 @@ The DOT file will be embedded in an HTML page `my_script.lua.html`.
   - math
 - `pcall()` implementation.
   - `xpcall()` is just another call to `pcall()` in this runtime.
+- Functions taking one argument of either string literal or table literal can omit parenthesis.
+- Math operations on numeric-coercible strings returns numbers.
 
 > Because this is a pure dart lua interpreter, it is not expected to be as fast
 > as the C ffi alternative libs for Dart. However, it is much more programmer friendly!
@@ -223,7 +225,7 @@ I am using this in my own projects and as such I have not created tutorials or g
 I will get around to that when I can!
 
 ## Missing Lua Lang Support
-Here's what's left to be compliant with the `Lua 5.5` specification:
+Here's what's left to be compliant with most `Lua 5.5` programs:
 - Missing metamethods: `__call`, `__newindex`, and `__index`.
 - Missing a semantics pass for `goto` and `::label::` statements.
 - Keyword `<const>` support not added.
@@ -231,7 +233,6 @@ Here's what's left to be compliant with the `Lua 5.5` specification:
 - `Coroutines` library **is** added but the runtime needs bytecode to make use of it.
 - No tail call support. This optimization also requires bytecode to be effective.
 - I missed `do ... end` blocks. I rarely see those used.
-- Lua supports dropping the parenthesis for singular arg function args e.g. `print "hello!"`. I will add this later.
 
 ## Extra Goals
 - Semantics: code path type unification.

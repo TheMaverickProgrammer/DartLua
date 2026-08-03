@@ -581,38 +581,34 @@ abstract class BaseRuntime extends Visitor<Object?> {
       return null;
     }
 
-    int asInt(Object? obj) {
-      if (obj == null) throw 'Operand was null for binary $op.';
-      if (obj is LuaObject) {
-        final value = obj.valueAs<num>();
-        if (value == null) {
-          throw 'Failed to convert lua type "${obj.luaTypeInfo}" to "int".';
-        }
-        return value.toInt();
-      } else if (obj is num) {
-        return obj.toInt();
-      }
-
-      throw 'Unexpected type while casting to "int". Found "${obj.runtimeType}".';
+    num coerceString(String str) {
+      final i = num.tryParse(str);
+      if(i == null) throw 'Math operation on non-coercible string.';
+      return i;
     }
 
     num asNum(Object? obj) {
       if (obj == null) throw 'Operand was null for binary $op.';
       if (obj is LuaObject) {
-        final value = switch (obj.value) {
-          final num n => n,
-          _ => null,
-        };
+        final s = obj.value;
+        if(s is String) {
+          return coerceString(s);
+        }
+        final value = obj.valueAs<num>();
         if (value == null) {
-          throw 'Failed to convert lua type "${obj.luaTypeInfo}" to "int".';
+          throw 'Failed to coerce lua type "${obj.luaTypeInfo}" to "number".';
         }
         return value;
       } else if (obj is num) {
         return obj;
+      } else if (obj is String) {
+        return coerceString(obj);
       }
 
-      throw 'Unexpected type while casting to "num". Found "${obj.runtimeType}".';
+      throw 'Unexpected type while coercing to "number". Found "${obj.runtimeType}".';
     }
+
+    int asInt(Object? obj) => asNum(obj).toInt();
 
     String strConcat(Object? lhs, Object? rhs) {
       check(LuaObject obj) {

@@ -3,6 +3,8 @@
 - Added semicolon support.
 - Updated missing features section in the readme.
 - Discovered `break` keyword logic was not added yet! Added.
+- Function calls with one argument of either string or table literal can omit parens.
+- Added string-to-number coercion under addition. Added relevant test `coercion.lua`.
 
 ## 1.0.13
 - Forgot to drop comments after the lexing phase. This caused runtime problems with the repl.
