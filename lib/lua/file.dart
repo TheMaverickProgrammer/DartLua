@@ -13,8 +13,7 @@ AST? readLuaFileUint8List(BaseResults results, Uint8List content) {
 
   try {
     t = Lexer.tokenize(buffer)
-      ..dropComments()
-      ..dropSemicolons();
+      ..dropComments();
   } catch (e) {
     results.addError(e.toString());
     return null;

@@ -180,10 +180,6 @@ class Lexer {
     );
   }
 
-  /// TODO: semicolons are needed to disambiguate grammar
-  void dropSemicolons() =>
-      tokens.removeWhere((e) => e.type == TokenType.kSemicolon);
-
   factory Lexer.tokenize(String content) {
     final Lexer t = Lexer._(content);
 

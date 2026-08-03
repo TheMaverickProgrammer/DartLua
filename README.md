@@ -230,7 +230,7 @@ Here's what's left to be compliant with the `Lua 5.5` specification:
 - Keyword `global` support not added. (But globals in scope **are** supported!)
 - `Coroutines` library **is** added but the runtime needs bytecode to make use of it.
 - No tail call support. This optimization also requires bytecode to be effective.
-- Lua uses semicolons for grammar disambiguities. Semicolons are not in this implementation atm. I will add them later.
+- I missed `do ... end` blocks. I rarely see those used.
 - Lua supports dropping the parenthesis for singular arg function args e.g. `print "hello!"`. I will add this later.
 
 ## Extra Goals

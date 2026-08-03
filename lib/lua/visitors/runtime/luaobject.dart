@@ -16,7 +16,7 @@ enum LuaType { unresolved, nil, table, ref, func, value, thread }
 enum LuaThreadStatus { suspended, running, dead }
 
 /// A type to represent if the callstack was unwound b/c of
-/// the lua`return` keyword. Stores the [value] of the operation
+/// the lua `return` keyword. Stores the [value] of the operation
 /// to unpack. See [ReturnStmtCallStackUnwind] and
 /// [ReturnStmtDoNotUnwind].
 ///
@@ -26,6 +26,16 @@ class LuaReturnValueException {
 
   LuaReturnValueException(this.argpack);
 }
+
+/// A type to represent if the callstack was unwound b/c of
+/// the lua `break` keyword. A `break` statement can only
+/// be inside a loop construct like `for`, `while`, and `repeat`.
+/// The parser must report a `break` statement outside of a loop
+/// so the runtime can bubble up out of the construct safely while
+/// visiting all loop nodes.
+///
+/// Not treated as an actual exception or error.
+class LuaBreakStmtException {}
 
 /// This class provides an API for effortlessly constructing
 /// lua function objects.

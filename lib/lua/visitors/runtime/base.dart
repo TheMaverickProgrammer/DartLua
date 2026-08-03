@@ -791,12 +791,12 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   @override
   Object? visitBreakStmt(BreakStmt stmt) {
-    return null;
+    throw LuaBreakStmtException();
   }
 
   @override
   Object? visitGotoStmt(GotoStmt stmt) {
-    // TODO: suffer
+    // TODO: Needs bytecode
     addDiagnostic(
       'Semantics skipped the following statement: goto ${stmt.expr.token.lexeme}',
     );
@@ -805,7 +805,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   @override
   Object? visitGotoLabelStmt(GotoLabelStmt stmt) {
-    // TODO: suffer
+    // TODO: Needs bytecode
     addDiagnostic(
       'Semantics skipped the following statement: ::${stmt.label.lexeme}::',
     );
@@ -882,6 +882,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
         for (Stmt stmt in forIterLoopStmt.body) {
           try {
             stmt.accept(this);
+          } on LuaBreakStmtException {
+            i = iterLen;
+            break;
           } catch (e) {
             addError(e.toString());
           }
@@ -942,6 +945,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
           final stmt = forLoopStmt.body[i];
           try {
             stmt.accept(this);
+          } on LuaBreakStmtException {
+            break;
           } on LuaReturnValueException {
             rethrow;
           } catch (e) {
@@ -1286,6 +1291,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
         for (Stmt stmt in repeatUntilLoopStmt.body) {
           try {
             stmt.accept(this);
+          } on LuaBreakStmtException {
+            rethrow;
           } catch(e) {
             addError(e.toString());
           }
@@ -1294,6 +1301,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
         if (cond?.isTruthy ?? false) {
           break;
         }
+      } on LuaBreakStmtException {
+        break;
       } catch (e) {
         addError(e.toString());
         break;
@@ -1422,10 +1431,14 @@ abstract class BaseRuntime extends Visitor<Object?> {
         for (Stmt stmt in whileLoopStmt.body) {
           try {
             stmt.accept(this);
+          } on LuaBreakStmtException {
+            rethrow;
           } catch (e) {
             addError(e.toString());
           }
         }
+      } on LuaBreakStmtException {
+        break;
       } catch (e) {
         rethrow;
       } finally {

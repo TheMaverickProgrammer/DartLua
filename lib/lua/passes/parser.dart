@@ -91,10 +91,9 @@ class Parser {
       return null;
     }
 
-    // Consume comments.
+    // Consume semicolon statements.
     if ([
-      TokenType.kLineComment,
-      TokenType.kBlockComment,
+      TokenType.kSemicolon,
     ].contains(token.type)) {
       advance();
       return null;
@@ -190,6 +189,7 @@ class Parser {
 
   Stmt returnStmt() {
     const retTerminals = [
+      TokenType.kSemicolon,
       TokenType.kEnd,
       TokenType.kElse,
       TokenType.kElseIf,
