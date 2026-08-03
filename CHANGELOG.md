@@ -1,3 +1,6 @@
+## 1.0.14
+- Functions can return multiple arguments but any field access operation acts on the first argument only.
+
 ## 1.0.13
 - Forgot to drop comments after the lexing phase. This caused runtime problems with the repl.
 - Ensured by hand that all the scopes were popped on exceptions. Some cases were missed in ForIterLoop and other loops.

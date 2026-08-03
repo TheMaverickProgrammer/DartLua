@@ -48,14 +48,14 @@ class RuntimeCallbacks {
 /// If the instance cannot be resolved to a lua type, fallback
 /// on [Object.runtimeType]. This is used in error reporting to the user
 /// so as not to confuse users if a [o] is a type native to dart.
-String debugLuaTypeInfo(Object? o) => switch(o) {
-        null => 'nil',
-        final num _ => 'number',
-        final bool _ => 'boolean',
-        final Function _ => 'function',
-        final LuaObject lo => lo.luaTypeInfo,
-        final Object o => o.runtimeType.toString(),
-      };
+String debugLuaTypeInfo(Object? o) => switch (o) {
+  null => 'nil',
+  final num _ => 'number',
+  final bool _ => 'boolean',
+  final Function _ => 'function',
+  final LuaObject lo => lo.luaTypeInfo,
+  final Object o => o.runtimeType.toString(),
+};
 
 /// The result of processing a lua script can omit
 /// errors, warnings, or custom diagnostic info.
@@ -138,20 +138,19 @@ class CoCtrlStruct {
   /// parameters for different types of control structures.
   /// For example, a for-loop would have a counter but
   /// a while loop would have a condition stored in [node].
-  CoCtrlStruct(this.node, {num? counter, num? end, int? stmtIdx, this.iter })
+  CoCtrlStruct(this.node, {num? counter, num? end, int? stmtIdx, this.iter})
     : counter = counter ?? 0,
       end = end ?? 0,
       stmtIdx = stmtIdx ?? 0;
 
   /// Makes a new pointer with the data at some point in time.
-  CoCtrlStruct copy() =>
-    CoCtrlStruct(
-      node,
-      counter: counter,
-      end: end,
-      stmtIdx: stmtIdx,
-      iter: iter,
-    );
+  CoCtrlStruct copy() => CoCtrlStruct(
+    node,
+    counter: counter,
+    end: end,
+    stmtIdx: stmtIdx,
+    iter: iter,
+  );
 }
 
 /// Implements common Lua runtime logic.
@@ -326,7 +325,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     List<Object?> args = const [],
     LuaExceptionCallback? onException,
   }) {
-    final closure = switch(obj.value) {
+    final closure = switch (obj.value) {
       final Function f => f,
       _ => obj.fieldValueAs<Function>('__call'),
     };
@@ -432,7 +431,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     // we cannot define `function t.a.f() end` without the existence of `t.a = {}` beforehand.
 
     final List<RawExpr> idParts = [...expr.idParts];
-    final String id = switch(expr.id.isEmpty) {
+    final String id = switch (expr.id.isEmpty) {
       true => '<anonymous fn>',
       false => expr.id,
     };
@@ -460,7 +459,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       String field = '';
       while (idParts.isNotEmpty) {
         field = idParts.removeAt(0).token.lexeme;
-        final obj = switch(parent) {
+        final obj = switch (parent) {
           null => findVar(field),
           final LuaObject p => p.readField(field)?.toLuaRet(),
         };
@@ -525,7 +524,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
           // This is because the `fieldValueAs<Function>()` method
           // expects the [LuaObject] with a field name for a function
           // to be resolved correclty.
-          if(rhs.isFunc) {
+          if (rhs.isFunc) {
             lhs.value = rhs.value;
             lhs.funcDef = rhs.funcDef;
           } else {
@@ -561,20 +560,20 @@ abstract class BaseRuntime extends Visitor<Object?> {
     final String lineInfo = this.lineInfo(expr.op);
     final op = expr.op.type;
 
-    LuaObject asLua(Object? obj, String id)
-      => obj?.makeLuaRef() ?? LuaObject.variable(id, obj);
+    LuaObject asLua(Object? obj, String id) =>
+        obj?.makeLuaRef() ?? LuaObject.variable(id, obj);
 
     Object? metamethod(String name, Object? lhs, Object? rhs) {
       final l = asLua(lhs, 'lhs');
       final r = asLua(rhs, 'rhs');
 
       LuaObject? mm = l.readMetatable(name)?.as<LuaObject>();
-      if(mm != null) {
+      if (mm != null) {
         return callLuaFunction(mm, args: [l, r]);
       }
 
       mm = r.readMetatable(name)?.as<LuaObject>();
-      if(mm != null) {
+      if (mm != null) {
         return callLuaFunction(mm, args: [l, r]);
       }
 
@@ -617,13 +616,13 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     String strConcat(Object? lhs, Object? rhs) {
       check(LuaObject obj) {
-        final mm = switch(obj.readMetatable('__concat')) {
+        final mm = switch (obj.readMetatable('__concat')) {
           final LuaObject o => o,
           _ => null,
         };
 
         if (!(obj.valueAsInt() is int || obj.value is String)) {
-          if(mm != null) return mm;
+          if (mm != null) return mm;
           throw 'Attempt to concat ${obj.luaTypeInfo} value.';
         }
 
@@ -636,14 +635,20 @@ abstract class BaseRuntime extends Visitor<Object?> {
       final luaRhs = asLua(rhs, 'rhs');
       final mmRhs = check(luaRhs);
 
-      if(mmLhs != null) {
-        return callLuaFunction(mmLhs, args: [luaLhs, luaRhs])
-          .firstOrNull?.toString() ?? 'nil';
+      if (mmLhs != null) {
+        return callLuaFunction(
+              mmLhs,
+              args: [luaLhs, luaRhs],
+            ).firstOrNull?.toString() ??
+            'nil';
       }
 
-      if(mmRhs != null) {
-        return callLuaFunction(mmRhs, args: [luaLhs, luaRhs])
-          .firstOrNull?.toString() ?? 'nil';
+      if (mmRhs != null) {
+        return callLuaFunction(
+              mmRhs,
+              args: [luaLhs, luaRhs],
+            ).firstOrNull?.toString() ??
+            'nil';
       }
 
       final strL = luaLhs.toString();
@@ -652,9 +657,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
     }
 
     bool isEqual(LuaObject? lhs, LuaObject? rhs) {
-      if((lhs?.isTable ?? false) && (rhs?.isTable ?? false)) {
+      if ((lhs?.isTable ?? false) && (rhs?.isTable ?? false)) {
         final ok = metamethod('__eq', lhs, rhs)?.unpack();
-        if(ok != null) return ok.isTruthy;
+        if (ok != null) return ok.isTruthy;
       }
 
       Object? lval = lhs;
@@ -672,9 +677,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     bool isLessThan(LuaObject? lhs, LuaObject? rhs) {
       final ok = metamethod('__lt', lhs, rhs)?.unpack();
-      if(ok != null) return ok.isTruthy;
+      if (ok != null) return ok.isTruthy;
 
-      return switch((lhs?.value, rhs?.value)) {
+      return switch ((lhs?.value, rhs?.value)) {
         (final String s, final String t) => s.compareTo(t) < 0,
         (final num n, final num m) => n < m,
         _ => throw 'reeee',
@@ -682,12 +687,12 @@ abstract class BaseRuntime extends Visitor<Object?> {
     }
 
     bool isLessThanOrEqual(LuaObject? lhs, LuaObject? rhs) {
-      if((lhs?.isTable ?? false) || (rhs?.isTable ?? false)) {
+      if ((lhs?.isTable ?? false) || (rhs?.isTable ?? false)) {
         final ok = metamethod('__le', lhs, rhs)?.unpack();
-        if(ok != null) return ok.isTruthy;
+        if (ok != null) return ok.isTruthy;
       }
 
-      return switch((lhs?.value, rhs?.value)) {
+      return switch ((lhs?.value, rhs?.value)) {
         (final String s, final String t) => s.compareTo(t) <= 0,
         (final num n, final num m) => n <= m,
         _ => throw 'reeee',
@@ -703,7 +708,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
           return strConcat(lhs, rhs);
         case TokenType.kMod:
           final ok = metamethod('__mod', lhs, rhs);
-          if(ok != null) return ok;
+          if (ok != null) return ok;
           return asInt(lhs) % asInt(rhs);
         case TokenType.kAnd:
           if (lhs.isTruthy) return rhs;
@@ -713,31 +718,31 @@ abstract class BaseRuntime extends Visitor<Object?> {
           return rhs;
         case TokenType.kBitNot:
           final ok = metamethod('__bxor', lhs, rhs);
-          if(ok != null) return ok;
+          if (ok != null) return ok;
           return asInt(lhs) ^ asInt(rhs);
         case TokenType.kBitAnd:
           final ok = metamethod('__band', lhs, rhs);
-          if(ok != null) return ok;
+          if (ok != null) return ok;
           return asInt(lhs) & asInt(rhs);
         case TokenType.kBitOr:
           final ok = metamethod('__bor', lhs, rhs);
-          if(ok != null) return ok;
+          if (ok != null) return ok;
           return asInt(lhs) | asInt(rhs);
         case TokenType.kBitLShift:
           final ok = metamethod('__shl', lhs, rhs);
-          if(ok != null) return ok;
+          if (ok != null) return ok;
           return asInt(lhs) << asInt(rhs);
         case TokenType.kBitRShift:
           final ok = metamethod('__shr', lhs, rhs);
-          if(ok != null) return ok;
+          if (ok != null) return ok;
           return asInt(lhs) >> asInt(rhs);
         case TokenType.kCarrot:
           final ok = metamethod('__pow', lhs, rhs);
-          if(ok != null) return ok;
+          if (ok != null) return ok;
           return math.pow(asNum(lhs), asNum(rhs));
         case TokenType.kDiv:
           final ok = metamethod('__div', lhs, rhs);
-          if(ok != null) return ok;
+          if (ok != null) return ok;
           return asNum(lhs) /
               switch (asNum(rhs)) {
                 == 0.0 => throw 'Divide by zero.',
@@ -745,8 +750,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
               };
         case TokenType.kDivFloor:
           final ok = metamethod('__idiv', lhs, rhs);
-          if(ok != null) return ok;
-          final d = asNum(lhs) /
+          if (ok != null) return ok;
+          final d =
+              asNum(lhs) /
               switch (asNum(rhs)) {
                 == 0.0 => throw 'Divide by zero.',
                 final num n => n,
@@ -754,15 +760,15 @@ abstract class BaseRuntime extends Visitor<Object?> {
           return d.floor();
         case TokenType.kSub:
           final ok = metamethod('__sub', lhs, rhs);
-          if(ok != null) return ok;
+          if (ok != null) return ok;
           return asNum(lhs) - asNum(rhs);
         case TokenType.kAdd:
           final ok = metamethod('__add', lhs, rhs);
-          if(ok != null) return ok;
+          if (ok != null) return ok;
           return asNum(lhs) + asNum(rhs);
         case TokenType.kMult:
           final ok = metamethod('__mul', lhs, rhs);
-          if(ok != null) return ok;
+          if (ok != null) return ok;
           return asNum(lhs) * asNum(rhs);
         case TokenType.kLTE:
           return isLessThanOrEqual(lhs, rhs);
@@ -837,7 +843,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       final declVar = declMultiVar.vars[i];
       final LuaObject? o = declVar.accept(this)?.makeLuaRef();
 
-      if(i < vals.length) {
+      if (i < vals.length) {
         o?.value = vals[i];
       }
     }
@@ -848,7 +854,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
   Object? visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
     pushScope();
 
-    try{
+    try {
       final key = forIterLoopStmt.key.lexeme;
       final val = forIterLoopStmt.value?.lexeme;
 
@@ -865,7 +871,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       final iterLen = iterExpr.length;
       defLocal(LuaObject.nil(key));
 
-      if(val != null) {
+      if (val != null) {
         defLocal(LuaObject.nil(val));
       }
 
@@ -874,7 +880,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         final entry = iterExpr.fields!.entries.elementAtOrNull(i);
         iterKey?.value = entry?.key;
 
-        if(val != null) {
+        if (val != null) {
           final iterVal = findVar(val);
           iterVal?.value = entry?.value;
         }
@@ -890,11 +896,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
           }
         }
       }
-  } catch(e) {
-    rethrow;
-  } finally {
-    popScope();
-  }
+    } catch (e) {
+      rethrow;
+    } finally {
+      popScope();
+    }
 
     return null;
   }
@@ -955,7 +961,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         }
         ncontrol += step;
       }
-    } catch(e) {
+    } catch (e) {
       rethrow;
     } finally {
       popScope();
@@ -992,7 +998,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
             res = out;
           }
         }
-      }catch (e) {
+      } catch (e) {
         rethrow;
       } finally {
         popScope();
@@ -1019,7 +1025,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     // Recursively descends to the deepest lhs node expression.
     // The result must be a lua object in order to be correct.
     // Otherwise a value is incorrect and an error can be thrown.
-    Object? callee = memoryAccess.callee.accept(this);
+    Object? callee = memoryAccess.callee.accept(this)?.unpack();
 
     if (callee is! LuaObject) {
       final v = debugLuaTypeInfo(callee);
@@ -1350,15 +1356,15 @@ abstract class BaseRuntime extends Visitor<Object?> {
         final mm = rhs.readMetatable('__len')?.as<LuaObject>();
 
         final v = rhs.value;
-        if(v is! String && mm != null) {
-          return callLuaFunction(mm, args:[rhs]);
+        if (v is! String && mm != null) {
+          return callLuaFunction(mm, args: [rhs]);
         }
 
-        if(v is String) {
+        if (v is String) {
           return v.length;
         }
 
-        if(rhs.isNotTable) {
+        if (rhs.isNotTable) {
           throw 'Length operator # used on a value.';
         }
 
@@ -1368,16 +1374,16 @@ abstract class BaseRuntime extends Visitor<Object?> {
       }
       // else ...
       throw 'Length operator # used on type ${rhs.runtimeType}.';
-    } else if(op == TokenType.kBitNot) {
+    } else if (op == TokenType.kBitNot) {
       String type = rhs.runtimeType.toString();
       Object? v = rhs;
       if (rhs is LuaObject) {
         type = rhs.luaTypeInfo;
 
-        if(rhs.isTable) {
+        if (rhs.isTable) {
           final mm = rhs.readMetatable('__bnot')?.as<LuaObject>();
-          if(mm != null) {
-            return callLuaFunction(mm, args:[rhs]);
+          if (mm != null) {
+            return callLuaFunction(mm, args: [rhs]);
           }
         } else {
           v = rhs.value;
@@ -1389,17 +1395,16 @@ abstract class BaseRuntime extends Visitor<Object?> {
         final num n => ~n.toInt(),
         _ => throw 'Unsupported bitwise NOT on $type.',
       };
-    }
-    else if(op == TokenType.kSub) {
+    } else if (op == TokenType.kSub) {
       String type = rhs.runtimeType.toString();
       Object? v = rhs;
       if (rhs is LuaObject) {
         type = rhs.luaTypeInfo;
 
-        if(rhs.isTable) {
+        if (rhs.isTable) {
           final mm = rhs.readMetatable('__unm')?.as<LuaObject>();
-          if(mm != null) {
-            return callLuaFunction(mm, args:[rhs, rhs]);
+          if (mm != null) {
+            return callLuaFunction(mm, args: [rhs, rhs]);
           }
         } else {
           v = rhs.value;
@@ -1421,7 +1426,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     while (true) {
       pushScope();
       try {
-        final cond = switch(whileLoopStmt.expr.accept(this)) {
+        final cond = switch (whileLoopStmt.expr.accept(this)) {
           final List ls => ls.firstOrNull?.isTruthy,
           final Object? o => o.isTruthy,
         };
@@ -1472,11 +1477,11 @@ extension Truthy on Object? {
 extension VisitArgPack on List<MathExpr> {
   List<LuaObject> visitArgPack(Visitor visitor) {
     final List<LuaObject> out = [];
-    for(int i = 0; i < length; i++) {
-      final LuaArgPack vs = switch(this[i].accept(visitor)) {
-        final LuaArgPack p => switch(i+1 == length) {
+    for (int i = 0; i < length; i++) {
+      final LuaArgPack vs = switch (this[i].accept(visitor)) {
+        final LuaArgPack p => switch (i + 1 == length) {
           true => p,
-          false => [?p.firstOrNull]
+          false => [?p.firstOrNull],
         },
         final LuaObject o => [o],
         // final Object? o => [?o?.toLua('arg$i')],
