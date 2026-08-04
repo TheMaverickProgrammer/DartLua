@@ -323,12 +323,17 @@ abstract class BaseRuntime extends Visitor<Object?> {
     List<Object?> args = const [],
     LuaExceptionCallback? onException,
   }) {
-    final closure = switch (obj.value) {
-      final Function f => f,
-      _ => obj.fieldValueAs<Function>('__call'),
-    };
+    LuaObject? callable;
+    if(obj.isFunc) {
+      callable = obj;
+    } else if(obj.isCallable) {
+      callable = switch(obj.readMetatable('__call')) {
+        final LuaObject lo => lo,
+        _ => null,
+      };
+    }
 
-    if (closure == null) {
+    if (callable == null) {
       final type = obj.luaTypeInfo;
       final varname = obj.id;
       throw 'Attempt to call a $type value "$varname".';
@@ -336,11 +341,10 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     List<LuaObject> res = [];
     final prevScope = scope;
-    pushScope(parent: obj.scope);
+    pushScope(parent: callable.scope);
 
-    // TODO: __call meta data will be available without a function definition!
     try {
-      final defArgs = obj.funcDef!.args;
+      final defArgs = callable.funcDef!.args;
       final nilCount = defArgs.length - args.length;
 
       for (int i = 0; i < defArgs.length; i++) {
@@ -355,7 +359,12 @@ abstract class BaseRuntime extends Visitor<Object?> {
       // For the public API utilites,
       // we expect friendly non-null values.
       // Return an empty list if null.
-      res = closure.call() ?? [];
+      res = switch(callable.call()) {
+        final List<LuaObject> ls => ls,
+        final List<Object> ls => ls.map((e) => e.toLuaRet()).toList(),
+        final Object o => [o.toLuaRet()],
+        null => [],
+      };
     } catch (e) {
       if (e is LuaReturnValueException) {
         res = e.argpack;
@@ -1200,7 +1209,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
             }
           }
 
-          final arg = args.elementAt(i);
+          final arg = switch(i < args.length) {
+            true => args.elementAt(i),
+            false => null,
+          };
+
           final next = LuaObject.variable(lexeme, arg);
 
           if (buildVarArgTable) {
