@@ -251,19 +251,17 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// adds a new [Scope] node in the linked list as the new tail
   /// and sets [scope] to point to the latest tail node. Every
   /// node points to its [Scope.parent].
-  void pushScope({LuaObject? context}) {
+  ///
+  /// If [parent] is non-null, then the new [Scope.parent]
+  /// will point to it.
+  void pushScope({LuaObject? context, Scope? parent}) {
     // scope.dump();
-    scope = Scope(parent: scope, context: context);
+    scope = Scope(parent: parent ?? scope, context: context);
     // print('scope depth: ${scope.depth}');
   }
 
-  /// If there exists [Scope.parent], then tail adopts that.
-  /// This effectively pops the scope of execution. Otherwise
-  /// nothing happens.
-  void popScope() {
-    if (scope.parent == null) return;
-    //scope.dump();
-    scope = scope.parent!;
+  void restoreScope(Scope next) {
+    scope = next;
   }
 
   /// Shorthand for [scope.context].
@@ -337,8 +335,10 @@ abstract class BaseRuntime extends Visitor<Object?> {
     }
 
     List<LuaObject> res = [];
-    pushScope();
+    final prevScope = scope;
+    pushScope(parent: obj.scope);
 
+    // TODO: __call meta data will be available without a function definition!
     try {
       final defArgs = obj.funcDef!.args;
       final nilCount = defArgs.length - args.length;
@@ -365,7 +365,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         rethrow;
       }
     } finally {
-      popScope();
+      restoreScope(prevScope);
     }
 
     return res;
@@ -397,15 +397,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   @override
   Object? visitFuncExpr(FuncExpr expr) {
-    // Before we determine what the name of this function is, and whether
-    // or not it should follow local function conventions or not, we can
-    // construct a closure and use a reference to the current lexical scope.
-    final Scope parentScope = scope;
     closure() {
       int start = 0;
 
-      final Scope? prevParent = scope.parent;
-      scope.parent = parentScope;
       Object? ret;
       final int len = expr.body.length;
       for (int i = start; i < len; i++) {
@@ -417,12 +411,10 @@ abstract class BaseRuntime extends Visitor<Object?> {
             ret = e.argpack;
             break;
           } else {
-            scope.parent = prevParent;
             rethrow;
           }
         }
       }
-      scope.parent = prevParent;
       return ret;
     }
 
@@ -491,11 +483,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
       // If we got here, then we have a parent and an object.
       // If the object is null, it will be created.
       // If the object is not null, it will be overwritten.
-      luaObj = LuaObject.func(id, expr, closure);
+      luaObj = LuaObject.func(id, expr, closure, scope);
       parent!.writeField(field, luaObj);
     } else {
       // Case: This is a function, not a "method" on an object.
-      luaObj = LuaObject.func(id, expr, closure);
+      luaObj = LuaObject.func(id, expr, closure, scope);
 
       // Only non-anonymous functions can populate
       // the environment with their name.
@@ -531,6 +523,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
           if (rhs.isFunc) {
             lhs.value = rhs.value;
             lhs.funcDef = rhs.funcDef;
+            lhs.scope = rhs.scope;
           } else {
             lhs.value = rhs;
           }
@@ -852,6 +845,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   @override
   Object? visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
+    final prevScope = scope;
     pushScope();
 
     try {
@@ -864,7 +858,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       // See https://github.com/TheMaverickProgrammer/DartLua/issues/5
       if (iterExpr is! LuaObject || !iterExpr.isTable) {
         final String lineInfo = this.lineInfo(forIterLoopStmt.token);
-        popScope();
+        restoreScope(prevScope);
         throw '$lineInfo Evaluation has encountered an unrecoverable scenario: iterator expression was not a table.';
       }
 
@@ -899,7 +893,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     } catch (e) {
       rethrow;
     } finally {
-      popScope();
+      restoreScope(prevScope);
     }
 
     return null;
@@ -907,6 +901,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   @override
   Object? visitForLoopStmt(ForLoopStmt forLoopStmt) {
+    final prevScope = scope;
     pushScope();
 
     try {
@@ -918,7 +913,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
           return (id, v.valueAsInt()!);
         } else {
           final String lineInfo = this.lineInfo(forLoopStmt.token);
-          popScope();
           throw '$lineInfo For-loop control did not evaluate to a variable!';
         }
       }
@@ -933,7 +927,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
         }
 
         // n is not num
-        popScope();
         throw '$lineInfo For-loop $label did not evaluate to an integer value!';
       }
 
@@ -964,7 +957,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     } catch (e) {
       rethrow;
     } finally {
-      popScope();
+      restoreScope(prevScope);
     }
 
     return null;
@@ -986,6 +979,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     if (visitBody) {
       Object? res;
+      final prevScope = scope;
       pushScope();
       try {
         for (Stmt s in stmt.body) {
@@ -1001,7 +995,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       } catch (e) {
         rethrow;
       } finally {
-        popScope();
+        restoreScope(prevScope);
       }
 
       return res?.toLua('ret');
@@ -1034,7 +1028,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     final bool indexedTable = memoryAccess.type == MemoryAccessType.table;
     final bool funcInvocation = memoryAccess.type == MemoryAccessType.call;
-    final bool fwdSelfArg = memoryAccess.op.type == TokenType.kColon;
+    bool fwdSelfArg = memoryAccess.op.type == TokenType.kColon;
 
     if (callee.skipSemanitcs) {
       // Check if special case of skipping semantics and evaluation.
@@ -1134,10 +1128,18 @@ abstract class BaseRuntime extends Visitor<Object?> {
         argsInLen = args.length;
       }
 
-      final func = switch (callable) {
-        final LuaObject lua => lua.funcDef,
+      final mcall = switch(callable?.readMetatable('__call')) {
+        final LuaObject lo => lo,
         _ => null,
       };
+
+      FuncExpr? func = callable?.funcDef ?? mcall?.funcDef;
+      Scope? pscope = callable?.scope ?? mcall?.scope;
+
+      // The first argument to __call is self.
+      if(mcall != null) {
+        fwdSelfArg = true;
+      }
 
       if (func == null) {
         throw '$linePos Attempt to call a nil value (field "$callableId").';
@@ -1167,20 +1169,20 @@ abstract class BaseRuntime extends Visitor<Object?> {
         }
       }
 
-      pushScope(/*context: callee*/);
+      final prevScope = scope;
+      pushScope(parent: pscope);
       Object? ret;
 
       try {
-        if (fwdSelfArg) {
-          defLocal(LuaObject.variable('self', callee));
-        }
-
         final List<LuaObject> varg = [];
-        final int fwdArgCount = fwdSelfArg ? 1 : 0;
         final int argCount = switch (isVariadic) {
-          true => args.length - fwdArgCount,
-          false => defInLen - fwdArgCount,
+          true => args.length,
+          false => defInLen,
         };
+
+        if (fwdSelfArg && argCount > 0) {
+          args.insert(0, LuaObject.variable(func.args.first.lexeme, callee));
+        }
 
         bool buildVarArgTable = false;
 
@@ -1188,9 +1190,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
           // Var args are bundled under a hidden variable
           // named `arg`. They do not count towards the
           // function definition parameter list.
-          String lexeme = 'arg${i + fwdArgCount}';
-          if (i + fwdArgCount < func.args.length) {
-            final arg = func.args.elementAt(i + fwdArgCount);
+          String lexeme = 'arg$i';
+          if (i < func.args.length) {
+            final arg = func.args.elementAt(i);
             if (arg.id.type == TokenType.kSpread) {
               buildVarArgTable = true;
             } else {
@@ -1214,13 +1216,13 @@ abstract class BaseRuntime extends Visitor<Object?> {
           }),
         );
 
-        ret = callable!.call();
+        ret = mcall?.call() ?? callable!.call();
       } on LuaReturnValueException {
         rethrow;
       } catch (e) {
         throw '$linePos ${e.toString()}';
       } finally {
-        popScope();
+        restoreScope(prevScope);
       }
 
       return ret;
@@ -1291,6 +1293,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   @override
   Object? visitRepeatUntilLoopStmt(RepeatUntilLoopStmt repeatUntilLoopStmt) {
+    final prevScope = scope;
     pushScope();
     while (true) {
       try {
@@ -1314,7 +1317,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         break;
       }
     }
-    popScope();
+    restoreScope(prevScope);
     return null;
   }
 
@@ -1424,6 +1427,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
   @override
   Object? visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
     while (true) {
+      final prevScope = scope;
       pushScope();
       try {
         final cond = switch (whileLoopStmt.expr.accept(this)) {
@@ -1447,7 +1451,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       } catch (e) {
         rethrow;
       } finally {
-        popScope();
+        restoreScope(prevScope);
       }
     }
     return null;

@@ -53,11 +53,12 @@ class Scope {
       } else if (value.isFunc) {
         final closure = value.value as Function;
         final def = value.funcDef;
+        final pscope = value.scope;
         if (def == null) {
           throw '''Internal error: programmer forgot to use LuaFuncBuilder. '''
               '''Please report this error!.''';
         }
-        luaObject = LuaObject.func(id, def, closure);
+        luaObject = LuaObject.func(id, def, closure, pscope);
       } else {
         luaObject = value;
       }

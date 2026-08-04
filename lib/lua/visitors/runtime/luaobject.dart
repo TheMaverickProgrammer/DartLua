@@ -1,4 +1,5 @@
 import 'package:puredartlua/lua/passes/lexer.dart';
+import 'package:puredartlua/lua/visitors/runtime/scope.dart';
 import 'package:puredartlua/lua/visitors/visitor.dart';
 
 /// Shorthand notation for a [Map] of [String] and [LuaObject]
@@ -154,6 +155,10 @@ class LuaObject {
   /// If this lua object is a function, it will have [FuncExpr]
   /// node with information about its arguments.
   FuncExpr? funcDef;
+
+  /// If this lua object is a function, it will have [Scope]
+  /// to evaluate closures correctly.
+  Scope? scope;
 
   /// Whenever this lua object is accessed to read its [value]
   /// or [fields], then a callback can be provided with the name
@@ -483,6 +488,7 @@ class LuaObject {
   set value(Object? from) {
     uses++;
     funcDef = null;
+    scope = null;
     if (from == null) {
       _value = null;
       _fields = null;
@@ -497,6 +503,7 @@ class LuaObject {
         // Functions carry function definition information.
         // Copy this too.
         funcDef = from.funcDef;
+        scope = from.scope;
       }
     } else {
       _value = from;
@@ -731,12 +738,13 @@ class LuaObject {
   /// in scope with some [closure] to be written to [value].
   /// A required [def] is needed to determine the input
   /// arguments and other runtime information.
-  LuaObject.func(this.id, FuncExpr def, Function closure) : super() {
+  LuaObject.func(this.id, FuncExpr def, Function closure, [Scope? pscope]) : super() {
     _fields = {};
 
-    // Order here matters. value will clear funcDef.
+    // Order here matters. value will clear funcDef and scope.
     value = closure;
     funcDef = def;
+    scope = pscope;
   }
 
   /// Constructs a lua object with null values and fields.
@@ -746,9 +754,10 @@ class LuaObject {
   /// Note that the runtime [id] will be prefixed with meta information
   /// to assist debugging call stacks.
   LuaObject.ref(LuaObject src) : id = 'ref_${src.id}', super() {
-    _value = src;
     _fields = null;
     funcDef = null;
+    scope = null;
+    _value = src;
   }
 
   /// Constructs a [LuaObjectNoSemantics] instance whose variable name

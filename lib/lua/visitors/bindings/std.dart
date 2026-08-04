@@ -200,13 +200,14 @@ mixin Std on BaseRuntime {
       }
 
       Object? result;
+      final prevScope = scope;
       try {
         pushScope();
         result = onRequireImpl?.call(v, this);
       } catch (e) {
         addError(e.toString());
       } finally {
-        popScope();
+        restoreScope(prevScope);
       }
 
       onRequireImplComplete?.call(v);

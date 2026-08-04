@@ -5,6 +5,12 @@
 - Discovered `break` keyword logic was not added yet! Added.
 - Function calls with one argument of either string or table literal can omit parens.
 - Added string-to-number coercion under addition. Added relevant test `coercion.lua`.
+- `popScope()` -> `restoreScope(next)`.
+  - With closures I cannot pop the scope back to the parent b/c the parent for a closure is not the next branch of execution after the closure finishes. Therefore I had to restore the scope everywhere `popScope()` was used. It's a bit uglier but it was necessary. Added test `currying.lua` which tests closures and the new one-argument syntax sugar.
+- Slight rewrite to function calls to allow forwarded objects to be passed in by the name of the first argument.
+  - Previously forward function calls (via `:`) always wrote to a `self` variable in the new scope. This was wrong to do.
+  - Added `functions.lua` test to catch this.
+- Added `__call` metamethod support.
 
 ## 1.0.13
 - Forgot to drop comments after the lexing phase. This caused runtime problems with the repl.

@@ -125,6 +125,10 @@ void main() {
     expect(runTest('./test/assets/pass/while_loops.lua'), true);
   });
 
+  test('functions', () {
+    expect(runTest('./test/assets/pass/functions.lua'), true);
+  });
+
   test('pcall', () {
     expect(runTest('./test/assets/pass/pcall.lua'), true);
   });
@@ -139,6 +143,10 @@ void main() {
 
   group('metamethods', () {
     final dir = './test/assets/pass/metamethods';
+
+    test('__call', () {
+      expect(runTest('$dir/__call.lua'), true);
+    });
 
     test('__eq', () {
       expect(runTest('$dir/__eq.lua'), true);
