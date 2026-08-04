@@ -232,7 +232,9 @@ Here's what's left to be compliant with most `Lua 5.5` programs:
 - Keyword `global` support not added. (But globals in scope **are** supported!)
 - `Coroutines` library **is** added but the runtime needs bytecode to make use of it.
 - No tail call support. This optimization also requires bytecode to be effective.
-- I missed `do ... end` blocks. I rarely see those used.
+- I missed `do ... end` blocks. I rarely see those used. To be added.
+- Various numeric form representations such as hex.
+- Key `"0"` and key `0` are in fact different.
 
 ## Extra Goals
 - Semantics: code path type unification.

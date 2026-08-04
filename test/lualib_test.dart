@@ -133,6 +133,9 @@ void main() {
     expect(runTest('./test/assets/pass/coercion.lua'), true);
   });
 
+  test('currying', () {
+    expect(runTest('./test/assets/pass/currying.lua'), true);
+  });
 
   group('metamethods', () {
     final dir = './test/assets/pass/metamethods';

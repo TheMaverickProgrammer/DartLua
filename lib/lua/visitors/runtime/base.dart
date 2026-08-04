@@ -399,10 +399,13 @@ abstract class BaseRuntime extends Visitor<Object?> {
   Object? visitFuncExpr(FuncExpr expr) {
     // Before we determine what the name of this function is, and whether
     // or not it should follow local function conventions or not, we can
-    // construct a closure.
+    // construct a closure and use a reference to the current lexical scope.
+    final Scope parentScope = scope;
     closure() {
       int start = 0;
 
+      final Scope? prevParent = scope.parent;
+      scope.parent = parentScope;
       Object? ret;
       final int len = expr.body.length;
       for (int i = start; i < len; i++) {
@@ -414,11 +417,12 @@ abstract class BaseRuntime extends Visitor<Object?> {
             ret = e.argpack;
             break;
           } else {
+            scope.parent = prevParent;
             rethrow;
           }
         }
       }
-
+      scope.parent = prevParent;
       return ret;
     }
 

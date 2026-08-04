@@ -672,7 +672,7 @@ class Parser {
       pairs.add(tablePairExpr());
       next = peek();
 
-      if (next.type == TokenType.kComma) {
+      if (next.type == TokenType.kComma || next.type == TokenType.kSemicolon) {
         advance();
         next = peek();
       }
@@ -759,68 +759,60 @@ class Parser {
       TokenType.kColon,
       TokenType.kLBracket,
       TokenType.kLParen,
-    ];
 
-    const curryOps = [
+      // Special cases:
+      // String literal and table constructor notation.
       TokenType.kString,
       TokenType.kLCurly
     ];
 
-    if(curryOps.contains(op.type)) {
-      if(op.type == TokenType.kString) {
-        final arg = stringLiteral();
-        return MemoryAccess.call(op, lhs, [arg]);
-      }
-      else if(op.type == TokenType.kLCurly) {
-        final arg = tableExpr();
-        return MemoryAccess.call(op, lhs, [arg]);
-      }
-      else if(!memOps.contains(op.type)) {
-        /*if(peek(offset: 1).type != TokenType.kSemicolon) {
-          throw "${op.pos} Function call expected string literal, table constructor, or arg list inside parenthesis.";
-        }*/
-      } 
-    } else {
-      do {
-        lhs = switch (op.type) {
-          TokenType.kDot => MemoryAccess.field(op, lhs, advanceAndThen(rawExpr)),
-          TokenType.kLBracket => () {
-            final arg = advanceAndThen(math);
-            consume(TokenType.kRBracket, 'Expecting closing bracket.');
-            return MemoryAccess.table(op, lhs, arg);
-          }(),
-          TokenType.kColon => () {
-            advance();
-            // Special case: the colon operator forwards the lhs object
-            // into a function arg list as the new first argument.
-            // Therefore, we need to be sugar that a function expression
-            // follows and becomes our rhsExpr node.
-            //
-            // functioncall ::= prefixexp ':' Name args
-            final MathExpr funcName = literal();
-            final parenToken = consume(
-              TokenType.kLParen,
-              'Expected function call after colon ":" operator.',
-            );
-            final args = argList(terminal: TokenType.kRParen);
-            consume(TokenType.kRParen, 'Expecting closing parentheses.');
-            final rhsExpr = MemoryAccess.call(parenToken, funcName, args);
+    while(memOps.contains(op.type)) {
+      lhs = switch (op.type) {
+        TokenType.kString => () {
+          final arg = stringLiteral();
+          return MemoryAccess.call(op, lhs, [arg]);
+        }(),
+        TokenType.kLCurly => () {
+          final arg = tableExpr();
+          return MemoryAccess.call(op, lhs, [arg]);
+        }(),
+        TokenType.kDot => MemoryAccess.field(op, lhs, advanceAndThen(rawExpr)),
+        TokenType.kLBracket => () {
+          final arg = advanceAndThen(math);
+          consume(TokenType.kRBracket, 'Expecting closing bracket.');
+          return MemoryAccess.table(op, lhs, arg);
+        }(),
+        TokenType.kColon => () {
+          advance();
+          // Special case: the colon operator forwards the lhs object
+          // into a function arg list as the new first argument.
+          // Therefore, we need to be sugar that a function expression
+          // follows and becomes our rhsExpr node.
+          //
+          // functioncall ::= prefixexp ':' Name args
+          final MathExpr funcName = literal();
+          final parenToken = consume(
+            TokenType.kLParen,
+            'Expected function call after colon ":" operator.',
+          );
+          final args = argList(terminal: TokenType.kRParen);
+          consume(TokenType.kRParen, 'Expecting closing parentheses.');
+          final rhsExpr = MemoryAccess.call(parenToken, funcName, args);
 
-            // With the function node packed together, map this to lhs.
-            final callee = lhs;
-            final colon = op;
-            return MemoryAccess.call(colon, callee, [rhsExpr]);
-          }(),
-          TokenType.kLParen => () {
-            advance();
-            final args = argList(terminal: TokenType.kRParen);
-            consume(TokenType.kRParen, 'Expecting closing parentheses.');
-            return MemoryAccess.call(op, lhs, args);
-          }(),
-          _ => lhs,
-        };
-        op = peek();
-      } while(memOps.contains(op.type));
+          // With the function node packed together, map this to lhs.
+          final callee = lhs;
+          final colon = op;
+          return MemoryAccess.call(colon, callee, [rhsExpr]);
+        }(),
+        TokenType.kLParen => () {
+          advance();
+          final args = argList(terminal: TokenType.kRParen);
+          consume(TokenType.kRParen, 'Expecting closing parentheses.');
+          return MemoryAccess.call(op, lhs, args);
+        }(),
+        _ => lhs,
+      };
+      op = peek();
     }
 
     return lhs;

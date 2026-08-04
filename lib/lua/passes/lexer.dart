@@ -91,7 +91,7 @@ class StreamPos {
 
   @override
   String toString() {
-    if (isSynthesized) return "[synthesized code]";
+    if (isSynthesized) return "[Synthesized code]";
     if (isEOF) return "[EOF]";
     final rowfmt = (row + 1).toString().padLeft(4);
     final colfmt = (col + 1).toString().padRight(3);
