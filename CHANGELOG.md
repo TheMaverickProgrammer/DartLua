@@ -45,6 +45,8 @@
 - All functions rethrow now on exceptions unless `callLuaFunction` is used with an exception handler.
 - `pcall()` implementation follows from the new function exception behavior.
 - Update to `README.md` includes a get starting section and lists the remaining unfinished features.
+- `run`, `runner`, `parse`, and `parseFile` now take optional `RunnerErrorsCallback? onError` to handle errors from trace.
+  - So that it does not pollute other projects.
 
 ## 1.0.9
 - `token` is now a field on all grammar nodes via `Stmt` base class.
