@@ -213,13 +213,16 @@ class LuaObject {
 
   /// Query if this lua object has a [Function] stord in [value].
   /// For the metamethod `__call` see [isCallable].
-  bool get isFunc => value is Function;
+  bool get isFunc => switch (isRef) {
+    true => deref().isFunc,
+    false => _value is Function,
+  };
 
   /// Query the negation of [isFunc].
   bool get isNotFunc => !isFunc;
 
   /// Query if this object's meta table has __call defined.
-  bool get isCallable => readMetatable('__call') != null;
+  bool get isCallable => _metatable?.hasField('__call') != null;
 
   /// Query if this object does not have __call defined in the meta table.
   bool get isNotCallable => !isCallable;
@@ -738,7 +741,8 @@ class LuaObject {
   /// in scope with some [closure] to be written to [value].
   /// A required [def] is needed to determine the input
   /// arguments and other runtime information.
-  LuaObject.func(this.id, FuncExpr def, Function closure, [Scope? pscope]) : super() {
+  LuaObject.func(this.id, FuncExpr def, Function closure, [Scope? pscope])
+    : super() {
     _fields = {};
 
     // Order here matters. value will clear funcDef and scope.
