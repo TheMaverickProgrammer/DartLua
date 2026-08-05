@@ -10,9 +10,9 @@ T echo<T extends Stmt>(T t) {
 const List<TokenType> vars = [TokenType.kSelf, TokenType.kRaw];
 
 class Parser {
-  /// Loop control optional pointer. If set, we are in a loop.
+  /// If loopDepth > 0 we are in a loop construct and can break.
   /// This is used to detect the correctness of the "break" keyword.
-  Token? loopCtrl;
+  int loopDepth = 0;
 
   final List<String> errors = [];
   final List<String> warns = [];
@@ -54,7 +54,7 @@ class Parser {
     final found = token.type;
 
     if (found != expected) {
-      throw '${token.pos} Found $found. $err';
+      throw '${token.pos} $err Found "${token.lexeme}".';
     }
 
     return token;
@@ -96,9 +96,7 @@ class Parser {
     }
 
     // Consume semicolon statements.
-    if ([
-      TokenType.kSemicolon,
-    ].contains(token.type)) {
+    if ([TokenType.kSemicolon].contains(token.type)) {
       advance();
       return null;
     }
@@ -206,7 +204,7 @@ class Parser {
 
   Stmt breakStmt() {
     final token = consume(TokenType.kBreak, 'Expected "break" keyword.');
-    if(loopCtrl == null) {
+    if (loopDepth == 0) {
       throw '${token.pos} Keyword "break" outside of loop.';
     }
     return BreakStmt(token);
@@ -267,7 +265,7 @@ class Parser {
 
   Stmt forLoopStmt() {
     final token = consume(TokenType.kFor, 'Expected "for" keyword.');
-    loopCtrl = token;
+    loopDepth++;
 
     // Look-ahead to determine for-loop type.
     final next = peek(offset: 1);
@@ -276,7 +274,7 @@ class Parser {
       final key = consume(TokenType.kRaw, 'Expected name for key term.');
 
       Token? value;
-      if(peek().type == TokenType.kComma) {
+      if (peek().type == TokenType.kComma) {
         consume(TokenType.kComma, 'Expected "," between key and value terms.');
         value = consume(TokenType.kRaw, 'Expected name for value term.');
       }
@@ -285,7 +283,7 @@ class Parser {
       final iterExpr = math();
       consume(TokenType.kDo, 'Expected "do" before for-in loop body.');
       final body = bodyStmt(terminal: TokenType.kEnd);
-      loopCtrl = null;
+      loopDepth--;
       consume(
         TokenType.kEnd,
         'Expected "end" keyword to terminate for-in loop.',
@@ -322,7 +320,7 @@ class Parser {
     consume(TokenType.kDo, 'Expected "do" before for-loop body.');
 
     final body = bodyStmt(terminal: TokenType.kEnd);
-    loopCtrl = null;
+    loopDepth--;
 
     consume(TokenType.kEnd, 'Expected for-loop to terminate with "end".');
 
@@ -339,9 +337,9 @@ class Parser {
     final token = consume(TokenType.kWhile, 'Expected "while" keyword.');
     final expr = math();
     consume(TokenType.kDo, 'Expected while-loop to begin with "do" keyword.');
-    loopCtrl = token;
+    loopDepth++;
     final body = bodyStmt(terminal: TokenType.kEnd);
-    loopCtrl = null;
+    loopDepth--;
     consume(
       TokenType.kEnd,
       'Expected while-loop to terminate with "end" keyword.',
@@ -351,9 +349,9 @@ class Parser {
 
   Stmt repeatUntilLoopStmt() {
     final token = consume(TokenType.kRepeat, 'Expected "repeat" keyword.');
-    loopCtrl = token;
+    loopDepth++;
     final body = bodyStmt(terminal: TokenType.kUntil);
-    loopCtrl = null;
+    loopDepth--;
     consume(
       TokenType.kUntil,
       'Expected repeat-loop to terminate with "until" expression.',
@@ -672,9 +670,11 @@ class Parser {
       pairs.add(tablePairExpr());
       next = peek();
 
-      if (next.type == TokenType.kComma || next.type == TokenType.kSemicolon) {
+      if (anyOf([TokenType.kComma, TokenType.kSemicolon])) {
         advance();
         next = peek();
+      } else {
+        break;
       }
     }
 
@@ -763,10 +763,10 @@ class Parser {
       // Special cases:
       // String literal and table constructor notation.
       TokenType.kString,
-      TokenType.kLCurly
+      TokenType.kLCurly,
     ];
 
-    while(memOps.contains(op.type)) {
+    while (memOps.contains(op.type)) {
       lhs = switch (op.type) {
         TokenType.kString => () {
           final arg = stringLiteral();

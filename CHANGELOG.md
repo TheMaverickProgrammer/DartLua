@@ -3,6 +3,7 @@
 - Added semicolon support.
 - Updated missing features section in the readme.
 - Discovered `break` keyword logic was not added yet! Added.
+- Weak checks for `,` or `;` tokens while parsing table pairs now strict. Added sanity check test for this.
 - Function calls with one argument of either string or table literal can omit parens.
 - Added string-to-number coercion under addition. Added relevant test `coercion.lua`.
 - `popScope()` -> `restoreScope(next)`.
@@ -12,6 +13,8 @@
   - Added `functions.lua` test to catch this.
 - Added `__call` metamethod support.
 - Fixed long-standing out-of-range error calling functions having less arguments than their definition. Unsupplied args are now nil. This is now similar to multivariable declarations which is correct.
+- `run`, `runner`, `parse`, and `parseFile` now take optional `RunnerErrorsCallback? onError` to handle errors from trace.
+  - So that it does not pollute other projects.
 
 ## 1.0.13
 - Forgot to drop comments after the lexing phase. This caused runtime problems with the repl.
@@ -45,8 +48,6 @@
 - All functions rethrow now on exceptions unless `callLuaFunction` is used with an exception handler.
 - `pcall()` implementation follows from the new function exception behavior.
 - Update to `README.md` includes a get starting section and lists the remaining unfinished features.
-- `run`, `runner`, `parse`, and `parseFile` now take optional `RunnerErrorsCallback? onError` to handle errors from trace.
-  - So that it does not pollute other projects.
 
 ## 1.0.9
 - `token` is now a field on all grammar nodes via `Stmt` base class.

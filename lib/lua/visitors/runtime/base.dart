@@ -324,10 +324,10 @@ abstract class BaseRuntime extends Visitor<Object?> {
     LuaExceptionCallback? onException,
   }) {
     LuaObject? callable;
-    if(obj.isFunc) {
+    if (obj.isFunc) {
       callable = obj;
-    } else if(obj.isCallable) {
-      callable = switch(obj.readMetatable('__call')) {
+    } else if (obj.isCallable) {
+      callable = switch (obj.readMetatable('__call')) {
         final LuaObject lo => lo,
         _ => null,
       };
@@ -359,7 +359,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       // For the public API utilites,
       // we expect friendly non-null values.
       // Return an empty list if null.
-      res = switch(callable.call()) {
+      res = switch (callable.call()) {
         final List<LuaObject> ls => ls,
         final List<Object> ls => ls.map((e) => e.toLuaRet()).toList(),
         final Object o => [o.toLuaRet()],
@@ -512,10 +512,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
     return luaObj;
   }
 
+  /// Visits rhs first and then evaluate lhs.
   @override
   Object? visitAssignExpr(AssignExpr assignExpr) {
-    Object? lhs = assignExpr.lhs.accept(this);
     final rhs = assignExpr.rhs.accept(this)?.unpack();
+    Object? lhs = assignExpr.lhs.accept(this);
 
     if (lhs == null && assignExpr.lhs is RawExpr) {
       // If this variable is not defined, it is now
@@ -589,7 +590,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     num coerceString(String str) {
       final i = num.tryParse(str);
-      if(i == null) throw 'Math operation on non-coercible string.';
+      if (i == null) throw 'Math operation on non-coercible string.';
       return i;
     }
 
@@ -597,7 +598,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       if (obj == null) throw 'Operand was null for binary $op.';
       if (obj is LuaObject) {
         final s = obj.value;
-        if(s is String) {
+        if (s is String) {
           return coerceString(s);
         }
         final value = obj.valueAs<num>();
@@ -1137,7 +1138,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         argsInLen = args.length;
       }
 
-      final mcall = switch(callable?.readMetatable('__call')) {
+      final mcall = switch (callable?.readMetatable('__call')) {
         final LuaObject lo => lo,
         _ => null,
       };
@@ -1146,7 +1147,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       Scope? pscope = callable?.scope ?? mcall?.scope;
 
       // The first argument to __call is self.
-      if(mcall != null) {
+      if (mcall != null) {
         fwdSelfArg = true;
       }
 
@@ -1209,7 +1210,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
             }
           }
 
-          final arg = switch(i < args.length) {
+          final arg = switch (i < args.length) {
             true => args.elementAt(i),
             false => null,
           };
@@ -1315,7 +1316,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
             stmt.accept(this);
           } on LuaBreakStmtException {
             rethrow;
-          } catch(e) {
+          } catch (e) {
             addError(e.toString());
           }
         }

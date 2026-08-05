@@ -41,6 +41,28 @@ class ExpectationParser {
   }
 }
 
+bool _testComparisons(List<ExpectationLine> expected, List<String> stdOut) {
+  final int outLen = stdOut.length;
+  final int expLen = expected.length;
+
+  bool ok = true;
+  for (int i = 0; i < expLen; i++) {
+    final int line = expected[i].line;
+    final String e = expected[i].captured;
+    final String o = switch (i < outLen) {
+      true => stdOut[i],
+      false => 'N/A',
+    };
+
+    if (e.compareTo(o) != 0) {
+      print('[Line $line] Expected "$e". Was "$o".');
+      ok = false;
+    }
+  }
+
+  return ok;
+}
+
 /// Handles the setup and execution of the test suite.
 /// It loads a file, parsees the lua [AST], and calls
 /// [runner] with a custom [Evaluator] so we can read
@@ -49,39 +71,26 @@ bool runTest(String path) {
   bool ok = true;
   try {
     final String content = File(path).readAsStringSync();
+    final List<String> stdOut = [];
 
-    final AST? ast = parse(content);
-    if (ast == null) {
-      print('AST was null!');
-      return false;
-    }
-    final Evaluator evaluator = Evaluator();
-    (ok, _) = runner(ast, constructor: () => evaluator);
+    collect(List<String> errs) => stdOut.addAll(errs);
 
-    if (!ok) {
-      print(evaluator.errors.join('\n'));
-      return false;
+    final AST? ast = parse(content, onErrors: collect);
+    if (ast != null) {
+      final Evaluator evaluator = Evaluator();
+      (ok, _) = runner(ast, constructor: () => evaluator);
+
+      if (!ok) {
+        print(evaluator.errors.join('\n'));
+        return false;
+      }
+
+      stdOut.addAll(evaluator.impl.stdOut);
     }
 
     print('--- Test Results ---');
-
     final List<ExpectationLine> expected = ExpectationParser.parse(content);
-    final int outLen = evaluator.impl.stdOut.length;
-    final int expLen = expected.length;
-
-    for (int i = 0; i < expLen; i++) {
-      final int line = expected[i].line;
-      final String e = expected[i].captured;
-      final String o = switch (i < outLen) {
-        true => evaluator.impl.stdOut[i],
-        false => 'N/A',
-      };
-
-      if (e.compareTo(o) != 0) {
-        print('[Line $line] Expected "$e". Was "$o".');
-        ok = false;
-      }
-    }
+    ok = _testComparisons(expected, stdOut);
   } catch (e) {
     print(e.toString());
     ok = false;
@@ -227,5 +236,16 @@ void main() {
 
   test('coroutines', () {
     expect(runTest('./test/assets/pass/coroutines.lua'), true);
+  });
+
+  group('sanity checks', () {
+    final dir = './test/assets/fail';
+    test('break outside of loop', () {
+      expect(runTest('$dir/break.lua'), true);
+    });
+
+    test('table entry separators', () {
+      expect(runTest('$dir/table_entries_sep.lua'), true);
+    });
   });
 }
