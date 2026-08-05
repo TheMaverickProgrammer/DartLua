@@ -54,7 +54,7 @@ But you probably want to define your own tables and functions in lua. And probab
 values back in dart too.
 
 For this, you need a custom runtime via the `Evaluator` class and
-use the specific `(bool, LuaObject) runner(AST, constructor)` utility function.
+use the specific `(bool, LuaObject) runner(AST, constructor, onErrors?)` utility function.
 
 ```dart
 import 'package:puredartlua/runner.dart';
@@ -162,7 +162,7 @@ The DOT file will be embedded in an HTML page `my_script.lua.html`.
 - `Truthy` and `Native2Lua` Dart class extensions for convenient bridge between userdata and lua types.
 - Globals provided by `_ENV` and legacy `_G` upvalues.
 - Metatables supported via `setmetatable(t, mt)` and `getmetatable(t)` as you'd expect.
-  - Metamethods: `__add`, `__sub`, `__mul`, `__div`, `__mod`, `__pow`, `__unm`, `__idiv`, `__band`, `__bor`, `__bxor`, `__bnot`, `__shl`, `__shr`, `__concat`, `__len`, `__eq`, `__lt`, `__le`, `__tostring`.
+  - Metamethods: `__call`, `__add`, `__sub`, `__mul`, `__div`, `__mod`, `__pow`, `__unm`, `__idiv`, `__band`, `__bor`, `__bxor`, `__bnot`, `__shl`, `__shr`, `__concat`, `__len`, `__eq`, `__lt`, `__le`, `__tostring`.
 - Standard lua runtime libs (partial implementation).
   - strings
   - include
@@ -227,14 +227,17 @@ I will get around to that when I can!
 ## Missing Lua Lang Support
 Here's what's left to be compliant with most `Lua 5.5` programs:
 - Missing metamethods: `__newindex` and `__index`.
-- Missing a semantics pass for `goto` and `::label::` statements.
 - Keyword `<const>` support not added.
 - Keyword `global` support not added. (But globals in scope **are** supported!)
-- `Coroutines` library **is** added but the runtime needs bytecode to make use of it.
-- No tail call support. This optimization also requires bytecode to be effective.
 - I missed `do ... end` blocks. I rarely see those used. To be added.
 - Lua supports different numeric form representations such as hex.
-- Key `"0"` and key `0` are in fact different.
+- Keys should not be stored as `String`.
+  - `"0"` and key `0` are in fact different.
+  - Tables can be keys.
+- Bytecode generation. Which is necessary because...
+  - We need to jump on `goto` and resume on `::label::` statements.
+  - `Coroutines` library **is** added but the runtime needs bytecode to make use of it.
+  - No tail call support. This optimization also requires bytecode to be effective.
 
 ## Extra Goals
 - Semantics: code path type unification.
