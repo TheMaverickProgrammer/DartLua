@@ -872,7 +872,7 @@ extension Native2Lua on Object {
   };
 
   /// Tries to unpack a list of values into a single value.
-  /// If [this] is [LuaObject] there's nothing to unpack.
+  /// If [this] is [LuaObject] returns itself.
   /// If [this] is [LuaArgPack] use the method.
   /// If [this] is anything else, convert to a lua object.
   LuaObject? unpack() => switch (this) {

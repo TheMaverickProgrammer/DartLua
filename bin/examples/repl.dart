@@ -33,11 +33,15 @@ void main() {
         continue;
     }
 
-    final ast = parse(content);
+    final ast = parse(content, onErrors: (errs) => errs.forEach(print));
     content = '';
     if (ast == null) continue;
 
-    final (ok, out) = runner(ast, constructor: () => evaluator..clearResults());
+    final (ok, out) = runner(
+      ast,
+      constructor: () => evaluator..clearResults(),
+      onErrors: (errs) => errs.forEach(print),
+    );
     print(out);
   }
 }

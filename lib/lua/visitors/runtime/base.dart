@@ -685,7 +685,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
       return switch ((lhs?.value, rhs?.value)) {
         (final String s, final String t) => s.compareTo(t) < 0,
         (final num n, final num m) => n < m,
-        _ => throw 'reeee',
+        (final Object? l, final Object? r) =>
+          throw 'Operation ${debugLuaTypeInfo(l)} < ${debugLuaTypeInfo(r)} failed.',
       };
     }
 
@@ -698,7 +699,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
       return switch ((lhs?.value, rhs?.value)) {
         (final String s, final String t) => s.compareTo(t) <= 0,
         (final num n, final num m) => n <= m,
-        _ => throw 'reeee',
+        (final Object? l, final Object? r) =>
+          throw 'Operation ${debugLuaTypeInfo(l)} <= ${debugLuaTypeInfo(r)} failed.',
       };
     }
 
@@ -1008,7 +1010,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         restoreScope(prevScope);
       }
 
-      return res?.toLua('ret');
+      return res;
     }
 
     return stmt.nextIfStmt?.accept(this);
