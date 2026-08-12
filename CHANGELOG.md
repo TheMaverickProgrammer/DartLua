@@ -13,10 +13,12 @@
   - Added `functions.lua` test to catch this.
 - Added `__call` metamethod support.
 - Added `__newindex` metamethod support.
+  - This effort required a change in parsing so that assignment exprs are not math exprs. And the assignment visitor explicitly checks to see if the lhs is a table index operation.
 - Added `__index` metamethod support.
 - Fixed long-standing out-of-range error calling functions having less arguments than their definition. Unsupplied args are now nil. This is now similar to multivariable declarations which is correct.
 - `run`, `runner`, `parse`, and `parseFile` now take optional `RunnerErrorsCallback? onError` to handle errors from trace.
   - So that it does not pollute other projects.
+- Assignment expressions can no longer be used as values (value is the result of lhs). This was illegal lua.
 
 ## 1.0.13
 - Forgot to drop comments after the lexing phase. This caused runtime problems with the repl.
