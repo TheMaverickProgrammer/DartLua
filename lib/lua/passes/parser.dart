@@ -103,7 +103,8 @@ class Parser {
 
     // Added feature late: https://www.lua.org/manual/5.5/manual.html#3.3.3
     handleMultiAssignExpr(MathExpr expr) {
-      if (peek().type == TokenType.kComma) {
+      final token = peek().type;
+      if (token == TokenType.kComma) {
         // Ugly hack. Clearly one term is bound.
         // We can drop the other terms, but we need to
         // collect them.
@@ -116,6 +117,11 @@ class Parser {
           return multiAssignExpr(first: expr);
         }
       }
+
+      if (token == TokenType.kAssign) {
+        return assignExpr(expr);
+      }
+
       return expr;
     }
 
@@ -133,14 +139,10 @@ class Parser {
     });
   }
 
-  AssignExpr assignExpr() {
-    final id = consume(
-      TokenType.kRaw,
-      'Expected a variable name in assignment.',
-    );
+  AssignExpr assignExpr(Stmt lhs) {
     final op = consume(TokenType.kAssign, 'Expected "=" for assignment.');
     final rhs = math();
-    return AssignExpr(op, lhs: RawExpr(id), rhs: rhs);
+    return AssignExpr(op, lhs: lhs, rhs: rhs);
   }
 
   Stmt localStmt() {
@@ -300,7 +302,11 @@ class Parser {
     /* else next.type == TokenType.kAssign*/
 
     // This is a ranged for-loop.
-    final control = assignExpr();
+    final control = assignExpr(
+      RawExpr(
+        consume(TokenType.kRaw, 'Expected a variable name in assignment.'),
+      ),
+    );
     consume(TokenType.kComma, 'Expected "," before for-loop end term.');
     final endExpr = math();
 
@@ -454,21 +460,13 @@ class Parser {
     return FuncExpr.named(start, body: body, args: args, idParts: idParts);
   }
 
-  MathExpr math() {
-    final lhs = logicalOrExpr();
-    final op = peek();
+  /// Older code used to be here.
+  /// Now "math" just starts descent starting from "logicalOrExpr".
+  MathExpr math() => logicalOrExpr();
 
-    return switch (op.type) {
-      TokenType.kAssign => AssignExpr(
-        op,
-        lhs: lhs,
-        rhs: advanceAndThen(logicalOrExpr),
-      ),
-      _ => lhs,
-    };
-  }
-
-  MathExpr multiAssignExpr({required MathExpr first}) {
+  /// Assignments cannot be used as math expressions.
+  /// This function returns Stmt type.
+  Stmt multiAssignExpr({required Stmt first}) {
     final bool ok = canMultAssignWith(first);
     if (!ok) {
       final linePos = peek().pos;
@@ -735,7 +733,7 @@ class Parser {
   //  - Group expressions (...) are NOT allowed.
   //  - Fields are OK.
   //  - Table access by index is OK.
-  bool canMultAssignWith(MathExpr term) => switch (term) {
+  bool canMultAssignWith(Stmt term) => switch (term) {
     final GroupExpr _ => false,
     final FuncExpr _ => false,
     final RawExpr r => switch (r.token.type) {
@@ -832,8 +830,13 @@ class Parser {
       TokenType.kSelf => selfExpr(),
       TokenType.kLParen => groupExpr(),
       final TokenType type => advanceAndThen(
-        () =>
-            throw '${token.pos} Expected literal value or variable. Found $type.',
+        () => throw switch (type) {
+          // More helpful error if the user tried to use the = operator.
+          TokenType.kAssign =>
+            '${token.pos} Assignment is not a value expression.',
+          // Else, provide the default error.
+          _ => '${token.pos} Expected literal value or variable. Found $type.',
+        },
       ),
     };
   }

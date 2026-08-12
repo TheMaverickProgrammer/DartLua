@@ -97,7 +97,7 @@ import 'dart:convert';
 import 'package:puredartlua/runner.dart';
 
 /// Custom error handlers can act on reported problems however you want.
-/// In this example, we just print to conslole via [print].
+/// In this example, we just print to console via [print].
 void handleErrors(List<String> errs) => errs.forEach(print);
 
 /// This example driver demonstrates a very simple REPL interpreter.
@@ -246,8 +246,7 @@ I will get around to that when I can!
 
 ## Missing Lua Lang Support
 Here's what's left to be compliant with most `Lua 5.5` programs:
-- Keyword `<const>` support not added.
-- Keyword `global` support not added. (But globals in scope **are** supported!)
+- Attribute modifiers `<const>` and `global`.
 - I missed `do ... end` blocks. I rarely see those used. To be added.
 - Lua supports different numeric form representations such as hex.
 - Keys should not be stored as `String`.

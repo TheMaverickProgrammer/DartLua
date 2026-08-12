@@ -181,13 +181,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// Describes to do when lua processes the `require()` function.
   LuaRequireCallback? onRequireImpl;
 
-  /// A look-aside table for tracking table assignments by a
-  /// value object's unique pointer hash. Stores (LuaObject, String)
-  /// tuple containing the table and the indexed key respectively.
-  /// This is needed so we can detect when __newindex should trigger as our
-  /// evaluations happen in different functions. This is ugly but will work.
-  final Map<Object, (LuaObject, String)> _val2TableKey = {};
-
   /// Configures _ENV and _ENV._G in the global scope.
   BaseRuntime(this.results) {
     final globalG = LuaObject.variable('_G', globalEnv);
@@ -523,18 +516,52 @@ abstract class BaseRuntime extends Visitor<Object?> {
   @override
   Object? visitAssignExpr(AssignExpr assignExpr) {
     final rhs = assignExpr.rhs.accept(this)?.unpack();
-    Object? lhs = assignExpr.lhs.accept(this);
+    Object? lhs;
 
-    if (_val2TableKey.containsKey(rhs)) {
-      final (t, k) = _val2TableKey[rhs]!;
-      final newindex = t.readMetatable('__newindex');
-      if (newindex != null) {
-        if (newindex is LuaObject && newindex.isFunc) {
-          return callLuaFunction(newindex, args: [t, rhs]);
+    // Special behavior happens in lua when we update a value
+    // in a table by key. In order to avoid triggering __index
+    // by visiting the memory access node, we partially inspect
+    // it here. We only need enough information to obtain:
+    // 1. the table
+    // 2. the key
+    // 3. and we have the incoming value (rhs).
+    if (assignExpr.lhs is MemoryAccess) {
+      // We need to check if this is a table update operation by key.
+      final MemoryAccess mem = assignExpr.lhs as MemoryAccess;
+      final StreamPos linePos = mem.op.pos;
+
+      if (mem.type == MemoryAccessType.table) {
+        lhs = mem.callee.accept(this)?.unpack();
+        final key = mem.args.firstOrNull?.accept(this);
+
+        // We need to check if it's actually a table.
+        if (lhs is LuaObject && lhs.isTable) {
+          final newindex = lhs.readMetatable('__newindex');
+
+          // Now check if we have __newindex defined.
+          if (newindex is LuaObject) {
+            if (newindex.isFunc) {
+              return callLuaFunction(newindex, args: [lhs, key, rhs]);
+            } else if (newindex.isTable) {
+              // TODO: table lookup shortcut
+            }
+
+            throw '$linePos Object for __newindex is not a valid type. Was "${debugLuaTypeInfo(newindex)}".';
+          } else if (newindex == null) {
+            // Regular table update operation by key.
+
+            // TODO: key need not be strictly a string!
+            lhs.writeField(key.toString(), rhs);
+          } else {
+            throw '$linePos Indexing on non-table type "${debugLuaTypeInfo(lhs)}".';
+          }
         }
-        throw 'Attempt to call __newindex but methamethod was ${debugLuaTypeInfo(newindex)}.';
       }
+      // No further inspection required.
+      // Fallthrough to codepath below.
     }
+
+    lhs = assignExpr.lhs.accept(this);
 
     if (lhs == null && assignExpr.lhs is RawExpr) {
       // If this variable is not defined, it is now
@@ -568,7 +595,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
   Object? visitAssignMultiExpr(AssignMultiExpr assignMultiExpr) {
     // rhs gauranteed to be the same length by AssignMultiExpr ctor.
     final int len = assignMultiExpr.lhs.length;
-    final Token op = assignMultiExpr.op;
+    final Token op = assignMultiExpr.token;
 
     for (int i = 0; i < len; i++) {
       final lhs = assignMultiExpr.lhs[i];
@@ -1107,7 +1134,6 @@ abstract class BaseRuntime extends Visitor<Object?> {
           final midx = callee.readMetatable('__index');
           if (midx == null) {
             final res = callee.writeField(key, LuaObject.nil(key.toString()))!;
-            _val2TableKey[res] = (callee, key);
             return res;
           }
           if (midx is! LuaObject) {

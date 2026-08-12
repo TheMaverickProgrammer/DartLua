@@ -39,7 +39,7 @@ class Pretty extends Visitor<String> {
   String visitAssignExpr(AssignExpr assignExpr) {
     final lhs = assignExpr.lhs.accept(this);
     final rhs = assignExpr.rhs.accept(this);
-    final op = assignExpr.op.lexeme;
+    final op = assignExpr.token.lexeme;
     return '$lhs $op $rhs';
   }
 
@@ -47,7 +47,7 @@ class Pretty extends Visitor<String> {
   String visitAssignMultiExpr(AssignMultiExpr assignMultiExpr) {
     final lhs = assignMultiExpr.lhs.map((e) => e.accept(this)).join(',');
     final rhs = assignMultiExpr.rhs.map((e) => e.accept(this)).join(',');
-    final op = assignMultiExpr.op.lexeme;
+    final op = assignMultiExpr.token.lexeme;
     return '$lhs $op $rhs';
   }
 
@@ -210,7 +210,7 @@ class Pretty extends Visitor<String> {
     final key = forIterLoopStmt.key.lexeme;
     final val = forIterLoopStmt.value?.lexeme;
     final iter = forIterLoopStmt.iterExpr.accept(this);
-    final exprs = switch(val) {
+    final exprs = switch (val) {
       final String val => '$key, $val in $iter',
       null => '$key in $iter',
     };

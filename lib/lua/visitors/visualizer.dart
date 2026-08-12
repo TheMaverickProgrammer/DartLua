@@ -264,7 +264,7 @@ class Visualizer extends Visitor<GzBaseNode> {
   GzBaseNode visitAssignExpr(AssignExpr assignExpr) {
     final lhs = assignExpr.lhs.accept(this);
     final rhs = assignExpr.rhs.accept(this);
-    final op = assignExpr.op.lexeme;
+    final op = assignExpr.token.lexeme;
 
     return node(op, color: 'black', fontColor: 'white', children: [lhs, rhs]);
   }
@@ -273,7 +273,7 @@ class Visualizer extends Visitor<GzBaseNode> {
   GzBaseNode visitAssignMultiExpr(AssignMultiExpr assignMultiExpr) {
     final lhs = assignMultiExpr.lhs.map((e) => e.accept(this)).toList();
     final rhs = assignMultiExpr.rhs.map((e) => e.accept(this)).toList();
-    final op = assignMultiExpr.op.lexeme;
+    final op = assignMultiExpr.token.lexeme;
     return node(
       op,
       color: 'black',
@@ -499,12 +499,12 @@ class Visualizer extends Visitor<GzBaseNode> {
           color: pink,
           children: [node(key, color: skyBlue)],
         ),
-        if(val != null)
-        node(
-          'val',
-          color: pink,
-          children: [node(val, color: muave)],
-        ),
+        if (val != null)
+          node(
+            'val',
+            color: pink,
+            children: [node(val, color: muave)],
+          ),
         node('in', color: pink, children: [iter]),
         node('do', color: 'yellow', children: body),
       ],

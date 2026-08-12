@@ -82,15 +82,15 @@ class DeclMultiVar extends Stmt {
     return DeclMultiVar._(
       vars.first,
       vars.map((e) => DeclVar.initNil(e)).toList(growable: false),
-      [] // vals
+      [], // vals
     );
   }
 
   factory DeclMultiVar.initVals(List<Token> vars, List<MathExpr> vals) {
-      return DeclMultiVar._(
-        vars.first,
-        vars.map((e) => DeclVar.initNil(e)).toList(growable: false),
-        vals,
+    return DeclMultiVar._(
+      vars.first,
+      vars.map((e) => DeclVar.initNil(e)).toList(growable: false),
+      vals,
     );
   }
 
@@ -152,7 +152,7 @@ class ForLoopStmt extends Stmt {
   final List<Stmt> body;
 
   /// Convenience method to return all non-null expressions.
-  List<MathExpr> get exprList => [control, endExpr, stepExpr].nonNulls.toList();
+  List<Stmt> get exprList => [control, endExpr, stepExpr].nonNulls.toList();
 
   ForLoopStmt(
     super.token, {
@@ -422,10 +422,9 @@ class MemoryAccess extends MathExpr {
 }
 
 /// Variables can be reassigned. This node encodes this operation.
-/// While technically a binary operation by its format,
-/// a rewrite required that it was evaluated in a different
-/// grammar rule. Maybe in the future this encoding will be corrected.
-class AssignExpr extends MathExpr {
+/// Note that it is not a math expr and cannot be used to
+/// return assignments as values.
+class AssignExpr extends Stmt {
   final Stmt lhs;
   final Stmt rhs;
 
@@ -436,7 +435,9 @@ class AssignExpr extends MathExpr {
 }
 
 /// Like [DeclMultiVar], multiple variables can be reassigned at once.
-class AssignMultiExpr extends MathExpr {
+/// Note that it is not a math expr and cannot be used to
+/// return assignments as values.
+class AssignMultiExpr extends Stmt {
   final List<Stmt> lhs;
   final List<Stmt> rhs;
 

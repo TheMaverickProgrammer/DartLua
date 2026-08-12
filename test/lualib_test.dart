@@ -255,5 +255,9 @@ void main() {
     test('table entry separators', () {
       expect(runTest('$dir/table_entries_sep.lua'), true);
     });
+
+    test('assignment is not a value expression', () {
+      expect(runTest('$dir/assignment_as_value_expr.lua'), true);
+    });
   });
 }
