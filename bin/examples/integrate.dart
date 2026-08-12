@@ -7,11 +7,13 @@ void main() {
   final evaluator = Evaluator();
 
   final addOne = LuaFuncBuilder.create('add_one')
-          .arg('n')
-          .exec(call: () {
-            final n = evaluator.findVar('n')?.valueAsInt() ?? 0;
-            return n+1;
-          });
+      .arg('n')
+      .exec(
+        call: () {
+          final n = evaluator.findVar('n')?.valueAsInt() ?? 0;
+          return n + 1;
+        },
+      );
 
   evaluator.defGlobal(addOne);
 

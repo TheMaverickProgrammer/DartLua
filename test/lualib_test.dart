@@ -157,6 +157,14 @@ void main() {
       expect(runTest('$dir/__call.lua'), true);
     });
 
+    test('__index', () {
+      expect(runTest('$dir/__index.lua'), true);
+    });
+
+    test('__newindex', () {
+      expect(runTest('$dir/__newindex.lua'), true);
+    });
+
     test('__eq', () {
       expect(runTest('$dir/__eq.lua'), true);
     });

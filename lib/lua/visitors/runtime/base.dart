@@ -181,6 +181,13 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// Describes to do when lua processes the `require()` function.
   LuaRequireCallback? onRequireImpl;
 
+  /// A look-aside table for tracking table assignments by a
+  /// value object's unique pointer hash. Stores (LuaObject, String)
+  /// tuple containing the table and the indexed key respectively.
+  /// This is needed so we can detect when __newindex should trigger as our
+  /// evaluations happen in different functions. This is ugly but will work.
+  final Map<Object, (LuaObject, String)> _val2TableKey = {};
+
   /// Configures _ENV and _ENV._G in the global scope.
   BaseRuntime(this.results) {
     final globalG = LuaObject.variable('_G', globalEnv);
@@ -517,6 +524,17 @@ abstract class BaseRuntime extends Visitor<Object?> {
   Object? visitAssignExpr(AssignExpr assignExpr) {
     final rhs = assignExpr.rhs.accept(this)?.unpack();
     Object? lhs = assignExpr.lhs.accept(this);
+
+    if (_val2TableKey.containsKey(rhs)) {
+      final (t, k) = _val2TableKey[rhs]!;
+      final newindex = t.readMetatable('__newindex');
+      if (newindex != null) {
+        if (newindex is LuaObject && newindex.isFunc) {
+          return callLuaFunction(newindex, args: [t, rhs]);
+        }
+        throw 'Attempt to call __newindex but methamethod was ${debugLuaTypeInfo(newindex)}.';
+      }
+    }
 
     if (lhs == null && assignExpr.lhs is RawExpr) {
       // If this variable is not defined, it is now
@@ -1038,7 +1056,12 @@ abstract class BaseRuntime extends Visitor<Object?> {
       throw '$linePos Expected lua object for operator "${memoryAccess.op.lexeme}". Was $v.';
     }
 
-    final bool indexedTable = memoryAccess.type == MemoryAccessType.table;
+    // After the parser, fields and table keys behave the same.
+    final bool indexedTable = switch (memoryAccess.type) {
+      MemoryAccessType.table || MemoryAccessType.field => true,
+      _ => false,
+    };
+
     final bool funcInvocation = memoryAccess.type == MemoryAccessType.call;
     bool fwdSelfArg = memoryAccess.op.type == TokenType.kColon;
 
@@ -1059,38 +1082,44 @@ abstract class BaseRuntime extends Visitor<Object?> {
       return ret;
     } else if (indexedTable) {
       if (memoryAccess.args.length > 1) {
-        addError('$linePos Multiple indexes on "$callee".');
-        return null;
+        throw '$linePos Multiple indexes on "$callee".';
       }
 
-      Object? idx = memoryAccess.field?.accept(this);
-      if (idx == null || (idx is LuaObject && idx.value == null)) {
-        addError('$linePos Indexing on "$callee" with nil index.');
-        return null;
-      }
-
-      // Unpack first.
-      if (idx is LuaObject) {
-        idx = idx.value;
-      }
-
+      final Object? idx = memoryAccess.field?.accept(this);
       if (callee.isTable) {
-        final String? key = switch (idx) {
+        getValue(v) => switch (v) {
           final String s => s,
           final num n => n.toInt().toString(),
+          final LuaObject lo => getValue(lo.value),
           final Object o => o.toString(),
-          null => null,
+          null => 'nil',
         };
 
-        if (key == null) {
-          addError('$linePos Attempt to index a table with a nil key.');
-          return null;
-        }
+        // TODO: keys can be any type of lua object not just strings.
+        final String key = switch (memoryAccess.type) {
+          MemoryAccessType.field => memoryAccess.field!.token.lexeme,
+          _ => getValue(idx),
+        };
 
         if (callee.hasField(key)) {
           return callee.readField(key);
         } else {
-          return callee.writeField(key, LuaObject.nil(key.toString()));
+          final midx = callee.readMetatable('__index');
+          if (midx == null) {
+            final res = callee.writeField(key, LuaObject.nil(key.toString()))!;
+            _val2TableKey[res] = (callee, key);
+            return res;
+          }
+          if (midx is! LuaObject) {
+            throw '$linePos Metamethod __index was an invalid type "${debugLuaTypeInfo(midx)}"';
+          }
+
+          if (midx.isFunc) {
+            return callLuaFunction(midx, args: [callee, key]);
+          }
+
+          // Else, expect table for __index.
+          return midx.readField(key);
         }
       }
 
@@ -1244,27 +1273,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       return ret;
     }
 
-    // Else this must be a field on an object.
-    assert(
-      memoryAccess.type == MemoryAccessType.field,
-      'Codepath expected function invocation.',
-    );
-
-    final String fieldName = switch (memoryAccess.field) {
-      final RawExpr r => r.token.lexeme,
-      final Object? other =>
-        throw '$linePos Expected a valid index on $callee, found: $other',
-    };
-
-    // Primitives cannot have fields.
-    if (callee.deref().type == LuaType.value) {
-      throw '$linePos "$callee" is a ${callee.luaTypeInfo} and cannot have fields.';
-    }
-
-    if (callee.hasField(fieldName)) return callee.readField(fieldName);
-
-    // Else, create the field.
-    return callee.writeField(fieldName, LuaObject.nil(fieldName));
+    throw 'Unexpected code path while accessing memory on $callee.';
   }
 
   @override

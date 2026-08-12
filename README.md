@@ -66,11 +66,13 @@ void main() {
   final evaluator = Evaluator();
 
   final addOne = LuaFuncBuilder.create('add_one')
-          .arg('n')
-          .exec(call: () {
-            final n = evaluator.findVar('n')?.valueAsInt() ?? 0;
-            return n+1;
-          });
+      .arg('n')
+      .exec(
+        call: () {
+          final n = evaluator.findVar('n')?.valueAsInt() ?? 0;
+          return n + 1;
+        },
+      );
 
   evaluator.defGlobal(addOne);
 
@@ -94,6 +96,10 @@ Quit the loop when the user types a signal. For example `exit`.
 import 'dart:convert';
 import 'package:puredartlua/runner.dart';
 
+/// Custom error handlers can act on reported problems however you want.
+/// In this example, we just print to conslole via [print].
+void handleErrors(List<String> errs) => errs.forEach(print);
+
 /// This example driver demonstrates a very simple REPL interpreter.
 /// Read Evaluate Print Loop.
 void main() {
@@ -116,6 +122,10 @@ void main() {
       content += input;
     }
 
+    // Two special commands take priority:
+    // If 'exit' => quit REPL
+    // If 'dump_scope' => print the current scope to console.
+    // Else => evaluate string as lua script.
     switch (content.toLowerCase()) {
       case 'exit':
         loop = false;
@@ -126,15 +136,25 @@ void main() {
         continue;
     }
 
-    final ast = parse(content);
+    // Try to parse and consume the input we built.
+    final ast = parse(content, onErrors: handleErrors);
     content = '';
+
+    // Errors will already be collected. We cannot execute without a valid AST.
     if (ast == null) continue;
 
-    final (ok, out) = runner(ast, constructor: () => evaluator..clearResults());
+    // Run with a custom evaluator that clears previous results each
+    // time the constructor is called.
+    final (_, out) = runner(
+      ast,
+      constructor: () => evaluator..clearResults(),
+      onErrors: handleErrors,
+    );
+
+    // Display to user in console.
     print(out);
   }
 }
-
 ```
 
 ## DOT File Visualizer
@@ -147,22 +167,22 @@ dart bin/main.dart -v my_script.lua
 The DOT file will be embedded in an HTML page `my_script.lua.html`.
 
 ## All Features
-- Command Line Interface (cli).
 - MIT Licensed.
 - No FFI or extra dependencies.
-- DOT file visualiser.
-- [Autodoc][AUTODOC] API so your own libs can generate docs to share with your consumers.
+- DOT file generator and visualiser for input scripts.
+- [Autodoc][AUTODOC] generation and programmable API so your own libs can generate docs to share with your consumers.
 - Create your own custom runtime and define `LuaObject`s in dart.
+  - `Truthy` and `Native2Lua` Dart class extensions for convenient bridge between userdata and lua types.
+  - Parser, Evaluator, and StdRuntime classes extensible and modifiable.
+- Ready-To-Use `run()` and `runner()` utility functions for immediate execution.
+- Three examples: Command Line Interface, Interpreter, and custom runtime integration.
 - `LuaFunctionBuilder` class to conveniently build complex lua functions.
-- Emit custom warnings, diagnostic info, or errors.
+- You can emit, collect, and act on your own custom warnings, diagnostic info, or errors.
 - Aims to be Lua 5.5 compliant.
   - See this [section](#missing-lua-lang-support) for remaining issues.
-- Parser, Evaluator, and StdRuntime classes extensible and modifiable.
-- Built in interpreter via `run()` and `runner()` utility functions for easy use.
-- `Truthy` and `Native2Lua` Dart class extensions for convenient bridge between userdata and lua types.
 - Globals provided by `_ENV` and legacy `_G` upvalues.
 - Metatables supported via `setmetatable(t, mt)` and `getmetatable(t)` as you'd expect.
-  - Metamethods: `__call`, `__add`, `__sub`, `__mul`, `__div`, `__mod`, `__pow`, `__unm`, `__idiv`, `__band`, `__bor`, `__bxor`, `__bnot`, `__shl`, `__shr`, `__concat`, `__len`, `__eq`, `__lt`, `__le`, `__tostring`.
+- Metamethods: `__call`, `__index`, `__newindex`, `__add`, `__sub`, `__mul`, `__div`, `__mod`, `__pow`, `__unm`, `__idiv`, `__band`, `__bor`, `__bxor`, `__bnot`, `__shl`, `__shr`, `__concat`, `__len`, `__eq`, `__lt`, `__le`, `__tostring`.
 - Standard lua runtime libs (partial implementation).
   - strings
   - include
@@ -226,7 +246,6 @@ I will get around to that when I can!
 
 ## Missing Lua Lang Support
 Here's what's left to be compliant with most `Lua 5.5` programs:
-- Missing metamethods: `__newindex` and `__index`.
 - Keyword `<const>` support not added.
 - Keyword `global` support not added. (But globals in scope **are** supported!)
 - I missed `do ... end` blocks. I rarely see those used. To be added.

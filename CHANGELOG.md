@@ -12,6 +12,8 @@
   - Previously forward function calls (via `:`) always wrote to a `self` variable in the new scope. This was wrong to do.
   - Added `functions.lua` test to catch this.
 - Added `__call` metamethod support.
+- Added `__newindex` metamethod support.
+- Added `__index` metamethod support.
 - Fixed long-standing out-of-range error calling functions having less arguments than their definition. Unsupplied args are now nil. This is now similar to multivariable declarations which is correct.
 - `run`, `runner`, `parse`, and `parseFile` now take optional `RunnerErrorsCallback? onError` to handle errors from trace.
   - So that it does not pollute other projects.
