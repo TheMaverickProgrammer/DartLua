@@ -15,6 +15,7 @@
 - Added `__newindex` metamethod support.
   - This effort required a change in parsing so that assignment exprs are not math exprs. And the assignment visitor explicitly checks to see if the lhs is a table index operation.
 - Added `__index` metamethod support.
+- Added `rawset(t, k, v)` and `rawget(t, k)`.
 - Fixed long-standing out-of-range error calling functions having less arguments than their definition. Unsupplied args are now nil. This is now similar to multivariable declarations which is correct.
 - `run`, `runner`, `parse`, and `parseFile` now take optional `RunnerErrorsCallback? onError` to handle errors from trace.
   - So that it does not pollute other projects.

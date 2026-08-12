@@ -165,6 +165,10 @@ void main() {
       expect(runTest('$dir/__newindex.lua'), true);
     });
 
+    test('rawset & rawget', () {
+      expect(runTest('$dir/rawset.lua'), true);
+    });
+
     test('__eq', () {
       expect(runTest('$dir/__eq.lua'), true);
     });

@@ -73,6 +73,11 @@ mixin Std on BaseRuntime {
     initMiscRuntime();
   }
 
+  /// Defines the following global functions:
+  /// - setmetatable(t, mt)
+  /// - getmetatable(t)
+  /// - rawset(t,k,v)
+  /// - rawget(t,k)
   void initStdMetatables() {
     final defSetMetatable = LuaFuncBuilder.create('setmetatable')
         .arg('t')
@@ -97,7 +102,7 @@ mixin Std on BaseRuntime {
     defGlobal(defSetMetatable).doc = LuaDoc(
       category: catRuntime,
       html: '''
-      Given lua object <code>t</code> and a table of functions <code>mt</code>,
+      Given lua table <code>t</code> and a table of functions <code>mt</code>,
       sets <code>t</code>'s metatable to <code>mt</code>.
       ''',
     );
@@ -108,8 +113,8 @@ mixin Std on BaseRuntime {
           call: () {
             final t = findVar('t');
 
-            if (t == null) {
-              throw 'Expected lua object as first argument.';
+            if (t == null || t.isNotTable) {
+              throw 'Expected lua table as first argument.';
             }
 
             return t.getMetatable();
@@ -119,8 +124,74 @@ mixin Std on BaseRuntime {
     defGlobal(defGetMetatable).doc = LuaDoc(
       category: catRuntime,
       html: '''
-      Given lua object <code>t</code> returns the metatable used
+      Given lua table <code>t</code>, returns the metatable used
       by <code>t</code> or <code>nil</code> if no metatable is set.
+      ''',
+    );
+
+    final defRawSet = LuaFuncBuilder.create('rawset')
+        .arg('t')
+        .arg('k')
+        .arg('v')
+        .exec(
+          call: () {
+            final t = findVar('t');
+
+            if (t?.isNotTable ?? true) {
+              throw 'Expected lua table as first argument.';
+            }
+
+            final k = findVar('k');
+
+            if (k?.isNil ?? true) {
+              throw 'Expected non-null key for second argument';
+            }
+
+            final v = findVar('v');
+
+            // TODO: Keys can be anything except nil!
+            t!.writeField(k.toString(), v);
+            return t;
+          },
+        );
+
+    defGlobal(defRawSet).doc = LuaDoc(
+      category: catRuntime,
+      html: '''
+      Given lua table <code>t</code>, sets the value <code>v</code>
+      to the table's <code>k</code> key index. This does not trigger
+      <code>__newindex</code>.<br/>Returns <code>t</code>.
+      ''',
+    );
+
+    final defRawGet = LuaFuncBuilder.create('rawget')
+        .arg('t')
+        .arg('k')
+        .exec(
+          call: () {
+            final t = findVar('t');
+
+            if (t?.isNotTable ?? true) {
+              throw 'Expected lua table as first argument.';
+            }
+
+            final k = findVar('k');
+
+            if (k?.isNil ?? true) {
+              throw 'Expected non-null key for second argument';
+            }
+
+            // TODO: keys can be anything except nil!
+            return t!.readField(k.toString());
+          },
+        );
+
+    defGlobal(defRawGet).doc = LuaDoc(
+      category: catRuntime,
+      html: '''
+      Given lua table <code>t</code>, returns the value in the table
+      by key <code>k</code>. This does not trigger
+      <code>__index</code>.
       ''',
     );
   }
