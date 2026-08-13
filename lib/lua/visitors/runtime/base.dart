@@ -166,10 +166,15 @@ class CoCtrlStruct {
 abstract class BaseRuntime extends Visitor<Object?> {
   final BaseResults results;
 
-  /// The global scope.
+  /// The top-most scope.
+  /// Note globals are actually written to [globalEnv].
   final Scope global = Scope();
 
+  /// _ENV variable.
   final LuaObject globalEnv = LuaObject.table('_ENV');
+
+  /// Legacy _G variable points to _ENV.
+  late final LuaObject globalG;
 
   /// The current scope.
   late Scope scope = global;
@@ -183,7 +188,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   /// Configures _ENV and _ENV._G in the global scope.
   BaseRuntime(this.results) {
-    final globalG = LuaObject.variable('_G', globalEnv);
+    globalG = LuaObject.variable('_G', globalEnv);
     globalEnv.writeFieldFrom(globalG);
 
     /// Registering tghese so they can be reached from any [Scope.parent].
@@ -280,7 +285,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
   /// lua object [value].
   LuaObject defGlobal(LuaObject value) {
     final luaObject = globalEnv.writeFieldFrom(value);
-    return global.defVar(value.id, luaObject);
+    return global.defVar(value.id, luaObject)..doc = value.doc;
   }
 
   /// Searches for a variable with the identifier [id]

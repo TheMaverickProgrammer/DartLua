@@ -27,6 +27,7 @@ Runnable examples below can be found under [`./bin/examples/`](./bin/examples/).
 
 - Basic interpreter: [`repl.dart`](./bin/examples/repl.dart)
 - Read data in dart: [`integrate.dart`](./bin/examples/integrate.dart)
+- Using the autodoc: [`autodoc.dart`](./bin/examples/autodoc.dart)
 
 ### Run The Driver
 To get started, run [`bin/input.lua`](./bin/input.lua). Everything after the file path is passed into the `run()`
@@ -175,7 +176,7 @@ The DOT file will be embedded in an HTML page `my_script.lua.html`.
   - `Truthy` and `Native2Lua` Dart class extensions for convenient bridge between userdata and lua types.
   - Parser, Evaluator, and StdRuntime classes extensible and modifiable.
 - Ready-To-Use `run()` and `runner()` utility functions for immediate execution.
-- Three examples: Command Line Interface, Interpreter, and custom runtime integration.
+- Includes powerful examples: Command Line Interface, Interpreter, AutoDoc generates HTML documentation, and custom runtime integration.
 - `LuaFunctionBuilder` class to conveniently build complex lua functions.
 - You can emit, collect, and act on your own custom warnings, diagnostic info, or errors.
 - Aims to be Lua 5.5 compliant.

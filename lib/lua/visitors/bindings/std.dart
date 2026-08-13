@@ -5,6 +5,7 @@ import 'package:puredartlua/lua/visitors/runtime/base.dart';
 import 'package:puredartlua/lua/visitors/visitor.dart';
 
 const catRuntime = 'Runtime';
+const catModules = 'Modules';
 
 typedef StdPrintCallback = void Function(String);
 
@@ -530,400 +531,536 @@ table.insert(t, "foo")
 
     final defMath =
         LuaObject.table('math', {
-            'abs': LuaFuncBuilder.create('abs')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return x.abs();
-                  },
-                ),
-            'acos': LuaFuncBuilder.create('acos')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return math.acos(x);
-                  },
-                ),
-            'asin': LuaFuncBuilder.create('asin')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return math.asin(x);
-                  },
-                ),
-            'atan': LuaFuncBuilder.create('atan')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return math.atan(x);
-                  },
-                ),
-            'atan2': LuaFuncBuilder.create('atan2')
-                .arg('y')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final y = findVar('y')?.valueAs<num>();
-                    if (y == null) {
-                      throw 'Expected number argument for "y".';
-                    }
+            'abs':
+                LuaFuncBuilder.create('abs')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return x.abs();
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the absolute value of <code>x</code>.',
+                  ),
+            'acos':
+                LuaFuncBuilder.create('acos')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return math.acos(x);
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html:
+                        'Returns the arc cosine of <code>x</code> (in radians).',
+                  ),
+            'asin':
+                LuaFuncBuilder.create('asin')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return math.asin(x);
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html:
+                        'Returns the arc sine of <code>x</code> (in radians).',
+                  ),
+            'atan':
+                LuaFuncBuilder.create('atan')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return math.atan(x);
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html:
+                        'Returns the arc tangent of <code>x</code> (in radians).',
+                  ),
+            'atan2':
+                LuaFuncBuilder.create('atan2')
+                    .arg('y')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final y = findVar('y')?.valueAs<num>();
+                        if (y == null) {
+                          throw 'Expected number argument for "y".';
+                        }
 
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
 
-                    return math.atan2(y, x);
-                  },
-                ),
-            'ceil': LuaFuncBuilder.create('ceil')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return x.ceil();
-                  },
-                ),
-            'cos': LuaFuncBuilder.create('cos')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return math.cos(x);
-                  },
-                ),
-            'sin': LuaFuncBuilder.create('sin')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return math.sin(x);
-                  },
-                ),
-            'tan': LuaFuncBuilder.create('tan')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return math.tan(x);
-                  },
-                ),
-            'cosh': LuaFuncBuilder.create('cosh')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return (math.exp(x) + math.exp(-x)) * 0.5;
-                  },
-                ),
-            'sinh': LuaFuncBuilder.create('sinh')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return (math.exp(x) - math.exp(-x)) * 0.5;
-                  },
-                ),
-            'tanh': LuaFuncBuilder.create('tanh')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    final expPos = math.exp(x);
-                    final expNeg = math.exp(-x);
-                    return (expPos - expNeg) / (expPos + expNeg);
-                  },
-                ),
-            'deg': LuaFuncBuilder.create('deg')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return x * 180.0 / math.pi;
-                  },
-                ),
-            'rad': LuaFuncBuilder.create('rad')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return x * math.pi / 180.0;
-                  },
-                ),
-            'exp': LuaFuncBuilder.create('exp')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return math.exp(x);
-                  },
-                ),
-            'floor': LuaFuncBuilder.create('floor')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    return x.floor();
-                  },
-                ),
-            'fmod': LuaFuncBuilder.create('fmod')
-                .arg('x')
-                .arg('y')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    final y = findVar('y')?.valueAs<num>();
-                    if (y == null) {
-                      throw 'Expected number argument for "y".';
-                    }
-                    if (y == 0) {
-                      throw 'Division by zero in fmod.';
-                    }
+                        return math.atan2(y, x);
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: '''
+                        Returns the arc tangent of <code>y/x</code> (in radians), but 
+                        uses the signs of both parameters to find the quadrant of the result. 
+                        It also handles correctly the case of <code>x=0</code>.''',
+                  ),
+            'ceil':
+                LuaFuncBuilder.create('ceil')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return x.ceil();
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html:
+                        'Returns the smallest integer larger than or equal to <code>x</code>.',
+                  ),
+            'cos':
+                LuaFuncBuilder.create('cos')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return math.cos(x);
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the cosine of <code>x</code> (in radians).',
+                  ),
+            'sin':
+                LuaFuncBuilder.create('sin')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return math.sin(x);
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the sine of <code>x</code> (in radians).',
+                  ),
+            'tan':
+                LuaFuncBuilder.create('tan')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return math.tan(x);
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the tangent of <code>x</code> (in radians).',
+                  ),
+            'cosh':
+                LuaFuncBuilder.create('cosh')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return (math.exp(x) + math.exp(-x)) * 0.5;
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the hyperbolic cosine of <code>x</code>.',
+                  ),
+            'sinh':
+                LuaFuncBuilder.create('sinh')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return (math.exp(x) - math.exp(-x)) * 0.5;
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the hyperbolic sine of <code>x</code>.',
+                  ),
+            'tanh':
+                LuaFuncBuilder.create('tanh')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        final expPos = math.exp(x);
+                        final expNeg = math.exp(-x);
+                        return (expPos - expNeg) / (expPos + expNeg);
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the hyperbolic tangent of <code>x</code>.',
+                  ),
+            'deg':
+                LuaFuncBuilder.create('deg')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return x * 180.0 / math.pi;
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html:
+                        'Returns the angle <code>x</code> from radians into degrees.',
+                  ),
+            'rad':
+                LuaFuncBuilder.create('rad')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return x * math.pi / 180.0;
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html:
+                        'Returns the angle <code>x</code> from degrees into radians.',
+                  ),
+            'exp':
+                LuaFuncBuilder.create('exp')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return math.exp(x);
+                      },
+                    )
+                  ..doc = LuaDoc(html: 'Returns the value <code>e^x</code>.'),
+            'floor':
+                LuaFuncBuilder.create('floor')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        return x.floor();
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html:
+                        'Returns the largest integer smaller than or equal to <code>x</code>.',
+                  ),
+            'fmod':
+                LuaFuncBuilder.create('fmod')
+                    .arg('x')
+                    .arg('y')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        final y = findVar('y')?.valueAs<num>();
+                        if (y == null) {
+                          throw 'Expected number argument for "y".';
+                        }
+                        if (y == 0) {
+                          throw 'Division by zero in fmod.';
+                        }
 
-                    return x - (x / y).truncateToDouble() * y;
-                  },
-                ),
-            'ldexp': LuaFuncBuilder.create('ldexp')
-                .arg('m')
-                .arg('n')
-                .exec(
-                  call: () {
-                    final m = findVar('m')?.valueAs<num>();
-                    final n = findVar('n')?.valueAs<num>();
+                        return x - (x / y).truncateToDouble() * y;
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: '''Returns the remainder of the division of 
+                        <code>x</code> by <code>y</code> that rounds the quotient towards zero.''',
+                  ),
+            'ldexp':
+                LuaFuncBuilder.create('ldexp')
+                    .arg('m')
+                    .arg('n')
+                    .exec(
+                      call: () {
+                        final m = findVar('m')?.valueAs<num>();
+                        final n = findVar('n')?.valueAs<num>();
 
-                    if (m == null || n == null) {
-                      throw 'Expected "m" and "n" to be numbers.';
-                    }
+                        if (m == null || n == null) {
+                          throw 'Expected "m" and "n" to be numbers.';
+                        }
 
-                    return m * math.pow(2, n);
-                  },
-                ),
-            'frexp': LuaFuncBuilder.create('frexp')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
+                        return m * math.pow(2, n);
+                      },
+                    )
+                  ..doc = LuaDoc(html: 'Returns <code>m*2e</code>.'),
+            'frexp':
+                LuaFuncBuilder.create('frexp')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
 
-                    if (x == 0.0 || x.isNaN || x.isInfinite) {
-                      return [x, 0];
-                    }
+                        if (x == 0.0 || x.isNaN || x.isInfinite) {
+                          return [x, 0];
+                        }
 
-                    final bool isNegative = x < 0;
-                    num absX = isNegative ? -x : x;
-                    int exponent = 0;
+                        final bool isNegative = x < 0;
+                        num absX = isNegative ? -x : x;
+                        int exponent = 0;
 
-                    if (absX >= 1.0) {
-                      while (absX >= 1.0) {
-                        absX /= 2.0;
-                        exponent++;
-                      }
-                    } else if (absX < 0.5) {
-                      while (absX < 0.5) {
-                        absX *= 2.0;
-                        exponent--;
-                      }
-                    }
+                        if (absX >= 1.0) {
+                          while (absX >= 1.0) {
+                            absX /= 2.0;
+                            exponent++;
+                          }
+                        } else if (absX < 0.5) {
+                          while (absX < 0.5) {
+                            absX *= 2.0;
+                            exponent--;
+                          }
+                        }
 
-                    return [isNegative ? -absX : absX, exponent];
-                  },
-                ),
-            'log': LuaFuncBuilder.create('log')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    if (x <= 0) return double.nan;
-                    return math.log(x);
-                  },
-                ),
-            'log10': LuaFuncBuilder.create('log10')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    if (x <= 0) return double.nan;
-                    return math.log(x) / math.ln10;
-                  },
-                ),
-            'pow': LuaFuncBuilder.create('pow')
-                .arg('x')
-                .arg('y')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
+                        return [isNegative ? -absX : absX, exponent];
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html:
+                        '''Returns <code>m</code> and <code>e</code> such that <code>x = m*2e</code>, 
+                        <code>e</code> is an integer and the absolute value of <code>m</code> is in the range 
+                        <code>[0.5, 1)</code> or zero when <code>x</code> is zero.''',
+                  ),
+            'log':
+                LuaFuncBuilder.create('log')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        if (x <= 0) return double.nan;
+                        return math.log(x);
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the natural logarithm of <code>x</code>.',
+                  ),
+            'log10':
+                LuaFuncBuilder.create('log10')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        if (x <= 0) return double.nan;
+                        return math.log(x) / math.ln10;
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the base-10 logarithm of <code>x</code>.',
+                  ),
+            'pow':
+                LuaFuncBuilder.create('pow')
+                    .arg('x')
+                    .arg('y')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
 
-                    final y = findVar('y')?.valueAs<num>();
-                    if (y == null) {
-                      throw 'Expected number argument for "y".';
-                    }
+                        final y = findVar('y')?.valueAs<num>();
+                        if (y == null) {
+                          throw 'Expected number argument for "y".';
+                        }
 
-                    return math.pow(x, y);
-                  },
-                ),
-            'sqrt': LuaFuncBuilder.create('sqrt')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number arguments only.';
-                    }
-                    return math.sqrt(x);
-                  },
-                ),
-            'max': LuaFuncBuilder.create('max')
-                .arg('x')
-                .varargs()
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number arguments only.';
-                    }
+                        return math.pow(x, y);
+                      },
+                    )
+                  ..doc = LuaDoc(html: 'Returns <code>x^y</code>.'),
+            'sqrt':
+                LuaFuncBuilder.create('sqrt')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number arguments only.';
+                        }
+                        return math.sqrt(x);
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the square root of <code>x</code>.',
+                  ),
+            'max':
+                LuaFuncBuilder.create('max')
+                    .arg('x')
+                    .varargs()
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number arguments only.';
+                        }
 
-                    final varargs = findVarArgs()
-                        ?.map(
-                          (e) => switch (e.valueAs<num>()) {
-                            final num n => n,
-                            _ => throw 'Expected number arguments only.',
-                          },
-                        )
-                        .toList();
+                        final varargs = findVarArgs()
+                            ?.map(
+                              (e) => switch (e.valueAs<num>()) {
+                                final num n => n,
+                                _ => throw 'Expected number arguments only.',
+                              },
+                            )
+                            .toList();
 
-                    if ((varargs ?? []).isEmpty) return x;
+                        if ((varargs ?? []).isEmpty) return x;
 
-                    return varargs!.fold(x, (v, n) => math.max(v, n));
-                  },
-                ),
-            'min': LuaFuncBuilder.create('min')
-                .arg('x')
-                .varargs()
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number arguments only.';
-                    }
+                        return varargs!.fold(x, (v, n) => math.max(v, n));
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the maximum value among its arguments.',
+                  ),
+            'min':
+                LuaFuncBuilder.create('min')
+                    .arg('x')
+                    .varargs()
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number arguments only.';
+                        }
 
-                    final varargs = findVarArgs()
-                        ?.map(
-                          (e) => switch (e.valueAs<num>()) {
-                            final num n => n,
-                            _ => throw 'Expected number arguments only.',
-                          },
-                        )
-                        .toList();
+                        final varargs = findVarArgs()
+                            ?.map(
+                              (e) => switch (e.valueAs<num>()) {
+                                final num n => n,
+                                _ => throw 'Expected number arguments only.',
+                              },
+                            )
+                            .toList();
 
-                    if ((varargs ?? []).isEmpty) return x;
+                        if ((varargs ?? []).isEmpty) return x;
 
-                    return varargs!.fold(x, (v, n) => math.min(v, n));
-                  },
-                ),
-            'randomseed': LuaFuncBuilder.create('randomseed')
-                .arg('x')
-                .exec(
-                  call: () {
-                    final x = findVar('x')?.valueAs<num>();
-                    if (x == null) {
-                      throw 'Expected number argument for "x".';
-                    }
-                    rand = math.Random(x.toInt());
-                  },
-                ),
-            'random': LuaFuncBuilder.create('random')
-                .arg('m')
-                .arg('n')
-                .exec(
-                  call: () {
-                    final m = findVar('m')?.valueAs<num>()?.toInt();
-                    final n = findVar('n')?.valueAs<num>()?.toInt();
+                        return varargs!.fold(x, (v, n) => math.min(v, n));
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html: 'Returns the minimum value among its arguments.',
+                  ),
+            'randomseed':
+                LuaFuncBuilder.create('randomseed')
+                    .arg('x')
+                    .exec(
+                      call: () {
+                        final x = findVar('x')?.valueAs<num>();
+                        if (x == null) {
+                          throw 'Expected number argument for "x".';
+                        }
+                        rand = math.Random(x.toInt());
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html:
+                        '''Sets <code>x</code> as the seed for the pseudo-random generator.
+                        Identical seeds produce identical sequences of numbers.''',
+                  ),
+            'random':
+                LuaFuncBuilder.create('random')
+                    .arg('m')
+                    .arg('n')
+                    .exec(
+                      call: () {
+                        final m = findVar('m')?.valueAs<num>()?.toInt();
+                        final n = findVar('n')?.valueAs<num>()?.toInt();
 
-                    if (m != null) {
-                      if (n != null) {
-                        final m0 = math.min(m, n);
-                        final n0 = math.max(m, n);
-                        return rand.nextInt(n0 - m0) + m0 + 1;
-                      } else {
-                        return rand.nextInt(m) + 1;
-                      }
-                    }
+                        if (m != null) {
+                          if (n != null) {
+                            final m0 = math.min(m, n);
+                            final n0 = math.max(m, n);
+                            return rand.nextInt(n0 - m0) + m0 + 1;
+                          } else {
+                            return rand.nextInt(m) + 1;
+                          }
+                        }
 
-                    return rand.nextDouble();
-                  },
-                ),
+                        return rand.nextDouble();
+                      },
+                    )
+                  ..doc = LuaDoc(
+                    html:
+                        '''When called without arguments, returns a uniform pseudo-random 
+                        real number in the range <code>[0,1)</code>.
+                        </br>
+                        When called with an integer number <code>m</code>, random returns a 
+                        uniform pseudo-random integer in the range <code>[1, m]</code>.
+                        </br>
+                        When called with two integer numbers <code>m</code> and <code>n</code>,
+                        returns a uniform pseudo-random integer in the range <code>[m, n]</code>.''',
+                  ),
           })
           ..doc = LuaDoc(
-            category: catRuntime,
+            category: catModules,
             html: '''
             The lua runtime math library.
             ''',
           );
 
-    defMath.writeField('huge', double.maxFinite.toInt());
+    defMath.writeFieldFrom(
+      LuaObject.variable('huge', double.maxFinite.toInt())
+        ..doc = LuaDoc(
+          html:
+              'The value <code>HUGE_VAL</code>, a value larger than or equal to any other numerical value.',
+        ),
+    );
+
+    defMath.writeFieldFrom(
+      LuaObject.variable('pi', math.pi)..doc = LuaDoc(html: 'The value of π.'),
+    );
 
     defGlobal(defMath);
   }
@@ -1020,44 +1157,42 @@ table.insert(t, "foo")
 
   // I don't have a better name for this group.
   void initMiscRuntime() {
-    final pCall =
-        defGlobal(
-            LuaFuncBuilder.create('pcall')
-                .arg('fn')
-                .exec(
-                  call: () {
-                    final fn = findVar('fn')?.toLuaRet();
-                    if (fn == null || fn.isNotFunc) {
-                      throw 'pcall expects a function argument!';
-                    }
+    pcall() {
+      final fn = findVar('fn')?.toLuaRet();
+      if (fn == null || fn.isNotFunc) {
+        throw 'pcall expects a function argument!';
+      }
 
-                    String err = '';
-                    except(e) {
-                      err = e.toString();
-                    }
+      String err = '';
+      except(e) {
+        err = e.toString();
+      }
 
-                    final results = callLuaFunction(fn, onException: except);
+      final results = callLuaFunction(fn, onException: except);
 
-                    if (err.isNotEmpty) {
-                      return [false.toLuaRet(), err.toLuaRet()];
-                    }
+      if (err.isNotEmpty) {
+        return [false.toLuaRet(), err.toLuaRet()];
+      }
 
-                    // OK
-                    return [true.toLuaRet(), ...results];
-                  },
-                ),
-          )
-          ..doc = LuaDoc(
-            category: catRuntime,
-            html: '''
+      // OK
+      return [true.toLuaRet(), ...results];
+    }
+
+    defGlobal(
+      LuaFuncBuilder.create('pcall').arg('fn').exec(call: pcall),
+    ).doc = LuaDoc(
+      category: catRuntime,
+      html: '''
         The <code>pcall</code> function calls its first argument in protected mode,
         so that it catches any errors while the function is running. If there are no errors,
         <code>pcall</code> returns <code>true</code> plus any values returned by the call.
         Otherwise, it returns <code>false</code> plus the error message.'
         ''',
-          );
+    );
 
-    defGlobal(LuaObject.variable('xpcall', pCall)).doc = LuaDoc(
+    defGlobal(
+      LuaFuncBuilder.create('xpcall').arg('fn').exec(call: pcall),
+    ).doc = LuaDoc(
       category: catRuntime,
       html: '''
       This lua runtime does not support the debug library nor stack traces at runtime.

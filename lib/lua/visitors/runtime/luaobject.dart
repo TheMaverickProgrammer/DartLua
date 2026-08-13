@@ -460,15 +460,11 @@ class LuaObject {
     };
   }
 
-  /// Tries to cast [this.value] as [num]
-  /// and performs a lossy integer division
-  /// to obtain the leading part of the double.
-  /// If the leading part is equal to the double
-  /// representation, the value must be a whole number
-  /// and therefore an integer. Otherwise, loss happened
-  /// and it must be a real number and therefore a double.
-  /// If the underlying type of [this.value] is not [num]
-  /// then [null] is returned.
+  /// If [value] is [int], then returns [int].
+  /// Otherwise, is null.
+  ///
+  /// If you want any numerical type supported by Dart,
+  /// use `valueAs<num>()`.
   int? valueAsInt() {
     final num? n = valueAs<num>();
     if (n == null) return null;

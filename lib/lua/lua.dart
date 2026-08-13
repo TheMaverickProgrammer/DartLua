@@ -35,6 +35,9 @@ class Evaluator with EvaluatorMixin {
   /// Forward to [StdRuntime.findVar].
   LuaObject? findVar(String id) => impl.findVar(id);
 
+  /// Forward to [StdRuntime.findVarArgs].
+  List<LuaObject>? findVarArgs() => impl.findVarArgs();
+
   /// Forward to [StdRuntime.defGlobal].
   LuaObject defGlobal(LuaObject value) => impl.defGlobal(value);
 
@@ -69,13 +72,15 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
 
   StdRuntime(StdRuntimeResults super.results) {
     initStdRuntime();
-    initStdPrint(impl: (str) {
-      final String s = switch(str) {
-        '' => '\n',
-        final String s => s,
-      };
-      print((stdOut..add(s)).last);
-    });
+    initStdPrint(
+      impl: (str) {
+        final String s = switch (str) {
+          '' => '\n',
+          final String s => s,
+        };
+        print((stdOut..add(s)).last);
+      },
+    );
     initStdCoroutines(
       impl: CoroutineCallbacks(
         onCoroutineCreate: _onCoroutineCreate,
@@ -106,8 +111,11 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
       throw 'No such coroutine with address $addr.';
     }
 
-    if(_statuses[addr] == LuaThreadStatus.dead) {
-      return [false.toLua('canResume'), 'Cannot resume dead coroutine.'.toLua('error')];
+    if (_statuses[addr] == LuaThreadStatus.dead) {
+      return [
+        false.toLua('canResume'),
+        'Cannot resume dead coroutine.'.toLua('error'),
+      ];
     }
 
     final fn = _cos[addr]!;
@@ -142,18 +150,17 @@ class StdRuntime extends BaseRuntime with Std, ReturnStmtCallStackUnwind {
         } else {
           ret = [e.toString().toLua('error')];
         }
-      } finally {
-      }
+      } finally {}
     } else {
       // Else, start the coroutine for the first time.
       ret = callLuaFunction(fn, args: vargs);
     }
 
-    if(!canResume) {
+    if (!canResume) {
       _statuses[_currAddr] = LuaThreadStatus.dead;
     }
 
-    return [ canResume.toLua('canResume'), ...ret];
+    return [canResume.toLua('canResume'), ...ret];
   }
 
   LuaArgPack _onCoroutineYield(List<LuaObject> args) {

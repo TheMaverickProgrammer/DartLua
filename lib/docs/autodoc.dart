@@ -20,6 +20,9 @@ class LuaAutoDoc {
   /// The content of the webpage is built separately from the index.
   final Map<String, String> _indexHtml = {};
 
+  /// Avoid cycles by marking an object as visited.
+  final Map<LuaObject, bool> _visited = {};
+
   /// The custom js script contents.
   final String js;
 
@@ -148,16 +151,25 @@ class LuaAutoDoc {
     };
 
     /// Sorts content alphabetically.
-    final sortedIndex = runtime.global.vars.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
+    final sortedIndex =
+        runtime.global.vars.entries
+            .where(
+              // Omit _ENV and _G.
+              // Otherwise docs produce cycles that mess up the html output.
+              (e) => ![runtime.globalEnv, runtime.globalG].contains(e.value),
+            )
+            .toList()
+          ..sort((a, b) => a.key.compareTo(b.key));
 
     /// Visit each object and construct categories for the index listing.
     for (var MapEntry(:key, :value) in sortedIndex) {
+      if (value.doc?.noHtml ?? true) continue;
+
       /// Visit and inspect the lua object for doc configurations.
       /// The return string will decorated html.
       _body += luaObj2Html(key, value);
 
-      final String k = value.doc?.category ?? 'Utils';
+      final String k = value.doc?.category ?? 'Other';
       if (!_indexHtml.containsKey(k)) {
         _indexHtml[k] = '';
       }
@@ -235,6 +247,13 @@ class LuaAutoDoc {
   /// the previous depth information. The end result is a [String]
   /// of decorated html for the autodoc.
   String luaObj2Html(String title, LuaObject luaObj, {LuaObject? parent}) {
+    if (_visited.containsKey(luaObj) || (luaObj.doc?.noHtml ?? true)) {
+      // TODO: Better cycle detection?
+      return '';
+    }
+
+    _visited[luaObj] = true;
+
     String content = '';
     String header = '';
     if (luaObj.skipSemanitcs || (luaObj.isTable && luaObj.isNotFunc)) {
