@@ -36,18 +36,18 @@ class Pretty extends Visitor<String> {
   }
 
   @override
-  String visitAssignExpr(AssignStmt assignExpr) {
-    final lhs = assignExpr.lhs.accept(this);
-    final rhs = assignExpr.rhs.accept(this);
-    final op = assignExpr.token.lexeme;
+  String visitAssignStmt(AssignStmt assignStmt) {
+    final lhs = assignStmt.lhs.accept(this);
+    final rhs = assignStmt.rhs.accept(this);
+    final op = assignStmt.token.lexeme;
     return '$lhs $op $rhs';
   }
 
   @override
-  String visitAssignMultiExpr(AssignMultiStmt assignMultiExpr) {
-    final lhs = assignMultiExpr.lhs.map((e) => e.accept(this)).join(',');
-    final rhs = assignMultiExpr.rhs.map((e) => e.accept(this)).join(',');
-    final op = assignMultiExpr.token.lexeme;
+  String visitAssignMultiStmt(AssignMultiStmt assignMultiStmt) {
+    final lhs = assignMultiStmt.lhs.map((e) => e.accept(this)).join(',');
+    final rhs = assignMultiStmt.rhs.map((e) => e.accept(this)).join(',');
+    final op = assignMultiStmt.token.lexeme;
     return '$lhs $op $rhs';
   }
 

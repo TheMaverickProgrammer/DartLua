@@ -431,7 +431,7 @@ class AssignStmt extends Stmt {
   AssignStmt(super.token, {required this.lhs, required this.rhs});
 
   @override
-  R accept<R>(Visitor<R> v) => v.visitAssignExpr(this);
+  R accept<R>(Visitor<R> v) => v.visitAssignStmt(this);
 }
 
 /// Like [DeclMultiVar], multiple variables can be reassigned at once.
@@ -464,7 +464,7 @@ class AssignMultiStmt extends Stmt {
   AssignMultiStmt._(super.token, this.lhs, this.rhs);
 
   @override
-  R accept<R>(Visitor<R> v) => v.visitAssignMultiExpr(this);
+  R accept<R>(Visitor<R> v) => v.visitAssignMultiStmt(this);
 }
 
 /// Group expressions are expressions wrapped in parents (...).
@@ -572,8 +572,8 @@ abstract class Visitor<T> {
   T visitMemoryAccess(MemoryAccess memoryAccess);
   T visitRawExpr(RawExpr rawExpr);
   T visitSelfExpr(SelfExpr selfExpr);
-  T visitAssignExpr(AssignStmt assignExpr);
-  T visitAssignMultiExpr(AssignMultiStmt assignMultiExpr);
+  T visitAssignStmt(AssignStmt assignStmt);
+  T visitAssignMultiStmt(AssignMultiStmt assignMultiStmt);
   T visitGroupExpr(GroupExpr groupExpr);
   T visitNotExpr(NotExpr notExpr);
   T visitBooleanLiteral(BooleanLiteral boolean);

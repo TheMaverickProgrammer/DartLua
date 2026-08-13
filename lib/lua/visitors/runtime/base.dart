@@ -519,8 +519,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   /// Visits rhs first and then evaluate lhs.
   @override
-  Object? visitAssignExpr(AssignStmt assignExpr) {
-    final rhs = assignExpr.rhs.accept(this)?.unpack();
+  Object? visitAssignStmt(AssignStmt assignStmt) {
+    final rhs = assignStmt.rhs.accept(this)?.unpack();
     Object? lhs;
 
     // Special behavior happens in lua when we update a value
@@ -530,9 +530,9 @@ abstract class BaseRuntime extends Visitor<Object?> {
     // 1. the table
     // 2. the key
     // 3. and we have the incoming value (rhs).
-    if (assignExpr.lhs is MemoryAccess) {
+    if (assignStmt.lhs is MemoryAccess) {
       // We need to check if this is a table update operation by key.
-      final MemoryAccess mem = assignExpr.lhs as MemoryAccess;
+      final MemoryAccess mem = assignStmt.lhs as MemoryAccess;
       final StreamPos linePos = mem.op.pos;
 
       if (mem.type == MemoryAccessType.table) {
@@ -566,12 +566,12 @@ abstract class BaseRuntime extends Visitor<Object?> {
       // Fallthrough to codepath below.
     }
 
-    lhs = assignExpr.lhs.accept(this);
+    lhs = assignStmt.lhs.accept(this);
 
-    if (lhs == null && assignExpr.lhs is RawExpr) {
+    if (lhs == null && assignStmt.lhs is RawExpr) {
       // If this variable is not defined, it is now
       // and is also in the global scope.
-      final id = (assignExpr.lhs as RawExpr).token.lexeme;
+      final id = (assignStmt.lhs as RawExpr).token.lexeme;
       return defGlobal(LuaObject.variable(id, rhs));
     } else if (lhs is LuaObject) {
       if (rhs is LuaObject) {
@@ -597,16 +597,16 @@ abstract class BaseRuntime extends Visitor<Object?> {
   }
 
   @override
-  Object? visitAssignMultiExpr(AssignMultiStmt assignMultiExpr) {
+  Object? visitAssignMultiStmt(AssignMultiStmt assignMultiStmt) {
     // rhs gauranteed to be the same length by AssignMultiExpr ctor.
-    final int len = assignMultiExpr.lhs.length;
-    final Token op = assignMultiExpr.token;
+    final int len = assignMultiStmt.lhs.length;
+    final Token op = assignMultiStmt.token;
 
     for (int i = 0; i < len; i++) {
-      final lhs = assignMultiExpr.lhs[i];
-      final rhs = assignMultiExpr.rhs[i];
+      final lhs = assignMultiStmt.lhs[i];
+      final rhs = assignMultiStmt.rhs[i];
       // Desugaring
-      visitAssignExpr(AssignStmt(op, lhs: lhs, rhs: rhs));
+      visitAssignStmt(AssignStmt(op, lhs: lhs, rhs: rhs));
     }
 
     return null;

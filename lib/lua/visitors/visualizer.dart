@@ -261,19 +261,19 @@ class Visualizer extends Visitor<GzBaseNode> {
   }
 
   @override
-  GzBaseNode visitAssignExpr(AssignStmt assignExpr) {
-    final lhs = assignExpr.lhs.accept(this);
-    final rhs = assignExpr.rhs.accept(this);
-    final op = assignExpr.token.lexeme;
+  GzBaseNode visitAssignStmt(AssignStmt assignStmt) {
+    final lhs = assignStmt.lhs.accept(this);
+    final rhs = assignStmt.rhs.accept(this);
+    final op = assignStmt.token.lexeme;
 
     return node(op, color: 'black', fontColor: 'white', children: [lhs, rhs]);
   }
 
   @override
-  GzBaseNode visitAssignMultiExpr(AssignMultiStmt assignMultiExpr) {
-    final lhs = assignMultiExpr.lhs.map((e) => e.accept(this)).toList();
-    final rhs = assignMultiExpr.rhs.map((e) => e.accept(this)).toList();
-    final op = assignMultiExpr.token.lexeme;
+  GzBaseNode visitAssignMultiStmt(AssignMultiStmt assignMultiStmt) {
+    final lhs = assignMultiStmt.lhs.map((e) => e.accept(this)).toList();
+    final rhs = assignMultiStmt.rhs.map((e) => e.accept(this)).toList();
+    final op = assignMultiStmt.token.lexeme;
     return node(
       op,
       color: 'black',
