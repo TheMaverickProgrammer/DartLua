@@ -102,8 +102,8 @@ bool runTest(String path) {
 }
 
 void main() {
-  test('simple assignment', () {
-    expect(runTest('./test/assets/pass/assignment.lua'), true);
+  test('print', () {
+    expect(runTest('./test/assets/pass/print.lua'), true);
   });
 
   test('multi value assignment', () {

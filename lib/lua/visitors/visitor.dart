@@ -141,7 +141,7 @@ class WhileLoopStmt extends Stmt {
 /// The step-wise variant of lua's for-loop control structure.
 class ForLoopStmt extends Stmt {
   /// The control term begins as an assignment.
-  final AssignExpr control;
+  final AssignStmt control;
 
   /// Step-wise for-loops increase by [stepExpr]
   /// and the [body] executes until [control]
@@ -424,11 +424,11 @@ class MemoryAccess extends MathExpr {
 /// Variables can be reassigned. This node encodes this operation.
 /// Note that it is not a math expr and cannot be used to
 /// return assignments as values.
-class AssignExpr extends Stmt {
+class AssignStmt extends Stmt {
   final Stmt lhs;
   final Stmt rhs;
 
-  AssignExpr(super.token, {required this.lhs, required this.rhs});
+  AssignStmt(super.token, {required this.lhs, required this.rhs});
 
   @override
   R accept<R>(Visitor<R> v) => v.visitAssignExpr(this);
@@ -437,12 +437,12 @@ class AssignExpr extends Stmt {
 /// Like [DeclMultiVar], multiple variables can be reassigned at once.
 /// Note that it is not a math expr and cannot be used to
 /// return assignments as values.
-class AssignMultiExpr extends Stmt {
+class AssignMultiStmt extends Stmt {
   final List<Stmt> lhs;
   final List<Stmt> rhs;
 
   /// See: https://www.lua.org/manual/5.5/manual.html#3.4.12
-  factory AssignMultiExpr.resize(
+  factory AssignMultiStmt.resize(
     Token op, {
     required List<Stmt> lhs,
     required List<Stmt> rhs,
@@ -458,10 +458,10 @@ class AssignMultiExpr extends Stmt {
       }
       newRhs.add(rhs[i]);
     }
-    return AssignMultiExpr._(op, lhs, rhs);
+    return AssignMultiStmt._(op, lhs, rhs);
   }
 
-  AssignMultiExpr._(super.token, this.lhs, this.rhs);
+  AssignMultiStmt._(super.token, this.lhs, this.rhs);
 
   @override
   R accept<R>(Visitor<R> v) => v.visitAssignMultiExpr(this);
@@ -572,8 +572,8 @@ abstract class Visitor<T> {
   T visitMemoryAccess(MemoryAccess memoryAccess);
   T visitRawExpr(RawExpr rawExpr);
   T visitSelfExpr(SelfExpr selfExpr);
-  T visitAssignExpr(AssignExpr assignExpr);
-  T visitAssignMultiExpr(AssignMultiExpr assignMultiExpr);
+  T visitAssignExpr(AssignStmt assignExpr);
+  T visitAssignMultiExpr(AssignMultiStmt assignMultiExpr);
   T visitGroupExpr(GroupExpr groupExpr);
   T visitNotExpr(NotExpr notExpr);
   T visitBooleanLiteral(BooleanLiteral boolean);

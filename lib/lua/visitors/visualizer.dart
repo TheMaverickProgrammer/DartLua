@@ -261,7 +261,7 @@ class Visualizer extends Visitor<GzBaseNode> {
   }
 
   @override
-  GzBaseNode visitAssignExpr(AssignExpr assignExpr) {
+  GzBaseNode visitAssignExpr(AssignStmt assignExpr) {
     final lhs = assignExpr.lhs.accept(this);
     final rhs = assignExpr.rhs.accept(this);
     final op = assignExpr.token.lexeme;
@@ -270,7 +270,7 @@ class Visualizer extends Visitor<GzBaseNode> {
   }
 
   @override
-  GzBaseNode visitAssignMultiExpr(AssignMultiExpr assignMultiExpr) {
+  GzBaseNode visitAssignMultiExpr(AssignMultiStmt assignMultiExpr) {
     final lhs = assignMultiExpr.lhs.map((e) => e.accept(this)).toList();
     final rhs = assignMultiExpr.rhs.map((e) => e.accept(this)).toList();
     final op = assignMultiExpr.token.lexeme;

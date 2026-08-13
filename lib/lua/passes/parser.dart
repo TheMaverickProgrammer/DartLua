@@ -101,32 +101,24 @@ class Parser {
       return null;
     }
 
-    // Added feature late: https://www.lua.org/manual/5.5/manual.html#3.3.3
-    handleMultiAssignExpr(MathExpr expr) {
+    /// Misleading name. Rationale: The next line could be
+    /// an expression or one of two assignment statements.
+    /// If the next expression would preceed an assignment operation,
+    /// then that expression is forwarded to [multiAssignStmt].
+    Stmt assignExpr() {
+      final lhs = math();
       final token = peek().type;
-      if (token == TokenType.kComma) {
-        // Ugly hack. Clearly one term is bound.
-        // We can drop the other terms, but we need to
-        // collect them.
-        if (expr is AssignExpr) {
-          while (peek().type == TokenType.kComma) {
-            advance();
-            math();
-          }
-        } else {
-          return multiAssignExpr(first: expr);
-        }
+      if (token == TokenType.kComma || token == TokenType.kAssign) {
+        return multiAssignStmt(first: lhs);
       }
 
-      if (token == TokenType.kAssign) {
-        return assignExpr(expr);
-      }
-
-      return expr;
+      return lhs;
     }
 
+    // Pipe result through [echo] to debug when needed.
     return echo(switch (token.type) {
       TokenType.kLocal => localStmt(),
+      TokenType.kFunc => declFuncExpr(),
       TokenType.kReturn => returnStmt(),
       TokenType.kIf => ifStmt(),
       TokenType.kFor => forLoopStmt(),
@@ -135,14 +127,14 @@ class Parser {
       TokenType.kBreak => breakStmt(),
       TokenType.kGoto => gotoStmt(),
       TokenType.kGotoLabel => gotoLabelStmt(),
-      _ => handleMultiAssignExpr(math()),
+      _ => assignExpr(),
     });
   }
 
-  AssignExpr assignExpr(Stmt lhs) {
+  AssignStmt assignStmt(Stmt lhs) {
     final op = consume(TokenType.kAssign, 'Expected "=" for assignment.');
     final rhs = math();
-    return AssignExpr(op, lhs: lhs, rhs: rhs);
+    return AssignStmt(op, lhs: lhs, rhs: rhs);
   }
 
   Stmt localStmt() {
@@ -302,7 +294,7 @@ class Parser {
     /* else next.type == TokenType.kAssign*/
 
     // This is a ranged for-loop.
-    final control = assignExpr(
+    final control = assignStmt(
       RawExpr(
         consume(TokenType.kRaw, 'Expected a variable name in assignment.'),
       ),
@@ -465,11 +457,12 @@ class Parser {
   MathExpr math() => logicalOrExpr();
 
   /// Assignments cannot be used as math expressions.
-  /// This function returns Stmt type.
-  Stmt multiAssignExpr({required Stmt first}) {
+  /// Therefore this function returns Stmt type.
+  Stmt multiAssignStmt({required Stmt first}) {
     final bool ok = canMultAssignWith(first);
     if (!ok) {
       final linePos = peek().pos;
+      print(peek());
       throw '$linePos Leading term in mutli-assignment was not a variable.';
     }
 
@@ -508,7 +501,7 @@ class Parser {
         '$linePos lhs of assignment has $lhsLen var(s) but rhs has $rhsLen val(s).',
       );
     }
-    return AssignMultiExpr.resize(assign, lhs: lhs, rhs: rhs);
+    return AssignMultiStmt.resize(assign, lhs: lhs, rhs: rhs);
   }
 
   MathExpr logicalOrExpr() {
@@ -867,7 +860,6 @@ class Parser {
         advance();
       }
     }
-
     return args;
   }
 

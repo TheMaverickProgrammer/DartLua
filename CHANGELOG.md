@@ -20,6 +20,7 @@
 - `run`, `runner`, `parse`, and `parseFile` now take optional `RunnerErrorsCallback? onError` to handle errors from trace.
   - So that it does not pollute other projects.
 - Assignment expressions can no longer be used as values (value is the result of lhs). This was illegal lua.
+- Rename `AssignExpr` -> `AssignStmt`. `AssignMultiExpr` -> `AssignMultiStmt`.
 - Added first ever AutoDoc example.
 
 ## 1.0.13

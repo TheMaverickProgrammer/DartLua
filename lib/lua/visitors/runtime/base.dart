@@ -519,7 +519,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
   /// Visits rhs first and then evaluate lhs.
   @override
-  Object? visitAssignExpr(AssignExpr assignExpr) {
+  Object? visitAssignExpr(AssignStmt assignExpr) {
     final rhs = assignExpr.rhs.accept(this)?.unpack();
     Object? lhs;
 
@@ -597,7 +597,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
   }
 
   @override
-  Object? visitAssignMultiExpr(AssignMultiExpr assignMultiExpr) {
+  Object? visitAssignMultiExpr(AssignMultiStmt assignMultiExpr) {
     // rhs gauranteed to be the same length by AssignMultiExpr ctor.
     final int len = assignMultiExpr.lhs.length;
     final Token op = assignMultiExpr.token;
@@ -606,7 +606,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
       final lhs = assignMultiExpr.lhs[i];
       final rhs = assignMultiExpr.rhs[i];
       // Desugaring
-      visitAssignExpr(AssignExpr(op, lhs: lhs, rhs: rhs));
+      visitAssignExpr(AssignStmt(op, lhs: lhs, rhs: rhs));
     }
 
     return null;
