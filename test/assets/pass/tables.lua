@@ -101,3 +101,16 @@ print(#compound.arr)
 
 -- Expect: 10
 print(#(compound.arr))
+
+-- Begin more advanced key types.
+t[list] = 100
+t[t] = compound.arr
+
+-- Expect: table
+print(t[t])
+
+-- Expect: 10
+print(#t[t])
+
+-- Expect: 100
+print(tostring(t[list]))

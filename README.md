@@ -97,15 +97,12 @@ Quit the loop when the user types a signal. For example `exit`.
 import 'dart:convert';
 import 'package:puredartlua/runner.dart';
 
-/// Custom error handlers can act on reported problems however you want.
-/// In this example, we just print to console via [print].
 void handleErrors(List<String> errs) => errs.forEach(print);
 
-/// This example driver demonstrates a very simple REPL interpreter.
-/// Read Evaluate Print Loop.
 void main() {
   final evaluator = Evaluator();
-  print('Inputs ending with "\\" continue next line.');
+  print('Press enter to continue on next line.');
+  print('Blank lines terminates input.');
   print('Type "exit" to quit.');
   print('Type "dump_scope" to write the global scope to console.');
   print('-------------------');
@@ -115,44 +112,35 @@ void main() {
     stdout.add('\$ '.codeUnits);
     final String input = stdin.readLineSync(encoding: utf8)?.trim() ?? '';
 
-    if (input.endsWith('\\')) {
-      // Stitch the lines together.
-      content += '${input.substring(0, input.length - 1)}\n';
+    if (input.isNotEmpty) {
+      if(content.isEmpty) {
+        switch (input.toLowerCase()) {
+          case 'exit':
+            loop = false;
+            continue;
+          case 'dump_scope':
+            evaluator.impl.scope.dump();
+            content = '';
+            continue;
+        }
+      }
+      content += '$input\n';
       continue;
     } else {
       content += input;
     }
 
-    // Two special commands take priority:
-    // If 'exit' => quit REPL
-    // If 'dump_scope' => print the current scope to console.
-    // Else => evaluate string as lua script.
-    switch (content.toLowerCase()) {
-      case 'exit':
-        loop = false;
-        continue;
-      case 'dump_scope':
-        evaluator.impl.scope.dump();
-        content = '';
-        continue;
-    }
-
-    // Try to parse and consume the input we built.
     final ast = parse(content, onErrors: handleErrors);
     content = '';
 
-    // Errors will already be collected. We cannot execute without a valid AST.
     if (ast == null) continue;
 
-    // Run with a custom evaluator that clears previous results each
-    // time the constructor is called.
     final (_, out) = runner(
       ast,
       constructor: () => evaluator..clearResults(),
       onErrors: handleErrors,
     );
 
-    // Display to user in console.
     print(out);
   }
 }
@@ -250,9 +238,6 @@ Here's what's left to be compliant with most `Lua 5.5` programs:
 - Attribute modifiers `<const>` and `global`.
 - I missed `do ... end` blocks. I rarely see those used. To be added.
 - Lua supports different numeric form representations such as hex.
-- Keys should not be stored as `String`.
-  - `"0"` and key `0` are in fact different.
-  - Tables can be keys.
 - Bytecode generation. Which is necessary because...
   - We need to jump on `goto` and resume on `::label::` statements.
   - `Coroutines` library **is** added but the runtime needs bytecode to make use of it.

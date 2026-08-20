@@ -554,9 +554,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
             throw '$linePos Object for __newindex is not a valid type. Was "${debugLuaTypeInfo(newindex)}".';
           } else if (newindex == null) {
             // Regular table update operation by key.
-
-            // TODO: key need not be strictly a string!
-            lhs.writeField(key.toString(), rhs);
+            lhs.writeField(key ?? LuaObject.nil('key'), rhs);
           } else {
             throw '$linePos Indexing on non-table type "${debugLuaTypeInfo(lhs)}".';
           }
@@ -924,7 +922,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
         throw '$lineInfo Evaluation has encountered an unrecoverable scenario: iterator expression was not a table.';
       }
 
-      final iterLen = iterExpr.length;
+      final iterLen = iterExpr.arity;
       defLocal(LuaObject.nil(key));
 
       if (val != null) {
@@ -1120,15 +1118,12 @@ abstract class BaseRuntime extends Visitor<Object?> {
       final Object? idx = memoryAccess.field?.accept(this);
       if (callee.isTable) {
         getValue(v) => switch (v) {
-          final String s => s,
-          final num n => n.toInt().toString(),
           final LuaObject lo => getValue(lo.value),
-          final Object o => o.toString(),
-          null => 'nil',
+          final Object o => o,
+          null => null,
         };
 
-        // TODO: keys can be any type of lua object not just strings.
-        final String key = switch (memoryAccess.type) {
+        final Object key = switch (memoryAccess.type) {
           MemoryAccessType.field => memoryAccess.field!.token.lexeme,
           _ => getValue(idx),
         };
@@ -1393,13 +1388,21 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
     int next = 0;
     for (var e in table.pairs) {
-      final Object k = switch (e.key) {
-        final RawExpr r => r.token.lexeme,
+      final Object? k = switch (e.key) {
+        final RawExpr expr => expr.token.lexeme,
+        final MathExpr expr => expr.accept(this),
         _ => ++next,
       };
+
+      if(k == null) {
+        throw 'Table key could not be parsed!';
+      }
+
       final v = e.value.accept(this);
 
-      t[k.toString()] = v?.toLua(k.toString());
+      print(k);
+
+      t[k] = v?.toLua(k.toString());
     }
 
     return LuaObject.table('table', t);

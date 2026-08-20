@@ -150,8 +150,7 @@ mixin Std on BaseRuntime {
 
             final v = findVar('v');
 
-            // TODO: Keys can be anything except nil!
-            t!.writeField(k.toString(), v);
+            t!.writeField(k ?? LuaObject.nil('key'), v);
             return t;
           },
         );
@@ -327,13 +326,12 @@ print(f(7)) -- prints 13
       final name = t.id;
       // t.isTable was true.
       final fields = t.fields!;
-      final Map<String, LuaObject> newFields = {};
+      final Map<Object, LuaObject> newFields = {};
 
       int i = 0;
       while (i < fields.length) {
-        final String key = '${i + 1}';
-        if (fields.containsKey(key)) {
-          newFields[key] = fields[key]!;
+        if (fields.containsKey(i+1)) {
+          newFields[i+1] = fields[i+1]!;
           i++;
         } else {
           break;
@@ -388,7 +386,7 @@ print(f(7)) -- prints 13
 
       return LuaObject.table(
         'ipairs_$name',
-        Map<String, LuaObject>.fromEntries(newFields),
+        Map<Object, LuaObject>.fromEntries(newFields),
       );
     }
 

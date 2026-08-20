@@ -2,10 +2,10 @@ import 'package:puredartlua/lua/passes/lexer.dart';
 import 'package:puredartlua/lua/visitors/runtime/scope.dart';
 import 'package:puredartlua/lua/visitors/visitor.dart';
 
-/// Shorthand notation for a [Map] of [String] and [LuaObject]
+/// Shorthand notation for a [Map] of [Object] -> [LuaObject]
 /// key-pairs. Note that the [LuaObject] can be null as lua
 /// represents these as [LuaType.nil].
-typedef LuaFieldsMap = Map<String, LuaObject?>;
+typedef LuaFieldsMap = Map<Object, LuaObject?>;
 
 /// Strong type enumerations for all possible internal lua primitives.
 /// [LuaType.unresolved] is used for strong type deduction.
@@ -163,12 +163,12 @@ class LuaObject {
   /// Whenever this lua object is accessed to read its [value]
   /// or [fields], then a callback can be provided with the name
   /// of the field which was accessed.
-  Function(String)? _onRead;
+  Function(Object)? _onRead;
 
   /// Whenever this lua object has its [value]
   /// or [fields] changed (written), then a callback can be provided
   /// with the name of the field which was written.
-  Function(String, Object?)? _onWrite;
+  Function(Object, Object?)? _onWrite;
 
   /// How often this object was read or written during evaluation.
   /// Can be used for optimization and reporting unused variables.
@@ -338,11 +338,11 @@ class LuaObject {
 
   /// Returns the arity of this object.
   /// For lua table length, see [tableSize];
-  int get length {
+  int get arity {
     uses++;
 
     return switch (type) {
-      LuaType.ref => deref().length,
+      LuaType.ref => deref().arity,
       LuaType.nil || LuaType.unresolved || LuaType.func => 0,
       LuaType.table => _fields?.length ?? 0,
       LuaType.value => 1,
@@ -359,7 +359,7 @@ class LuaObject {
     _onRead?.call('self');
 
     int i = 1;
-    while (hasField(i.toString())) {
+    while (hasField(i)) {
       i++;
     }
 
@@ -380,16 +380,16 @@ class LuaObject {
       final List<Object> vals = [];
 
       int others = index;
-      while (hasField(others.toString())) {
-        vals.add(readField(others.toString())!);
+      while (hasField(others)) {
+        vals.add(readField(others)!);
         others++;
       }
 
-      writeField(index.toString(), value);
+      writeField(index, value);
 
       if (others <= sz) {
         while (others > 0) {
-          writeField((others + 1).toString(), vals.removeLast());
+          writeField(others + 1, vals.removeLast());
           others--;
         }
       }
@@ -531,11 +531,11 @@ class LuaObject {
   }
 
   /// Internal utility method to determine if this
-  /// unpacked lua object is a table and has a field named [key].
-  bool hasField(String key) {
+  /// unpacked lua object is a table and has a field with value [key].
+  bool hasField(Object key) {
     final ptr = deref();
     if (ptr.isTable) {
-      return ptr._fields?.containsKey(key) ?? false;
+      return ptr._fields?.containsKey(_keyFrom(key)) ?? false;
     }
     return false;
   }
@@ -543,16 +543,17 @@ class LuaObject {
   /// If this lua object is a table,
   /// then reads [_fields] by [key] and returns the value.
   /// Otherwise null is returned.
-  Object? readField(String key) {
+  Object? readField(Object key) {
     uses++;
-    _onRead?.call(key);
+    final k = _keyFrom(key);
+    _onRead?.call(k);
 
-    if (skipSemanitcs) return LuaObjectNoSemantics(key);
+    if (skipSemanitcs) return LuaObjectNoSemantics(k.toString());
 
     if (isRef) {
-      return deref().readField(key);
+      return deref().readField(k);
     } else if (isTable) {
-      return switch (_fields?[key]) {
+      return switch (_fields?[k]) {
         final LuaObject obj => obj.deref(),
         null => null,
       };
@@ -563,7 +564,9 @@ class LuaObject {
   }
 
   /// If this lua object has a meta table
-  /// thenr reads [_metatable] by [key] and returns the value.
+  /// thenr reads [_metatable] by string [key]
+  /// and returns the value.
+  /// 
   /// Otherwise null is returned.
   Object? readMetatable(String key) {
     uses++;
@@ -601,7 +604,7 @@ class LuaObject {
   /// are stored the same way and the fractional
   /// part of the stored value determines whether
   /// or not some lua value is or isn't an integer.
-  T? fieldValueAs<T>(String key, {T? or}) {
+  T? fieldValueAs<T>(Object key, {T? or}) {
     uses++;
     if (skipSemanitcs) return or;
 
@@ -627,23 +630,25 @@ class LuaObject {
   /// Alternatively, if the field [value] is known to be a [LuaObject]
   /// whose [LuaObject.id] will be the same as [key], then consider
   /// using [writeFieldFrom].
-  Object? writeField(String key, Object? value) {
-    if (skipSemanitcs) return LuaObject.noSemantics(key);
+  Object? writeField(Object key, Object? value) {
+    if (skipSemanitcs) return LuaObject.noSemantics(key.toString());
 
     if (isNil) {
       throw 'Tried to add field "$key" on nil "$id".';
     }
 
+    final k = _keyFrom(key);
+
     Object? result;
     if (isRef) {
-      result = deref().writeField(key, value);
+      result = deref().writeField(k, value);
     } else if (isTable) {
-      result = switch (_fields![key]) {
+      result = switch (_fields![k]) {
         final LuaObject obj => obj.value = value,
-        null => _fields![key] = LuaObject.variable(key, value),
+        null => _fields![k] = LuaObject.variable(k.toString(), value),
       };
     }
-    _onWrite?.call(key, value);
+    _onWrite?.call(k, value);
     return result;
   }
 
@@ -718,9 +723,9 @@ class LuaObject {
   /// Alternatively, if the fields of the table are ALL [LuaObject]s,
   /// whose names will be exactly the same as the field key, then
   /// [LuaObject.tableFrom] can be used instead.
-  LuaObject.table(this.id, [Map<String, Object?>? fields]) : super() {
+  LuaObject.table(this.id, [Map<Object, Object?>? fields]) : super() {
     _fields =
-        fields?.map((k, v) => MapEntry(k, v?.toLua(k) ?? LuaObject.nil(k))) ??
+        fields?.map((k, v) => MapEntry(k, v?.toLua(k.toString()) ?? LuaObject.nil(k.toString()))) ??
         {};
   }
 
@@ -765,13 +770,13 @@ class LuaObject {
   factory LuaObject.noSemantics(String id) => LuaObjectNoSemantics(id);
 
   /// Whenever a lua object's fields or value is read, executes [callback].
-  void onRead(Function(String)? callback) => _onRead = callback;
+  void onRead(Function(Object)? callback) => _onRead = callback;
 
   /// Whenever a lua object's fields or value is modified (written),
   /// executes [callback]. If the lua object's storage is [value], then
   /// the first argument of [callback] will be 'self'. Otherwise it is
   /// the string name of the field's key.
-  void onWrite(Function(String, Object?)? callback) => _onWrite = callback;
+  void onWrite(Function(Object, Object?)? callback) => _onWrite = callback;
 
   /// Due to a dart bug, I cannot throw if we're converting a table
   /// or some other unknown data type to a string.
@@ -877,3 +882,10 @@ extension Native2Lua on Object {
     final Object o => o.toLua('arg'),
   };
 }
+
+/// Utility to help get the best value in [key] to use
+/// directly as a [LuaObject.field] key.
+  Object _keyFrom(Object key) => switch(key) {
+        final LuaObject lo => lo.isTable? lo : lo.value,
+        final Object o => o
+      } ?? LuaObject.nil(key.toString());

@@ -9,7 +9,8 @@ void handleErrors(List<String> errs) => errs.forEach(print);
 /// Read Evaluate Print Loop.
 void main() {
   final evaluator = Evaluator();
-  print('Inputs ending with "\\" continue next line.');
+  print('Press enter to continue on next line.');
+  print('Blank lines terminates input.');
   print('Type "exit" to quit.');
   print('Type "dump_scope" to write the global scope to console.');
   print('-------------------');
@@ -19,26 +20,27 @@ void main() {
     stdout.add('\$ '.codeUnits);
     final String input = stdin.readLineSync(encoding: utf8)?.trim() ?? '';
 
-    if (input.endsWith('\\')) {
+    if (input.isNotEmpty) {
+      if(content.isEmpty) {
+        // Two special commands take priority:
+        // If 'exit' => quit REPL
+        // If 'dump_scope' => print the current scope to console.
+        // Else => evaluate string as lua script.
+        switch (input.toLowerCase()) {
+          case 'exit':
+            loop = false;
+            continue;
+          case 'dump_scope':
+            evaluator.impl.scope.dump();
+            content = '';
+            continue;
+        }
+      }
       // Stitch the lines together.
-      content += '${input.substring(0, input.length - 1)}\n';
+      content += '$input\n';
       continue;
     } else {
       content += input;
-    }
-
-    // Two special commands take priority:
-    // If 'exit' => quit REPL
-    // If 'dump_scope' => print the current scope to console.
-    // Else => evaluate string as lua script.
-    switch (content.toLowerCase()) {
-      case 'exit':
-        loop = false;
-        continue;
-      case 'dump_scope':
-        evaluator.impl.scope.dump();
-        content = '';
-        continue;
     }
 
     // Try to parse and consume the input we built.

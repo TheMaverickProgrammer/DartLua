@@ -118,8 +118,12 @@ void main() {
     expect(runTest('./test/assets/pass/globals.lua'), true);
   });
 
-  test('basic tables', () {
+  test('tables 1', () {
     expect(runTest('./test/assets/pass/tables.lua'), true);
+  });
+
+  test('tables 2', () {
+    expect(runTest('./test/assets/pass/tables2.lua'), true);
   });
 
   test('bitops', () {

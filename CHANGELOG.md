@@ -1,3 +1,9 @@
+## 1.0.15
+- Lua tables can have keys of any type.
+  - Internally they are represented by dart `Object`.
+  - Verified against new tests.
+- `LuaObject.length` -> `LuaObject.arity` rename.
+
 ## 1.0.14
 - Functions can return multiple arguments but any field access operation acts on the first argument only.
 - Added semicolon support.
