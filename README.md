@@ -184,6 +184,7 @@ The DOT file will be embedded in an HTML page `my_script.lua.html`.
   - `xpcall()` is just another call to `pcall()` in this runtime.
 - Functions taking one argument of either string literal or table literal can omit parenthesis.
 - Math operations on numeric-coercible strings returns numbers.
+- For-loop iterators and stateless iterators.
 
 > Because this is a pure dart lua interpreter, it is not expected to be as fast
 > as the C ffi alternative libs for Dart. However, it is much more programmer friendly!
