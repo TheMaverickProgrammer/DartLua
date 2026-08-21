@@ -261,21 +261,24 @@ class Parser {
     final token = consume(TokenType.kFor, 'Expected "for" keyword.');
     loopDepth++;
 
+    final List<Token> vars = [];
+
     // Look-ahead to determine for-loop type.
     final next = peek(offset: 1);
     if (next.type != TokenType.kAssign) {
       // This is an iterator for-loop.
-      final key = consume(TokenType.kRaw, 'Expected name for key term.');
+      final v = consume(TokenType.kRaw, 'Expected var.');
+      vars.add(v);
 
-      Token? value;
-      if (peek().type == TokenType.kComma) {
-        consume(TokenType.kComma, 'Expected "," between key and value terms.');
-        value = consume(TokenType.kRaw, 'Expected name for value term.');
+      while(peek().type == TokenType.kComma) {
+        advance();
+        final v = consume(TokenType.kRaw, 'Expected var after comma.');
+        vars.add(v);
       }
 
-      consume(TokenType.kIn, 'Expected "in" before for-in loop iterator.');
+      consume(TokenType.kIn, 'Expected "in" before iterator.');
       final iterExpr = math();
-      consume(TokenType.kDo, 'Expected "do" before for-in loop body.');
+      consume(TokenType.kDo, 'Expected "do" before loop body.');
       final body = bodyStmt(terminal: TokenType.kEnd);
       loopDepth--;
       consume(
@@ -284,8 +287,7 @@ class Parser {
       );
       return ForIterLoopStmt(
         token,
-        key: key,
-        value: value,
+        vars: vars,
         iterExpr: iterExpr,
         body: body,
       );

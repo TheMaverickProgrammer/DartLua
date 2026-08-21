@@ -193,6 +193,9 @@ class LuaObject {
     false => _value == null && _fields == null,
   };
 
+  /// Query the negation of [isNil].
+  bool get isNotNil => !isNil;
+
   /// A lua object is a table if its fields are non null.
   ///
   /// A reference to a nil lua object is treaded
@@ -564,9 +567,9 @@ class LuaObject {
   }
 
   /// If this lua object has a meta table
-  /// thenr reads [_metatable] by string [key]
+  /// then reads [_metatable] by string [key]
   /// and returns the value.
-  /// 
+  ///
   /// Otherwise null is returned.
   Object? readMetatable(String key) {
     uses++;

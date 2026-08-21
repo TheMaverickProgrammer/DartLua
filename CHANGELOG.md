@@ -1,3 +1,8 @@
+## 1.0.16
+- For loop initial value, limit, and step expressions unpacked correctly now after evaluation.
+  - Added a test to `for_loop.lua` to ensure expressions are evaluated here.
+- Added `for_loop_iter.lua` to test function iterator expressions in generic for loops.
+
 ## 1.0.15
 - Lua tables can have keys of any type.
   - Internally they are represented by dart `Object`.

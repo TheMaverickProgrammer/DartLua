@@ -134,6 +134,10 @@ void main() {
     expect(runTest('./test/assets/pass/for_loop.lua'), true);
   });
 
+  test('generic for loops', () {
+    expect(runTest('./test/assets/pass/for_loop_iter.lua'), true);
+  });
+
   test('while loops', () {
     expect(runTest('./test/assets/pass/while_loops.lua'), true);
   });

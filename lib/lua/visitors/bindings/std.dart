@@ -181,8 +181,7 @@ mixin Std on BaseRuntime {
               throw 'Expected non-null key for second argument';
             }
 
-            // TODO: keys can be anything except nil!
-            return t!.readField(k.toString());
+            return t!.readField(k!);
           },
         );
 
@@ -313,32 +312,21 @@ print(f(7)) -- prints 13
     ipairs() {
       final t = findVar('table');
 
-      if (t?.skipSemanitcs ?? false) {
-        return t;
-      }
-
       if (!(t?.isTable ?? false)) {
         final type = t?.typeinfo;
         throw 'Expected table input for ipairs(...). Was $type.';
       }
 
+      int i = 1;
       t as LuaObject;
-      final name = t.id;
-      // t.isTable was true.
-      final fields = t.fields!;
-      final Map<Object, LuaObject> newFields = {};
 
-      int i = 0;
-      while (i < fields.length) {
-        if (fields.containsKey(i+1)) {
-          newFields[i+1] = fields[i+1]!;
-          i++;
-        } else {
-          break;
-        }
-      }
-
-      return LuaObject.table('ipairs_$name', newFields);
+      return LuaFuncBuilder
+        .create('closure')
+        .exec(call: () {
+          if(i > t.tableSize) return null;
+          final ii = i++;
+          return [ii, t.readField(ii)];
+      });
     }
 
     final token = Token.synthesized('ipairs');
@@ -361,33 +349,35 @@ print(f(7)) -- prints 13
   void initStdPairs() {
     pairs() {
       final t = findVar('table');
-      if (t?.skipSemanitcs ?? false) {
-        return t;
-      }
 
       if (!(t?.isTable ?? false)) {
         final type = t?.typeinfo;
         throw 'Expected table input for pairs(...). Was $type.';
       }
 
+      int i = 1;
       t as LuaObject;
-      final name = t.id;
 
-      // t.isTable was true.
-      final fields = t.fields!;
+      final fields = t.fields ?? {};
 
-      // Null fields are marked as deleted in lua.
-      // I don't remove them in this implementation,
-      // but we do exclude them from all operations that
-      // expose keys.
-      final newFields = fields.entries
-          .where((e) => e.value?.isNil == false)
-          .map((e) => MapEntry(e.key, e.value!));
+      return LuaFuncBuilder
+        .create('closure')
+        .exec(call: () {
+          // We loop because we must return a value
+          // or null if the iterator has exhausted all
+          // elements. If a field mapped by a key is nil,
+          //it should be skipped, not returned.
+          while(true) {
+            if(i > fields.length) return null;
+            final k = fields.keys.elementAt(i-1);
+            i++;
+            final v = fields[k];
 
-      return LuaObject.table(
-        'ipairs_$name',
-        Map<Object, LuaObject>.fromEntries(newFields),
-      );
+            if(v?.isNil ?? true) continue;
+
+            return [k,v];
+          }
+        });
     }
 
     final token = Token.synthesized('pairs');
@@ -409,82 +399,82 @@ print(f(7)) -- prints 13
 
   void initStdTable() {
     defGlobal(
-      LuaObject.table('table', {
-        'insert':
-            LuaFuncBuilder.create('insert')
-                .arg('t')
-                .arg('position')
-                .arg('value', optional: true)
-                .exec(
-                  call: () {
-                    LuaObject? tableData = findVar('t');
+      LuaObject.tableFrom('table', [
+        LuaFuncBuilder.create('insert')
+          .arg('t')
+          .arg('position')
+          .arg('value', optional: true)
+          .exec(
+            call: () {
+              LuaObject? tableData = findVar('t');
 
-                    if ((tableData?.isNil ?? true) || tableData!.isNotTable) {
-                      throw 'Expected table argument "t" for function.';
-                    }
+              if ((tableData?.isNil ?? true) || tableData!.isNotTable) {
+                throw 'Expected table argument "t" for function.';
+              }
 
-                    LuaObject? value = findVar('value');
-                    int? position;
+              LuaObject? value = findVar('value');
+              int? position;
 
-                    if (value?.isNil ?? true) {
-                      value = findVar('position');
+              if (value?.isNil ?? true) {
+                value = findVar('position');
 
-                      // Insert a nil value is a noop
-                      if (value == null) {
-                        return LuaObject.nil('ret');
-                      }
-                    } else {
-                      final pos = findVar('position');
-                      position = pos?.valueAsInt();
+                // Insert a nil value is a noop
+                if (value == null) {
+                  return LuaObject.nil('ret');
+                }
+              } else {
+                final pos = findVar('position');
+                position = pos?.valueAsInt();
 
-                      if ((pos?.isNil ?? true) || position == null) {
-                        throw 'Expected integer "position" for function.';
-                      }
-                    }
+                if ((pos?.isNil ?? true) || position == null) {
+                  throw 'Expected integer "position" for function.';
+                }
+              }
 
-                    final int sz = tableData.tableSize;
-                    final int next = (position ?? sz) + 1;
-                    if (tableData.tableInsert(next, value!) == null) {
-                      throw 'Index out of bounds: $next with bounds of $sz.';
-                    }
-                  },
-                )
-              ..doc = LuaDoc(
-                category: catRuntime,
-                html: '''
-                Inserts <code>value</code> into table <code>t</code> at <code>position</code>.<br/>
-                <br/>
-                If only two arguments are given, then the second argument becomes <code>value</code>
-                and the <code>position</code> is determined to be the front of the table <code>t</code>.<br/>
-                This is convenient to write stacks in lua.
+              final int sz = tableData.tableSize;
+              final int next = (position ?? sz) + 1;
+              if (tableData.tableInsert(next, value!) == null) {
+                throw 'Index out of bounds: $next with bounds of $sz.';
+              }
+            },
+          )
+        ..doc = LuaDoc(
+          category: catRuntime,
+          html: '''
+          Inserts <code>value</code> into table <code>t</code> at <code>position</code>.<br/>
+          <br/>
+          If only two arguments are given, then the second argument becomes <code>value</code>
+          and the <code>position</code> is determined to be the front of the table <code>t</code>.<br/>
+          This is convenient to write stacks in lua.
 <pre><code class="language-lua">local t = {}
 table.insert(t, 1, "foo")
 -- is the same as
 table.insert(t, "foo")
 </code></pre>
                 ''',
-              ),
-        'remove': LuaFuncBuilder.create('remove')
-            .arg('tableData')
-            .arg('position')
-            .exec(
-              call: () {
-                LuaObject? tableData = findVar('tableData');
+        ),
+        LuaFuncBuilder.create('remove')
+          .arg('tableData')
+          .arg('position')
+          .exec(
+            call: () {
+              LuaObject? tableData = findVar('tableData');
 
-                if ((tableData?.isNil ?? true) || tableData!.isNotTable) {
-                  throw 'Expected table argument "tableData" for function.';
-                }
+              if ((tableData?.isNil ?? true) || tableData!.isNotTable) {
+                throw 'Expected table argument "tableData" for function.';
+              }
 
-                int? position = findVar('value')?.valueAsInt();
+              int? position = findVar('value')?.valueAsInt();
 
-                if (position == null) {
-                  throw 'Expected integer "position" for function.';
-                }
+              if (position == null) {
+                throw 'Expected integer "position" for function.';
+              }
 
-                return tableData.tableRemove(position);
-              },
-            ),
-      }),
+              return tableData.tableRemove(position);
+            },
+          ),
+        ],
+      ),
     ).doc = LuaDoc(
       category: catRuntime,
       html: '''

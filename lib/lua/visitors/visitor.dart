@@ -166,16 +166,15 @@ class ForLoopStmt extends Stmt {
   R accept<R>(Visitor<R> v) => v.visitForLoopStmt(this);
 }
 
-/// The key-value variant of lua's for-loop control structure.
-/// Unlike the step-wise variant, this destructures [iterExpr]
-/// into [key] and [value] in each loop until there's nothing
-/// left to destructure.
+/// The generic variant of lua's for-loop control structure.
+/// Unlike the step-wise variant, this evaluates [iterExpr]
+/// and stores them in [vars] following the multi-variable
+/// assignment rules in this language. That is, if there are
+/// too many returned results and not enough vars, then
+/// the remaining vars will be nil.
 class ForIterLoopStmt extends Stmt {
-  /// The key lexeme to be introduced in scope.
-  final Token key;
-
-  /// The value lexeme to be introduced in scope. Optional.
-  final Token? value;
+  /// The list of variables.
+  final List<Token> vars;
 
   /// The iterator to advanced and destructure.
   final MathExpr iterExpr;
@@ -185,8 +184,7 @@ class ForIterLoopStmt extends Stmt {
 
   ForIterLoopStmt(
     super.token, {
-    required this.key,
-    this.value,
+    required this.vars,
     required this.iterExpr,
     required this.body,
   });

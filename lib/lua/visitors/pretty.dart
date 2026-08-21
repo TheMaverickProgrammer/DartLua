@@ -207,15 +207,10 @@ class Pretty extends Visitor<String> {
 
   @override
   String visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
-    final key = forIterLoopStmt.key.lexeme;
-    final val = forIterLoopStmt.value?.lexeme;
+    final vars = forIterLoopStmt.vars.map((e) => e.lexeme).join(',');
     final iter = forIterLoopStmt.iterExpr.accept(this);
-    final exprs = switch (val) {
-      final String val => '$key, $val in $iter',
-      null => '$key in $iter',
-    };
     final body = forIterLoopStmt.body.map((e) => e.accept(this)).join('/n');
-    return 'for $exprs do\n$body\nend';
+    return 'for $vars in $iter do\n$body\nend';
   }
 
   @override
