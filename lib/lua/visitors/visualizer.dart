@@ -485,7 +485,7 @@ class Visualizer extends Visitor<GzBaseNode> {
   @override
   GzBaseNode visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
     final vars = forIterLoopStmt.vars.map((e) => e.lexeme).toList(growable: false);
-    final iter = forIterLoopStmt.iterExpr.accept(this);
+    final exprs = forIterLoopStmt.exprs.map((e) => e.accept(this)).toList(growable: false);
     final body = forIterLoopStmt.body.map((e) => e.accept(this)).toList(growable: false);
 
     return node(
@@ -498,7 +498,7 @@ class Visualizer extends Visitor<GzBaseNode> {
           v,
           color: pink,
         ),
-        node('in', color: pink, children: [iter]),
+        node('in', color: pink, children: exprs),
         node('do', color: 'yellow', children: body),
       ],
     );

@@ -908,25 +908,38 @@ abstract class BaseRuntime extends Visitor<Object?> {
   Object? visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
     final prevScope = scope;
     pushScope();
+    final String lineInfo = this.lineInfo(forIterLoopStmt.token);
 
     try {
-      final vars = forIterLoopStmt.vars.map((e) => e.lexeme).toList(growable: false);
-      final iter = forIterLoopStmt.iterExpr.accept(this)?.unpack();
-
-      LuaObject? c;
-      if (iter is LuaObject) {
-        if(iter.isCallable) {
-          c = iter.readMetatable('__call')?.toLuaRet();
-        } else if(iter.isFunc) {
-          c = iter;
+      final List<String> vars = forIterLoopStmt.vars.map((e) => e.lexeme).toList(growable: false);
+      final List<LuaObject> exprs = [];
+      final int len = forIterLoopStmt.exprs.length;
+      for(int i = 0; i < len; i++) {
+        final expr = forIterLoopStmt.exprs[i];
+        if(i == len-1) {
+          final List<LuaObject> ls = switch(expr.accept(this)) {
+            final LuaArgPack ls => ls,
+            final List<Object> ls => ls.map((e) => e.toLuaRet()).toList(growable: false),
+            final Object o => [o.toLuaRet()],
+            _ => [LuaObject.nil('expr$i')],
+          };
+          exprs.addAll(ls);
+        } else {
+          exprs.add(expr.accept(this)?.unpack() ?? LuaObject.nil('expr$i'));
         }
       }
 
-      if(c == null) {
-        restoreScope(prevScope);
-        final String lineInfo = this.lineInfo(forIterLoopStmt.token);
-        throw '$lineInfo Iterator expression was not a function.';
+      // Read only the first 3 evaluated expression result values.
+      // See: https://www.lua.org/pil/7.2.html
+      LuaObject f = exprs.elementAt(0);
+      if(f.isCallable) {
+        f = f.readMetatable('__call')?.unpack() ?? LuaObject.nil('iter');
+      } else if(f.isNotFunc) {
+        throw '$lineInfo Expected an iterator found ${f.luaTypeInfo}.';
       }
+
+      final LuaObject s = exprs.elementAtOrNull(1) ?? LuaObject.nil('state');
+      LuaObject v = exprs.elementAtOrNull(2) ?? LuaObject.nil('value');
 
       for(final String v in vars) {
         defLocal(LuaObject.nil(v));
@@ -934,17 +947,23 @@ abstract class BaseRuntime extends Visitor<Object?> {
 
       bool loop = true;
       while(loop) {
-        final args = callLuaFunction(c);
+        final args = callLuaFunction(f, args: [s, v]);
 
-        /// Satisfies returning nil.
-        if(args.isEmpty) break;
+        for(int i = 0; i < vars.length; i++) {
+          LuaObject vs = findVar(vars[i])!;
+          if(i >= args.length) {
+            vs.value = null;
+            continue;
+          }
+          vs.value = args[i];
+          if(i == 0) {
+            v = vs;
+          }
+        }
 
-        final int limit = math.min(args.length, vars.length);
-
-        for(int i = 0; i < limit; i++) {
-          // We know it's defined from the step above.
-          final k = findVar(vars[i])!;
-          k.value = args[i];
+        if(v.isNil) {
+          loop = false;
+          break;
         }
 
         for (Stmt stmt in forIterLoopStmt.body) {

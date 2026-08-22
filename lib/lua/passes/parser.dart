@@ -262,6 +262,7 @@ class Parser {
     loopDepth++;
 
     final List<Token> vars = [];
+    final List<MathExpr> exprs = [];
 
     // Look-ahead to determine for-loop type.
     final next = peek(offset: 1);
@@ -276,8 +277,15 @@ class Parser {
         vars.add(v);
       }
 
-      consume(TokenType.kIn, 'Expected "in" before iterator.');
-      final iterExpr = math();
+      consume(TokenType.kIn, 'Expected "in" before exprs.');
+
+      exprs.add(math());
+
+      while(peek().type == TokenType.kComma) {
+        advance();
+        exprs.add(math());
+      }
+
       consume(TokenType.kDo, 'Expected "do" before loop body.');
       final body = bodyStmt(terminal: TokenType.kEnd);
       loopDepth--;
@@ -288,7 +296,7 @@ class Parser {
       return ForIterLoopStmt(
         token,
         vars: vars,
-        iterExpr: iterExpr,
+        exprs: exprs,
         body: body,
       );
     }

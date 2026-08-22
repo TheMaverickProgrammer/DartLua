@@ -6,6 +6,8 @@ import 'package:puredartlua/lua/visitors/visitor.dart';
 
 import 'prism.dart' as prism;
 
+// TODO: Version 1.0.14 broke autodoc a little. Some items appear to be missing. Some appear to be in an unexpected ordering.
+
 /// This class builds a single-page html webpage
 /// from the documentation of all the global variables
 /// in a provided runtime implementation.

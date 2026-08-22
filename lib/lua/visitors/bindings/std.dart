@@ -68,6 +68,7 @@ mixin Std on BaseRuntime {
     initStdRequire();
     initStdIPairs();
     initStdPairs();
+    initStdNext();
     initStdTable();
     initStdPrint();
     initStdMath();
@@ -393,6 +394,66 @@ print(f(7)) -- prints 13
       html: '''
       Enumerates over a lua table and returns a <code>{key, value}</code>
       pair. Used in common for-loops.
+      ''',
+    );
+  }
+
+  void initStdNext() {
+    next() {
+      final t = findVar('table');
+
+      if (!(t?.isTable ?? false)) {
+        final type = t?.typeinfo;
+        throw 'Expected table input for next(...). Was $type.';
+      }
+
+      t as LuaObject;
+
+      final entries =
+        t.fields?.entries
+        .where((e) => e.value?.isNil == false)
+        .toList(growable: false)
+         ?? const [];
+
+      final k = findVar('key')?.makeLuaRef();
+
+      // Attempt to return the first key.
+      if(k?.isNil ?? true) {
+        final p = entries.firstOrNull;
+        if(p == null) return null;
+        return [p.key, p.value];
+      }
+
+      k!;
+
+      for(int i = 0; i < entries.length; i++) {
+        if(entries.elementAt(i).key == k.value) {
+          final p = entries.elementAtOrNull(i+1);
+          if(p == null) break;
+          return [p.key, p.value];
+        }
+      }
+
+      // Else, exhausted the fields.
+      return null;
+    }
+
+    final defNext =
+      LuaFuncBuilder.create('next')
+      .arg('table')
+      .arg('key', optional: true)
+      .exec(call: next);
+
+    defGlobal(defNext).doc = LuaDoc(
+      category: catRuntime,
+      html: '''
+      The <code>next</code> retrieves the next key-value pair in <code>table</code>.
+      </br>
+      When called with <code>nil</code> as the key, it returns the first key-value pair.
+      </br>
+      When called with a specific key, it returns the next pair in an arbitrary order.
+      </br>
+      If no more pairs exist, it returns <code>nil</code>.
       ''',
     );
   }

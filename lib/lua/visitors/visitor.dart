@@ -167,7 +167,7 @@ class ForLoopStmt extends Stmt {
 }
 
 /// The generic variant of lua's for-loop control structure.
-/// Unlike the step-wise variant, this evaluates [iterExpr]
+/// Unlike the step-wise variant, this evaluates [exprs]
 /// and stores them in [vars] following the multi-variable
 /// assignment rules in this language. That is, if there are
 /// too many returned results and not enough vars, then
@@ -176,8 +176,8 @@ class ForIterLoopStmt extends Stmt {
   /// The list of variables.
   final List<Token> vars;
 
-  /// The iterator to advanced and destructure.
-  final MathExpr iterExpr;
+  /// The list of expressions.
+  final List<MathExpr> exprs;
 
   /// The body of code to visit.
   final List<Stmt> body;
@@ -185,7 +185,7 @@ class ForIterLoopStmt extends Stmt {
   ForIterLoopStmt(
     super.token, {
     required this.vars,
-    required this.iterExpr,
+    required this.exprs,
     required this.body,
   });
 
