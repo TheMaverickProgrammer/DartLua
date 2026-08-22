@@ -1,7 +1,7 @@
 import 'package:puredartlua/lua/visitors/transformers/visualizer.dart';
 import 'package:puredartlua/runner.dart';
 import 'package:path/path.dart' as p;
-import '../lib/lua/visitors/transformers/obfuscator.dart';
+import 'package:puredartlua/lua/visitors/transformers/obfuscator.dart';
 
 /// Show the help dialog.
 void help() {
@@ -52,11 +52,11 @@ void main(List<String> args) {
   // Check for -f flag.
   // Both -f and -e flags have similar code paths and requirements
   // so they share the mechanics below.
-  final bool obfuscate = args[idx+1] == '-f';
+  final bool obfuscate = args[idx + 1] == '-f';
 
-  if(!obfuscate) {
+  if (!obfuscate) {
     // Check for -e flag.
-    if (args[idx+1] != '-e') {
+    if (args[idx + 1] != '-e') {
       print('Missing script input with flag -e.');
       return;
     }
@@ -71,14 +71,16 @@ void main(List<String> args) {
     ast = parseFile(path);
     if (ast == null) return;
 
-    if(obfuscate) {
+    if (obfuscate) {
       final obf = Obfuscator(ast);
-      if(parse(obf.content) == null) {
-        print('There was a problem parsing the obfuscated contents. Report this problem.');
+      if (parse(obf.content) == null) {
+        print(
+          'There was a problem parsing the obfuscated contents. Report this problem.',
+        );
         return;
       }
       final parts = p.split(path);
-      parts[parts.length-1] = 'fog.${parts.last}';
+      parts[parts.length - 1] = 'fog.${parts.last}';
       final fogPath = p.joinAll(parts);
       final file = File(fogPath);
       file.writeAsStringSync(obf.content);
@@ -94,13 +96,15 @@ void main(List<String> args) {
     make() {
       final evaluator = Evaluator();
 
-        evaluator.impl.defGlobal(
-          LuaObject.tableFrom('arg',
-          [ for(int i = 0; i < input.length; i++) input[i].toLua('$i') ]
-        ));
+      evaluator.impl.defGlobal(
+        LuaObject.tableFrom('arg', [
+          for (int i = 0; i < input.length; i++) input[i].toLua('$i'),
+        ]),
+      );
 
       return evaluator;
     }
+
     // Interpret by walking the AST.
     runner(ast, constructor: make, onErrors: onErrors);
   } catch (e) {
