@@ -1,13 +1,14 @@
 import 'package:puredartlua/lua/visitors/visualizer.dart';
 import 'package:puredartlua/runner.dart';
+import 'package:path/path.dart' as p;
 import 'obfuscator.dart';
-import 'package:puredartlua/lua/visitors/pretty.dart';
 
 /// Show the help dialog.
 void help() {
   print('''  -h            Show help.
   -e <PATH>     Execute script at PATH.
-  -v <PATH>     Generate DOT file HTML for input <PATH>.
+  -v <PATH>     Generate DOT file HTML for input at PATH.
+  -f <PATH>     Outputs obfuscated script at PATH with prefix "fog".
   [ARG1...ARGN] Space separated args for IO input.
 	''');
 }
@@ -26,7 +27,7 @@ void main(List<String> args) {
   }
 
   // Check for -v flag.
-  int idx = args.indexWhere((e) => e.contains('-v'));
+  int idx = args.indexWhere((e) => e == '-v');
   if (idx > -1) {
     if (idx + 1 == args.length) {
       print('Missing script input with flag -e.');
@@ -48,12 +49,20 @@ void main(List<String> args) {
     return;
   }
 
-  // Check for -e flag.
-  idx = args.indexWhere((e) => e.contains('-e'));
-  if (idx == -1 || idx + 1 == args.length) {
-    print('Missing script input with flag -e.');
-    return;
+  // Check for -f flag.
+  // Both -f and -e flags have similar code paths and requirements
+  // so they share the mechanics below.
+  final bool obfuscate = args[idx+1] == '-f';
+
+  if(!obfuscate) {
+    // Check for -e flag.
+    if (args[idx+1] != '-e') {
+      print('Missing script input with flag -e.');
+      return;
+    }
   }
+
+  idx++;
 
   final String path = args[++idx];
   AST? ast;
@@ -62,6 +71,24 @@ void main(List<String> args) {
     ast = parseFile(path);
     if (ast == null) return;
 
+    if(obfuscate) {
+      final obf = Obfuscator(ast);
+      if(parse(obf.content) == null) {
+        print('There was a problem parsing the obfuscated contents. Report this problem.');
+        return;
+      }
+      final parts = p.split(path);
+      parts[parts.length-1] = 'fog.${parts.last}';
+      final fogPath = p.joinAll(parts);
+      final file = File(fogPath);
+      file.writeAsStringSync(obf.content);
+      print('Write OK $fogPath');
+      // Done.
+      return;
+    }
+
+    // Code path for script evaluation reached.
+    // Collect inut arguments and pass them into the runner constructor.
     final List<String> input = args.sublist(idx, args.length);
 
     make() {
@@ -81,18 +108,4 @@ void main(List<String> args) {
     print(e);
     return;
   }
-
-  final obf = Obfuscator(ast);
-
-  print('=====');
-  print(obf.content);
-  print('=====');
-
-  final pretty = Pretty();
-  final p = parse(obf.content);
-  if(p == null) {
-    print('There was a problem parsing the obfuscated contents.');
-    return;
-  }
-  print(pretty.visitAST(p));
 }
