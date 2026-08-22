@@ -78,22 +78,29 @@ class DeclMultiVar extends Stmt {
   /// The list of [DeclVar] nodes.
   final List<DeclVar> vars;
   final List<MathExpr> vals;
+  final bool local;
 
-  DeclMultiVar._(super.token, this.vars, this.vals);
+  DeclMultiVar._(super.token, this.vars, this.vals, this.local);
 
   /// Convenience constructor.
   /// See [DeclVar].
-  factory DeclMultiVar.initNils(List<Token> vars, List<Token?> attrs) {
+  factory DeclMultiVar.initNils(List<Token> vars, List<Token?> attrs, [bool local = false]) {
     return DeclMultiVar._(
       vars.first,
       vars.map((e) => DeclVar.initNil(e)).toList(growable: false),
       [], // vals
+      local,
     );
   }
 
   /// Transforms tokens into [DeclVar] statements forwarding
   /// the corresponding [attrs] and [valus] element each.
-  factory DeclMultiVar.initVals(List<Token> vars, List<Token?> attrs, List<MathExpr> vals) {
+  factory DeclMultiVar.initVals(
+    List<Token> vars,
+    List<Token?> attrs,
+    List<MathExpr> vals,
+    [bool local = false]
+    ) {
     assert(vars.length == attrs.length);
 
     final List<DeclVar> vs = [];
@@ -105,6 +112,7 @@ class DeclMultiVar extends Stmt {
       vars.first,
       vs,
       vals,
+      local,
     );
   }
 

@@ -143,13 +143,13 @@ class Parser {
       return FuncExpr.local(declFuncExpr());
     }
 
-    return declMultiVarStmt();
+    return declMultiVarStmt(local: true);
   }
 
-  Stmt declMultiVarStmt() {
+  Stmt declMultiVarStmt({required bool local}) {
     final token = consume(
       TokenType.kRaw,
-      'Expected variable name after "local".',
+      'Expected variable name.',
     );
 
     attr() {
@@ -164,7 +164,7 @@ class Parser {
     }
 
     final vars = [token];
-    final attrs = [attr()];
+    final attrs = local ? [attr()] : const <Token>[];
 
     while (peek().type == TokenType.kComma) {
       advance();
@@ -174,12 +174,14 @@ class Parser {
           'Expected variable name in multi-variable initializer.',
         ),
       );
-      attrs.add(attr());
+      if(local) {
+        attrs.add(attr());
+      }
     }
 
     final assign = peek();
     if (assign.type != TokenType.kAssign) {
-      return DeclMultiVar.initNils(vars, attrs);
+      return DeclMultiVar.initNils(vars, attrs, local);
     }
 
     consume(
@@ -194,7 +196,7 @@ class Parser {
       vals.add(math());
     }
 
-    return DeclMultiVar.initVals(vars, attrs, vals);
+    return DeclMultiVar.initVals(vars, attrs, vals, local);
   }
 
   Stmt returnStmt() {

@@ -1,6 +1,9 @@
 import 'package:puredartlua/lua/visitors/visualizer.dart';
 import 'package:puredartlua/runner.dart';
+import 'obfuscator.dart';
+import 'package:puredartlua/lua/visitors/pretty.dart';
 
+/// Show the help dialog.
 void help() {
   print('''  -h            Show help.
   -e <PATH>     Execute script at PATH.
@@ -8,6 +11,9 @@ void help() {
   [ARG1...ARGN] Space separated args for IO input.
 	''');
 }
+
+/// Pipe each string in [errs] to [print].
+void onErrors(List<String> errs) => errs.forEach(print);
 
 /// This driver runs lua scripts given by path in `-e` and accepts input arguments.
 /// Generate helpful DOT file graphs in HTML with `-v` command.
@@ -50,9 +56,10 @@ void main(List<String> args) {
   }
 
   final String path = args[++idx];
+  AST? ast;
   try {
     // Try to construct an AST.
-    final ast = parseFile(path);
+    ast = parseFile(path);
     if (ast == null) return;
 
     final List<String> input = args.sublist(idx, args.length);
@@ -68,10 +75,24 @@ void main(List<String> args) {
       return evaluator;
     }
     // Interpret by walking the AST.
-    runner(ast, constructor: make);
+    runner(ast, constructor: make, onErrors: onErrors);
   } catch (e) {
-    // Print any run-time errors.
+    // Print any system file errors.
     print(e);
     return;
   }
+
+  final obf = Obfuscator(ast);
+
+  print('=====');
+  print(obf.content);
+  print('=====');
+
+  final pretty = Pretty();
+  final p = parse(obf.content);
+  if(p == null) {
+    print('There was a problem parsing the obfuscated contents.');
+    return;
+  }
+  print(pretty.visitAST(p));
 }
