@@ -1,9 +1,11 @@
 import 'package:puredartlua/lua/lua.dart';
 
+final String _sep = ';';
+
 /// A very simple obfuscator example.
 /// Visits every node and generates minified lua.
 /// Identifiers are remapped to the next smallest unique id
-/// composed of strictly lower-case alphabetical chars.
+/// composed of strictly lower-case alphanumeric chars.
 class Obfuscator extends Visitor<String> {
   /// The output content to write to file.
   String content = '';
@@ -11,22 +13,28 @@ class Obfuscator extends Visitor<String> {
   /// Remapped ids.
   final Map<String, String> ids = {};
 
-  /// The next id to use ion [wirteOrReadNewID].
-  final List<String> _nextId = ['a'];
+  /// The next id to use in [writeOrReadNewID].
+  /// The leading entry is always '_' because the
+  /// simple variable name algorithm bumps the last
+  /// entry from a->z, A-Z, then from 0->9 before wrapping back
+  /// to letter "a" and appending a new entry. Thus,
+  /// to be a valid lua identifier it needs a leading "_".
+  final List<String> _nextId = ['_','a'];
 
   /// Constructor walks the AST,
   /// generates a prelude of remapped variables,
   /// and stores the result in [content].
   Obfuscator(AST ast) {
     content = visitAST(ast);
-    final prelude = ids.entries.map((m) => '${m.value} = ${m.key}').join(';');
-    content = '$prelude;$content';
+    final prelude = ids.entries.map((m) => '${m.value} = ${m.key}').join(_sep);
+    content = '$prelude$_sep$content';
   }
 
   /// If [id] is not already assigned a new identifier,
   /// then constructs one with [_newId]. The next id
-  /// bumps the last letter to the next in the alphabet.
-  /// If the last letter was 'z', then flip it back to 'a' and
+  /// bumps the last letter to the next in the alphabet
+  /// set `[a-z, A-Z, 0-9]`.
+  /// If the last letter was '9', then flip it back to 'a' and
   /// append a new alphabet entry to the [_newId] list.
   String writeOrReadNewID(String id) {
     if(ids.containsKey(id)) {
@@ -34,11 +42,16 @@ class Obfuscator extends Visitor<String> {
     }
 
     final newid = ids[id] =  _nextId.join();
+    final n = _nextId.length-1;
     if(_nextId.last == 'z') {
-      _nextId[_nextId.length-1] = 'a';
+      _nextId[n] = 'A';
+    } else if(_nextId.last == 'Z') {
+      _nextId[n] = '0';
+    } else if(_nextId.last == '9') {
+      _nextId[n] = 'a';
       _nextId.add('a');
     } else {
-      _nextId[_nextId.length-1] = String.fromCharCode(_nextId.last.codeUnitAt(0)+1);
+      _nextId[n] = String.fromCharCode(_nextId.last.codeUnitAt(0)+1);
     }
 
     return newid;
@@ -46,7 +59,7 @@ class Obfuscator extends Visitor<String> {
 
   @override
   String visitAST(AST ast) {
-    return ast.stmts.map((e) => e.accept(this)).join(';');
+    return ast.stmts.map((e) => e.accept(this)).join(_sep);
   }
 
   @override
@@ -91,6 +104,8 @@ class Obfuscator extends Visitor<String> {
     final lhs = declMultiVar.vars.map((e) => e.accept(this)).join(',');
     final rhs = declMultiVar.vals.map((e) => e.accept(this)).join(',');
     final scp = switch(declMultiVar.local) { true => 'local', _ => ''};
+
+    if(rhs.isEmpty) return '$scp $lhs';
     return '$scp $lhs=$rhs';
   }
 
@@ -98,35 +113,39 @@ class Obfuscator extends Visitor<String> {
   String visitDeclVar(DeclVar declVar) {
     final id = writeOrReadNewID(declVar.id.lexeme);
     final init = declVar.init?.accept(this);
+    final attr = switch(declVar.attr?.lexeme) {
+      final String s => ' <$s> ',
+      _ => '',
+    };
 
     if(init != null) {
-      return '$id=$init';
+      return '$id$attr=$init';
     }
 
-    return id;
+    return '$id$attr';
   }
 
   @override
   String visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
     final head = forIterLoopStmt.vars.map((e) => writeOrReadNewID(e.lexeme)).join(',');
     final tail = forIterLoopStmt.exprs.map((e) => e.accept(this)).join(',');
-    final body = forIterLoopStmt.body.map((e) => e.accept(this)).join(';');
-    return 'for $head in $tail do;$body;end';
+    final body = forIterLoopStmt.body.map((e) => e.accept(this)).join(_sep);
+    return 'for $head in $tail do$_sep$body${_sep}end';
   }
 
   @override
   String visitForLoopStmt(ForLoopStmt forLoopStmt) {
     final expr = forLoopStmt.exprList.map((e) => e.accept(this)).join(',');
-    final body = forLoopStmt.body.map((e) => e.accept(this)).join(';');
-    return 'for $expr do;$body;end';
+    final body = forLoopStmt.body.map((e) => e.accept(this)).join(_sep);
+    return 'for $expr do$_sep$body${_sep}end';
   }
 
   @override
   String visitFuncExpr(FuncExpr expr) {
     final id = expr.idParts.map((e) => e.accept(this)).join('.');
     final args = expr.args.map((e) => e.accept(this)).join(',');
-    final body = expr.body.map((e) => e.accept(this)).join(';');
-    return 'function $id($args);$body;end';
+    final body = expr.body.map((e) => e.accept(this)).join(_sep);
+    return 'function $id($args)$_sep$body${_sep}end';
   }
 
   @override
@@ -149,17 +168,18 @@ class Obfuscator extends Visitor<String> {
   @override
   String visitIfStmt(IfStmt stmt) {
     final expr = stmt.expr?.accept(this);
-    final body = stmt.body.map((e) => e.accept(this));
+    final body = stmt.body.map((e) => e.accept(this)).join(_sep);
 
-    final next = switch(stmt.isTerminalElse) {
-      true => 'else;$body',
-      false => switch(stmt.nextIfStmt?.accept(this)) {
-        final String n => 'else $n',
-        null => '',
-      }
+    if(stmt.isTerminalElse) {
+      return '$_sep$body${_sep}end';
+    }
+
+    final next = switch(stmt.nextIfStmt?.accept(this)) {
+      final String n => '${_sep}else$n',
+      null => '${_sep}end',
     };
 
-    return 'if $expr do;$body;$next;end';
+    return 'if $expr then$_sep$body$next';
   }
 
   @override
@@ -181,7 +201,10 @@ class Obfuscator extends Visitor<String> {
     return switch(memoryAccess.type) {
       MemoryAccessType.field => '$id.$field',
       MemoryAccessType.table => '$id[$field]',
-      MemoryAccessType.call => '$id($args)',
+      MemoryAccessType.call => switch(memoryAccess.isSelfFwd) {
+        true => '$id:$args',
+        false =>'$id($args)',
+      },
     };
   }
 
@@ -209,8 +232,8 @@ class Obfuscator extends Visitor<String> {
   @override
   String visitRepeatUntilLoopStmt(RepeatUntilLoopStmt repeatUntilLoopStmt) {
     final expr = repeatUntilLoopStmt.untilExpr.accept(this);
-    final body = repeatUntilLoopStmt.body.map((e) => e.accept(this)).join(';');
-    return 'repeat;$body;until($expr)';
+    final body = repeatUntilLoopStmt.body.map((e) => e.accept(this)).join(_sep);
+    return 'repeat$_sep$body${_sep}until($expr)';
   }
 
   @override
@@ -230,12 +253,12 @@ class Obfuscator extends Visitor<String> {
 
   @override
   String visitStringLiteral(StringLiteral string) {
-    return '"${string.value}"';
+    return writeOrReadNewID('"${string.value}"');
   }
 
   @override
   String visitTableLiteral(TableLiteral table) {
-    final pairs = table.pairs.map((e) => e.accept(this)).join(';');
+    final pairs = table.pairs.map((e) => e.accept(this)).join(',');
     return '{$pairs}';
   }
 
@@ -249,7 +272,7 @@ class Obfuscator extends Visitor<String> {
   @override
   String visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
     final expr = whileLoopStmt.expr.accept(this);
-    final body = whileLoopStmt.body.map((e) => e.accept(this)).join(';');
-    return 'while $expr do;$body;end';
+    final body = whileLoopStmt.body.map((e) => e.accept(this)).join(_sep);
+    return 'while $expr do$_sep$body${_sep}end';
   }
 }

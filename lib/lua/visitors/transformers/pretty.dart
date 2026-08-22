@@ -67,10 +67,10 @@ class Pretty extends Visitor<String> {
     };
 
     if (value == null) {
-      return 'local $id$attr';
+      return '$id$attr';
     }
 
-    return 'local $id$attr = $value';
+    return '$id$attr = $value';
   }
 
   @override
@@ -138,7 +138,7 @@ class Pretty extends Visitor<String> {
     final callee = mem.callee.accept(this);
     final args = mem.args.map((e) => e.accept(this)).join(',');
 
-    if (mem.op.type == TokenType.kColon) {
+    if (mem.isSelfFwd) {
       return '$callee:$args';
     }
 

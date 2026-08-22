@@ -1125,7 +1125,7 @@ abstract class BaseRuntime extends Visitor<Object?> {
     };
 
     final bool funcInvocation = memoryAccess.type == MemoryAccessType.call;
-    bool fwdSelfArg = memoryAccess.op.type == TokenType.kColon;
+    bool fwdSelfArg = memoryAccess.isSelfFwd;
 
     if (callee.skipSemanitcs) {
       // Check if special case of skipping semantics and evaluation.

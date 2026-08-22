@@ -73,6 +73,14 @@ void main(List<String> args) {
 
     if (obfuscate) {
       final obf = Obfuscator(ast);
+
+      /*
+      // Useful for debugging.
+      int line = 0;
+      final s = obf.content.split('\n').map((e) => '[${++line}] $e').join('\n');
+      print(s);
+      */
+
       if (parse(obf.content) == null) {
         print(
           'There was a problem parsing the obfuscated contents. Report this problem.',

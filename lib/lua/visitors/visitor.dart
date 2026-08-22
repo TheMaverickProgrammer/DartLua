@@ -419,6 +419,10 @@ class MemoryAccess extends MathExpr {
   final MemoryAccessType type;
   final List<MathExpr> args;
 
+  /// True if [op]'s [TokenType] is [TokenType.kColon].
+  /// False otherwise.
+  bool get isSelfFwd => op.type == TokenType.kColon;
+
   /// If this grammar is used to obtain a field,
   /// then the first entry of [args] has the field.
   MathExpr? get field => args.firstOrNull;
