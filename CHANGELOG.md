@@ -7,6 +7,9 @@
 - Hex numeric literals parsing added.
 - Variable attribute support added.
   - `<const>` throws an error on re-assignment.
+- These changes added a new parameter to _most_ `LuaObject` constructors.
+  - An optional `attrs` parameter should keep everyone's projects backwards-compatible.
+  - The only two factory constructors without this parameter are `LuaObject.func` and `LuaObject.ref`.
 
 ## 1.0.15
 - Lua tables can have keys of any type.
