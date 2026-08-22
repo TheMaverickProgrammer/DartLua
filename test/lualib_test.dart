@@ -114,6 +114,10 @@ void main() {
     expect(runTest('./test/assets/pass/attributes.lua'), true);
   });
 
+  test('hex integers', () {
+    expect(runTest('./test/assets/pass/hex.lua'), true);
+  });
+
   test('scope', () {
     expect(runTest('./test/assets/pass/scope.lua'), true);
   });

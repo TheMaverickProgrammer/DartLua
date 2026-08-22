@@ -66,6 +66,7 @@ enum TokenType {
 
 final alphanum = RegExp(r'^[A-Za-z0-9_]+$');
 final number = RegExp(r'^[0-9]+(\.[0-9]+)?$');
+final hex = RegExp(r'^[0-9a-fA-F]+$');
 
 class StreamPos {
   final int col, row;
@@ -186,7 +187,8 @@ class Lexer {
     int prev = t.curr;
     while (!t.eof()) {
       if (prev != t.curr) {
-        throw 'Unknown character in tokenizer on line ${t.line}, col ${t.col}. Cannot recover.';
+        throw '''Unknown character in tokenizer on line ${t.line}, col ${t.col}.'''
+              '''Cannot recover.''';
       }
       switch (t.peek().lexeme) {
         case '<':
@@ -491,10 +493,50 @@ class Lexer {
     if (lexeme.isNotEmpty) {
       curr += lexeme.length;
     } else {
-      addError('Expected number but was empty.');
+      addError('Malformed number.');
+    }
+
+    final p = peek().lexeme;
+    if(lexeme == '0' && const ['x', 'X'].contains(p)) {
+      curr++;
+      return parseHex();
     }
 
     return start.toToken(TokenType.kNumber, lexeme: lexeme);
+  }
+
+  /// Similar to [parseNumber] but only allows hex digits.
+  Token parseHex() {
+    String lexeme = '';
+    int offset = 0;
+
+    StreamChar start = peek();
+    String next = start.lexeme;
+
+    while (hex.hasMatch(next)) {
+      lexeme = next;
+
+      final rawChar = peek(offset: ++offset).lexeme;
+      next += rawChar;
+
+      if (rawChar == '.') {
+        next += peek(offset: ++offset).lexeme;
+      } else if (rawChar == '') {
+        break;
+      }
+    }
+
+    if (lexeme.isNotEmpty) {
+      curr += lexeme.length;
+    } else {
+      addError('Malformed hex number.');
+    }
+
+    final hx = int.tryParse(lexeme, radix: 16);
+    if(hx == null) {
+      addError('Failed to convert $lexeme to number.');
+    }
+    return start.toToken(TokenType.kNumber, lexeme: hx.toString());
   }
 
   StreamChar parseRawName() {

@@ -1,5 +1,5 @@
 ## 1.0.16
-- For loop initial value, limit, and step expressions unpacked correctly now after evaluation.
+- For-loop initial value, limit, and step expressions unpacked correctly after evaluation now.
   - Added a test to `for_loop.lua` to ensure expressions are evaluated here.
 - Added `for_loop_iter.lua` to test function iterator expressions in generic for loops.
 - Stateless iterator support added along with tests.
@@ -8,7 +8,7 @@
 - Variable attribute support added.
   - `<const>` throws an error on re-assignment.
 - These changes added a new parameter to _most_ `LuaObject` constructors.
-  - An optional `attrs` parameter should keep everyone's projects backwards-compatible.
+  - An optional `attr` parameter should keep everyone's projects backwards-compatible.
   - The only two factory constructors without this parameter are `LuaObject.func` and `LuaObject.ref`.
 
 ## 1.0.15
