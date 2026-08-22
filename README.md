@@ -21,6 +21,8 @@
 This is a custom a custom `Lua 5.5` interpreter and utilities written from scratch in pure Dart.
 I wrote this as a part of a series of learning exercises on how to write my own compilers and programming languages.
 
+See this [section](#missing-lua-lang-support) for remaining issues.
+
 ## Tutorial
 This package exports a full fledged library and a simple executable for running lua scripts.
 Runnable examples below can be found under [`./bin/examples/`](./bin/examples/).
@@ -158,17 +160,20 @@ The DOT file will be embedded in an HTML page `my_script.lua.html`.
 ## All Features
 - MIT Licensed.
 - No FFI or extra dependencies.
-- DOT file generator and visualiser for input scripts.
-- [Autodoc][AUTODOC] generation and programmable API so your own libs can generate docs to share with your consumers.
+- Out-Of-The-Box AST Transformers:
+  1. DOT file [visualizer][VISUALIZER] for input scripts.
+  1. A simple [obfuscator][OBFUSCATOR] for scrambling lua scripts that still run with same behavior.
+- Includes powerful examples:
+  1. Command Line Interface
+  2. Interpreter
+  3. [Autodoc][AUTODOC] generation and programmable API so your own libs can generate docs to share with your consumers.
+  4. Custom runtime integration.
 - Create your own custom runtime and define `LuaObject`s in dart.
   - `Truthy` and `Native2Lua` Dart class extensions for convenient bridge between userdata and lua types.
   - Parser, Evaluator, and StdRuntime classes extensible and modifiable.
 - Ready-To-Use `run()` and `runner()` utility functions for immediate execution.
-- Includes powerful examples: Command Line Interface, Interpreter, AutoDoc generates HTML documentation, and custom runtime integration.
 - `LuaFunctionBuilder` class to conveniently build complex lua functions.
 - You can emit, collect, and act on your own custom warnings, diagnostic info, or errors.
-- Aims to be Lua 5.5 compliant.
-  - See this [section](#missing-lua-lang-support) for remaining issues.
 - Globals provided by `_ENV` and legacy `_G` upvalues.
 - Metatables supported via `setmetatable(t, mt)` and `getmetatable(t)` as you'd expect.
 - Metamethods: `__call`, `__index`, `__newindex`, `__add`, `__sub`, `__mul`, `__div`, `__mod`, `__pow`, `__unm`, `__idiv`, `__band`, `__bor`, `__bxor`, `__bnot`, `__shl`, `__shr`, `__concat`, `__len`, `__eq`, `__lt`, `__le`, `__tostring`.
@@ -258,3 +263,5 @@ This also means the metamethods related to GC such as `__mode`, `__close`, and `
 them your scripts will run fine, but any side effects these metamethods have will do nothing in this runtime.
 
 [AUTODOC]: ./lib/docs/autodoc.dart
+[VISUALIZER]: ./lib/lua/visitors/transformers/visualizer.dart
+[OBFUSCATOR]: ./lib/lua/visitors/transformers/obfuscator.dart

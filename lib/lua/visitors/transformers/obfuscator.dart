@@ -1,17 +1,33 @@
 import 'package:puredartlua/lua/lua.dart';
 
+/// A very simple obfuscator example.
+/// Visits every node and generates minified lua.
+/// Identifiers are remapped to the next smallest unique id
+/// composed of strictly lower-case alphabetical chars.
 class Obfuscator extends Visitor<String> {
+  /// The output content to write to file.
   String content = '';
 
+  /// Remapped ids.
   final Map<String, String> ids = {};
+
+  /// The next id to use ion [wirteOrReadNewID].
   final List<String> _nextId = ['a'];
 
+  /// Constructor walks the AST,
+  /// generates a prelude of remapped variables,
+  /// and stores the result in [content].
   Obfuscator(AST ast) {
     content = visitAST(ast);
     final prelude = ids.entries.map((m) => '${m.value} = ${m.key}').join(';');
     content = '$prelude;$content';
   }
 
+  /// If [id] is not already assigned a new identifier,
+  /// then constructs one with [_newId]. The next id
+  /// bumps the last letter to the next in the alphabet.
+  /// If the last letter was 'z', then flip it back to 'a' and
+  /// append a new alphabet entry to the [_newId] list.
   String writeOrReadNewID(String id) {
     if(ids.containsKey(id)) {
       return ids[id]!;
@@ -29,26 +45,26 @@ class Obfuscator extends Visitor<String> {
   }
 
   @override
-  visitAST(AST ast) {
+  String visitAST(AST ast) {
     return ast.stmts.map((e) => e.accept(this)).join(';');
   }
 
   @override
-  visitAssignMultiStmt(AssignMultiStmt assignMultiStmt) {
+  String visitAssignMultiStmt(AssignMultiStmt assignMultiStmt) {
     final lhs = assignMultiStmt.lhs.map((e) => e.accept(this)).join(',');
     final rhs = assignMultiStmt.rhs.map((e) => e.accept(this)).join(',');
     return '$lhs = $rhs';
   }
 
   @override
-  visitAssignStmt(AssignStmt assignStmt) {
+  String visitAssignStmt(AssignStmt assignStmt) {
     final lhs = assignStmt.lhs.accept(this);
     final rhs = assignStmt.rhs.accept(this);
     return '$lhs = $rhs';
   }
 
   @override
-  visitBinaryExpr(BinaryExpr expr) {
+  String visitBinaryExpr(BinaryExpr expr) {
     final lhs = expr.lhs.accept(this);
     final rhs = expr.rhs.accept(this);
     final op  = expr.op.lexeme;
@@ -56,22 +72,22 @@ class Obfuscator extends Visitor<String> {
   }
 
   @override
-  visitBooleanLiteral(BooleanLiteral boolean) {
+  String visitBooleanLiteral(BooleanLiteral boolean) {
     return boolean.token.lexeme;
   }
 
   @override
-  visitBreakStmt(BreakStmt stmt) {
+  String visitBreakStmt(BreakStmt stmt) {
     return 'break';
   }
 
   @override
-  visitDeclArg(DeclArg declArg) {
+  String visitDeclArg(DeclArg declArg) {
     return writeOrReadNewID(declArg.lexeme);
   }
 
   @override
-  visitDeclMultiVar(DeclMultiVar declMultiVar) {
+  String visitDeclMultiVar(DeclMultiVar declMultiVar) {
     final lhs = declMultiVar.vars.map((e) => e.accept(this)).join(',');
     final rhs = declMultiVar.vals.map((e) => e.accept(this)).join(',');
     final scp = switch(declMultiVar.local) { true => 'local', _ => ''};
@@ -79,7 +95,7 @@ class Obfuscator extends Visitor<String> {
   }
 
   @override
-  visitDeclVar(DeclVar declVar) {
+  String visitDeclVar(DeclVar declVar) {
     final id = writeOrReadNewID(declVar.id.lexeme);
     final init = declVar.init?.accept(this);
 
@@ -91,7 +107,7 @@ class Obfuscator extends Visitor<String> {
   }
 
   @override
-  visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
+  String visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
     final head = forIterLoopStmt.vars.map((e) => writeOrReadNewID(e.lexeme)).join(',');
     final tail = forIterLoopStmt.exprs.map((e) => e.accept(this)).join(',');
     final body = forIterLoopStmt.body.map((e) => e.accept(this)).join(';');
@@ -99,14 +115,14 @@ class Obfuscator extends Visitor<String> {
   }
 
   @override
-  visitForLoopStmt(ForLoopStmt forLoopStmt) {
+  String visitForLoopStmt(ForLoopStmt forLoopStmt) {
     final expr = forLoopStmt.exprList.map((e) => e.accept(this)).join(',');
     final body = forLoopStmt.body.map((e) => e.accept(this)).join(';');
     return 'for $expr do;$body;end';
   }
 
   @override
-  visitFuncExpr(FuncExpr expr) {
+  String visitFuncExpr(FuncExpr expr) {
     final id = expr.idParts.map((e) => e.accept(this)).join('.');
     final args = expr.args.map((e) => e.accept(this)).join(',');
     final body = expr.body.map((e) => e.accept(this)).join(';');
@@ -114,24 +130,24 @@ class Obfuscator extends Visitor<String> {
   }
 
   @override
-  visitGotoLabelStmt(GotoLabelStmt gotoLabelStmt) {
+  String visitGotoLabelStmt(GotoLabelStmt gotoLabelStmt) {
     return '::${writeOrReadNewID(gotoLabelStmt.label.lexeme)}::';
   }
 
   @override
-  visitGotoStmt(GotoStmt gotoStmt) {
+  String visitGotoStmt(GotoStmt gotoStmt) {
     final label = gotoStmt.expr.accept(this);
     return 'goto $label';
   }
 
   @override
-  visitGroupExpr(GroupExpr groupExpr) {
+  String visitGroupExpr(GroupExpr groupExpr) {
     final expr = groupExpr.expr.accept(this);
     return '($expr)';
   }
 
   @override
-  visitIfStmt(IfStmt stmt) {
+  String visitIfStmt(IfStmt stmt) {
     final expr = stmt.expr?.accept(this);
     final body = stmt.body.map((e) => e.accept(this));
 
@@ -147,7 +163,7 @@ class Obfuscator extends Visitor<String> {
   }
 
   @override
-  visitKeyValStmt(KeyValStmt keyval) {
+  String visitKeyValStmt(KeyValStmt keyval) {
     final key = keyval.key?.accept(this);
     final val = keyval.value.accept(this);
     if(key == null) {
@@ -157,7 +173,7 @@ class Obfuscator extends Visitor<String> {
   }
 
   @override
-  visitMemoryAccess(MemoryAccess memoryAccess) {
+  String visitMemoryAccess(MemoryAccess memoryAccess) {
     final id = memoryAccess.callee.accept(this);
     final field = memoryAccess.field?.accept(this);
     final args = memoryAccess.args.map((e) => e.accept(this)).join(',');
@@ -170,35 +186,35 @@ class Obfuscator extends Visitor<String> {
   }
 
   @override
-  visitNilLiteral(NilLiteral nil) {
+  String visitNilLiteral(NilLiteral nil) {
     return 'nil';
   }
 
   @override
-  visitNotExpr(NotExpr notExpr) {
+  String visitNotExpr(NotExpr notExpr) {
     final expr = notExpr.expr.accept(this);
     return 'not $expr';
   }
 
   @override
-  visitNumberLiteral(NumberLiteral number) {
+  String visitNumberLiteral(NumberLiteral number) {
     return number.token.lexeme;
   }
 
   @override
-  visitRawExpr(RawExpr rawExpr) {
+  String visitRawExpr(RawExpr rawExpr) {
     return writeOrReadNewID(rawExpr.token.lexeme);
   }
 
   @override
-  visitRepeatUntilLoopStmt(RepeatUntilLoopStmt repeatUntilLoopStmt) {
+  String visitRepeatUntilLoopStmt(RepeatUntilLoopStmt repeatUntilLoopStmt) {
     final expr = repeatUntilLoopStmt.untilExpr.accept(this);
     final body = repeatUntilLoopStmt.body.map((e) => e.accept(this)).join(';');
     return 'repeat;$body;until($expr)';
   }
 
   @override
-  visitReturnStmt(ReturnStmt expr) {
+  String visitReturnStmt(ReturnStmt expr) {
     final args = expr.values.map((e) => e.accept(this)).join(',');
 
     if(args.isEmpty) {
@@ -208,30 +224,30 @@ class Obfuscator extends Visitor<String> {
   }
 
   @override
-  visitSelfExpr(SelfExpr selfExpr) {
+  String visitSelfExpr(SelfExpr selfExpr) {
     return writeOrReadNewID(selfExpr.token.lexeme);
   }
 
   @override
-  visitStringLiteral(StringLiteral string) {
+  String visitStringLiteral(StringLiteral string) {
     return '"${string.value}"';
   }
 
   @override
-  visitTableLiteral(TableLiteral table) {
+  String visitTableLiteral(TableLiteral table) {
     final pairs = table.pairs.map((e) => e.accept(this)).join(';');
     return '{$pairs}';
   }
 
   @override
-  visitUnaryExpr(UnaryExpr expr) {
+  String visitUnaryExpr(UnaryExpr expr) {
     final rhs = expr.rhs.accept(this);
     final op = expr.prefix.lexeme;
     return '$op$rhs';
   }
 
   @override
-  visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
+  String visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
     final expr = whileLoopStmt.expr.accept(this);
     final body = whileLoopStmt.body.map((e) => e.accept(this)).join(';');
     return 'while $expr do;$body;end';

@@ -10,6 +10,10 @@
 - These changes added a new parameter to _most_ `LuaObject` constructors.
   - An optional `attr` parameter should keep everyone's projects backwards-compatible.
   - The only two factory constructors without this parameter are `LuaObject.func` and `LuaObject.ref`.
+- Added `obfuscator.dart` example AST transformer.
+- Included obfuscation in the main driver `-f` flag.
+- Moved transformers to their own directory under `/lib/lua/visitors/transformers`.
+- Updated readme.
 
 ## 1.0.15
 - Lua tables can have keys of any type.

@@ -1,7 +1,7 @@
-import 'package:puredartlua/lua/visitors/visualizer.dart';
+import 'package:puredartlua/lua/visitors/transformers/visualizer.dart';
 import 'package:puredartlua/runner.dart';
 import 'package:path/path.dart' as p;
-import 'obfuscator.dart';
+import '../lib/lua/visitors/transformers/obfuscator.dart';
 
 /// Show the help dialog.
 void help() {
