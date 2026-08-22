@@ -6,8 +6,6 @@ import 'package:puredartlua/lua/visitors/visitor.dart';
 
 import 'prism.dart' as prism;
 
-// TODO: Version 1.0.14 broke autodoc a little. Some items appear to be missing. Some appear to be in an unexpected ordering.
-
 /// This class builds a single-page html webpage
 /// from the documentation of all the global variables
 /// in a provided runtime implementation.
@@ -250,7 +248,7 @@ class LuaAutoDoc {
   /// of decorated html for the autodoc.
   String luaObj2Html(String title, LuaObject luaObj, {LuaObject? parent}) {
     if (_visited.containsKey(luaObj) || (luaObj.doc?.noHtml ?? true)) {
-      // TODO: Better cycle detection?
+      // TODO: Better cycle detection.
       return '';
     }
 
@@ -258,13 +256,17 @@ class LuaAutoDoc {
 
     String content = '';
     String header = '';
+    final String attr = switch(luaObj.attr) {
+      final String s => ' <$s> ',
+      _ => '',
+    };
     if (luaObj.skipSemanitcs || (luaObj.isTable && luaObj.isNotFunc)) {
       final String anchor = pushPath(title);
       header += '<a id="$anchor"></a>';
       header +=
           '''
           <h3 class="lua-table">
-          <a href="#$anchor">$title</a>: <b>table</b>
+          <a href="#$anchor">$title</a>: <b>table$attr</b>
           </h3>
           ''';
 
@@ -309,7 +311,7 @@ class LuaAutoDoc {
           <span>
             <a id="$anchor"></a>
             <h3 class="lua-field">
-              <a href="#$anchor">$dot$title</a>
+              <a href="#$anchor">$dot$title$attr</a>
             </h3>
           </span>
           ''';

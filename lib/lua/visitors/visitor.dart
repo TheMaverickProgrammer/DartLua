@@ -49,16 +49,21 @@ class DeclArg extends Stmt {
 /// The variable name will be [id]. It may have
 /// initialization terms provided by [init].
 class DeclVar extends Stmt {
+  /// The [MathExpr] to eval and assign to this variable.
   final MathExpr? init;
 
+  /// An optional attribute given to this variable.
+  final Token? attr;
+
+  /// Shorthand to abtain the underlining id lexeme.
   Token get id => super.token;
 
   /// Convenience to construct nil lua grammar node.
-  DeclVar.initNil(super.token) : init = null;
+  DeclVar.initNil(super.token, {this.attr}) : init = null;
 
   /// Constructor expects a [value]. If constructing
   /// a nil variable, see [DeclVar.initNil].
-  DeclVar.initValue(super.token, {required MathExpr value}) : init = value;
+  DeclVar.initValue(super.token, {required MathExpr value, this.attr}) : init = value;
 
   @override
   R accept<R>(Visitor<R> v) => v.visitDeclVar(this);
@@ -78,7 +83,7 @@ class DeclMultiVar extends Stmt {
 
   /// Convenience constructor.
   /// See [DeclVar].
-  factory DeclMultiVar.initNils(List<Token> vars) {
+  factory DeclMultiVar.initNils(List<Token> vars, List<Token?> attrs) {
     return DeclMultiVar._(
       vars.first,
       vars.map((e) => DeclVar.initNil(e)).toList(growable: false),
@@ -86,10 +91,19 @@ class DeclMultiVar extends Stmt {
     );
   }
 
-  factory DeclMultiVar.initVals(List<Token> vars, List<MathExpr> vals) {
+  /// Transforms tokens into [DeclVar] statements forwarding
+  /// the corresponding [attrs] and [valus] element each.
+  factory DeclMultiVar.initVals(List<Token> vars, List<Token?> attrs, List<MathExpr> vals) {
+    assert(vars.length == attrs.length);
+
+    final List<DeclVar> vs = [];
+    for(int i = 0; i < vars.length; i++) {
+      vs.add(DeclVar.initNil(vars[i], attr: attrs[i]));
+    }
+
     return DeclMultiVar._(
       vars.first,
-      vars.map((e) => DeclVar.initNil(e)).toList(growable: false),
+      vs,
       vals,
     );
   }

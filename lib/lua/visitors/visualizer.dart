@@ -295,9 +295,13 @@ class Visualizer extends Visitor<GzBaseNode> {
   GzBaseNode visitDeclVar(DeclVar declVar) {
     final id = declVar.id.lexeme;
     final value = declVar.init?.accept(this);
+    final attr =switch(declVar.attr?.lexeme) {
+      final String s => ' <$s> ',
+      _ => ''
+    };
 
     return node(
-      'local $id',
+      'local $id$attr',
       color: skyBlue,
       shape: 'box',
       children: value != null ? [value] : null,

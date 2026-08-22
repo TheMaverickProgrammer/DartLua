@@ -4,6 +4,9 @@
 - Added `for_loop_iter.lua` to test function iterator expressions in generic for loops.
 - Stateless iterator support added along with tests.
 - Added `next` lua primitive and included it in the test for stateless iterators.
+- Hex numeric literals parsing added.
+- Variable attribute support added.
+  - `<const>` throws an error on re-assignment.
 
 ## 1.0.15
 - Lua tables can have keys of any type.

@@ -152,7 +152,20 @@ class Parser {
       'Expected variable name after "local".',
     );
 
+    attr() {
+      // Build an attribute from these tokens.
+      Token? a;
+      if(peek().type == TokenType.kLT) {
+        advance();
+        a = consume(TokenType.kRaw, 'Expected attribute name.');
+        consume(TokenType.kGT, 'Expected closing ">" after attribute.');
+      }
+      return a;
+    }
+
     final vars = [token];
+    final attrs = [attr()];
+
     while (peek().type == TokenType.kComma) {
       advance();
       vars.add(
@@ -161,11 +174,12 @@ class Parser {
           'Expected variable name in multi-variable initializer.',
         ),
       );
+      attrs.add(attr());
     }
 
     final assign = peek();
     if (assign.type != TokenType.kAssign) {
-      return DeclMultiVar.initNils(vars);
+      return DeclMultiVar.initNils(vars, attrs);
     }
 
     consume(
@@ -180,7 +194,7 @@ class Parser {
       vals.add(math());
     }
 
-    return DeclMultiVar.initVals(vars, vals);
+    return DeclMultiVar.initVals(vars, attrs, vals);
   }
 
   Stmt returnStmt() {

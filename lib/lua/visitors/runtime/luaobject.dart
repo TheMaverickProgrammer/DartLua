@@ -138,6 +138,9 @@ class LuaObject {
   /// then the table may know it by a different name. See [fields].
   final String id;
 
+  /// If non-null, this is an attribute given to this variable.
+  final String? attr;
+
   /// If this object has html content, it may
   /// show up in the autodoc generation.
   LuaDoc? doc;
@@ -484,6 +487,8 @@ class LuaObject {
   /// Returns the stored [_fields] value
   LuaFieldsMap? get fields => deref()._fields;
 
+  /// This machinery assigns the value [from]
+  /// to this lua object.
   /// Bumps [uses] by one and stores
   /// [from] as the new [_value] or [_fields]
   /// depending on the type of [from].
@@ -692,8 +697,8 @@ class LuaObject {
 
   /// Default constructor for some lua object. The variable name
   /// in scope will become [id] and can have either [fields] or
-  /// [value] but not both.
-  LuaObject(this.id, {LuaFieldsMap? fields, Object? value})
+  /// [value] but not both. Adopts the attribute [attr].
+  LuaObject(this.id, {LuaFieldsMap? fields, Object? value, this.attr})
     : _value = value,
       _fields = fields,
       assert(
@@ -705,8 +710,8 @@ class LuaObject {
       );
 
   /// Constructs a lua object with [id] for its variable name
-  /// in scope with some initial [value].
-  LuaObject.variable(this.id, Object? value) : super() {
+  /// in scope with some initial [value]. Adopts the attribute [attr].
+  LuaObject.variable(this.id, Object? value, [this.attr]) : super() {
     if (value is LuaFieldsMap) {
       _fields = value;
     } else if (value is LuaObject) {
@@ -719,6 +724,7 @@ class LuaObject {
   /// Constructs a lua object with [id] for its variable name
   /// in scope with some set of [fields]. These [fields] are
   /// dart [Object] values which means they can be primitives.
+  /// Adopts the attribute [attr].
   ///
   /// If [fields] is null, [_fields] will be assigned to the
   /// empty map `{}`.
@@ -726,7 +732,7 @@ class LuaObject {
   /// Alternatively, if the fields of the table are ALL [LuaObject]s,
   /// whose names will be exactly the same as the field key, then
   /// [LuaObject.tableFrom] can be used instead.
-  LuaObject.table(this.id, [Map<Object, Object?>? fields]) : super() {
+  LuaObject.table(this.id, [Map<Object, Object?>? fields, this.attr]) : super() {
     _fields =
         fields?.map((k, v) => MapEntry(k, v?.toLua(k.toString()) ?? LuaObject.nil(k.toString()))) ??
         {};
@@ -738,15 +744,19 @@ class LuaObject {
   ///
   /// If raw values (dart [Object]s) are needed, then use [LuaObject.table]
   /// and map the keys to their values.
-  factory LuaObject.tableFrom(String id, List<LuaObject> toFields) =>
-      LuaObject.table(id, {for (final o in toFields) o.id: o});
+  factory LuaObject.tableFrom(String id, List<LuaObject> toFields, {String? attr}) =>
+      LuaObject.table(id, {for (final o in toFields) o.id: o}, attr);
 
   /// Constructs a lua function with [id] for its function name
   /// in scope with some [closure] to be written to [value].
   /// A required [def] is needed to determine the input
   /// arguments and other runtime information.
+  ///
+  /// Attributes [attr] are omitted from function objects.
+  /// A constant variable will point to this object.
   LuaObject.func(this.id, FuncExpr def, Function closure, [Scope? pscope])
-    : super() {
+    : attr = null,
+     super() {
     _fields = {};
 
     // Order here matters. value will clear funcDef and scope.
@@ -756,12 +766,14 @@ class LuaObject {
   }
 
   /// Constructs a lua object with null values and fields.
-  LuaObject.nil(this.id);
+  /// Adopts attributes [attr].
+  LuaObject.nil(this.id, {this.attr});
 
   /// See [toRef].
   /// Note that the runtime [id] will be prefixed with meta information
   /// to assist debugging call stacks.
-  LuaObject.ref(LuaObject src) : id = 'ref_${src.id}', super() {
+  /// > Does NOT adopt the [src] object's attributes and sets it to null.
+  LuaObject.ref(LuaObject src) : id = 'ref_${src.id}', attr = null, super() {
     _fields = null;
     funcDef = null;
     scope = null;

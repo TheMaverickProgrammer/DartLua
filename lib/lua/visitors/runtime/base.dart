@@ -573,6 +573,11 @@ abstract class BaseRuntime extends Visitor<Object?> {
       final id = (assignStmt.lhs as RawExpr).token.lexeme;
       return defGlobal(LuaObject.variable(id, rhs));
     } else if (lhs is LuaObject) {
+      // Check if this object has a <const> attribute.
+      if(lhs.attr == 'const') {
+        final StreamPos linePos = assignStmt.token.pos;
+        throw '$linePos Attempt to re-assign a constant variable ${lhs.id}.';
+      }
       if (rhs is LuaObject) {
         if (lhs.deref() != rhs.deref()) {
           // EDGE CASE. Promote functions up to the lhs value.
@@ -881,7 +886,8 @@ abstract class BaseRuntime extends Visitor<Object?> {
   Object? visitDeclVar(DeclVar declVar) {
     final id = declVar.id.lexeme;
     final value = declVar.init?.accept(this) ?? LuaObject.nil(id);
-    return defLocal(LuaObject.variable(id, value));
+    final attr = declVar.attr?.lexeme;
+    return defLocal(LuaObject.variable(id, value, attr));
   }
 
   // See [VisitArgPack] extension.

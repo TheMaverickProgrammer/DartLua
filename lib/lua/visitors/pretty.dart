@@ -61,12 +61,16 @@ class Pretty extends Visitor<String> {
   String visitDeclVar(DeclVar declVar) {
     final id = declVar.id.lexeme;
     final value = declVar.init?.accept(this);
+    final attr = switch(declVar.attr?.lexeme) {
+      final String s => ' <$s> ',
+      _ => '',
+    };
 
     if (value == null) {
-      return 'local $id';
+      return 'local $id$attr';
     }
 
-    return 'local $id = $value';
+    return 'local $id$attr = $value';
   }
 
   @override

@@ -110,6 +110,10 @@ void main() {
     expect(runTest('./test/assets/pass/multivalues.lua'), true);
   });
 
+  test('attributes', () {
+    expect(runTest('./test/assets/pass/attributes.lua'), true);
+  });
+
   test('scope', () {
     expect(runTest('./test/assets/pass/scope.lua'), true);
   });
