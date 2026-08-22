@@ -6,7 +6,7 @@ print(x)
 -- Expect: false [   7:26 ] Attempt to re-assign a constant variable x.
 print(pcall(function() x = 22/7 end))
 
--- This is allowed b/c y us pointing to x's value.
+-- This is allowed b/c y is just pointing to x's value.
 local y = x
 y = 12
 
