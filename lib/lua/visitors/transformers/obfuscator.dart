@@ -5,7 +5,7 @@ final String _sep = ';';
 /// A very simple obfuscator example.
 /// Visits every node and generates minified lua.
 /// Identifiers are remapped to the next smallest unique id
-/// composed of strictly lower-case alphanumeric chars.
+/// composed of alphanumeric chars.
 class Obfuscator extends Visitor<String> {
   /// The output content to write to file.
   String content = '';
@@ -19,7 +19,7 @@ class Obfuscator extends Visitor<String> {
   /// entry from a->z, A-Z, then from 0->9 before wrapping back
   /// to letter "a" and appending a new entry. Thus,
   /// to be a valid lua identifier it needs a leading "_".
-  final List<String> _nextId = ['_','a'];
+  final List<String> _nextId = ['_', 'a'];
 
   /// Constructor walks the AST,
   /// generates a prelude of remapped variables,
@@ -37,21 +37,21 @@ class Obfuscator extends Visitor<String> {
   /// If the last letter was '9', then flip it back to 'a' and
   /// append a new alphabet entry to the [_newId] list.
   String writeOrReadNewID(String id) {
-    if(ids.containsKey(id)) {
+    if (ids.containsKey(id)) {
       return ids[id]!;
     }
 
-    final newid = ids[id] =  _nextId.join();
-    final n = _nextId.length-1;
-    if(_nextId.last == 'z') {
+    final newid = ids[id] = _nextId.join();
+    final n = _nextId.length - 1;
+    if (_nextId.last == 'z') {
       _nextId[n] = 'A';
-    } else if(_nextId.last == 'Z') {
+    } else if (_nextId.last == 'Z') {
       _nextId[n] = '0';
-    } else if(_nextId.last == '9') {
+    } else if (_nextId.last == '9') {
       _nextId[n] = 'a';
       _nextId.add('a');
     } else {
-      _nextId[n] = String.fromCharCode(_nextId.last.codeUnitAt(0)+1);
+      _nextId[n] = String.fromCharCode(_nextId.last.codeUnitAt(0) + 1);
     }
 
     return newid;
@@ -80,7 +80,7 @@ class Obfuscator extends Visitor<String> {
   String visitBinaryExpr(BinaryExpr expr) {
     final lhs = expr.lhs.accept(this);
     final rhs = expr.rhs.accept(this);
-    final op  = expr.op.lexeme;
+    final op = expr.op.lexeme;
     return '$lhs $op $rhs';
   }
 
@@ -103,9 +103,12 @@ class Obfuscator extends Visitor<String> {
   String visitDeclMultiVar(DeclMultiVar declMultiVar) {
     final lhs = declMultiVar.vars.map((e) => e.accept(this)).join(',');
     final rhs = declMultiVar.vals.map((e) => e.accept(this)).join(',');
-    final scp = switch(declMultiVar.local) { true => 'local', _ => ''};
+    final scp = switch (declMultiVar.local) {
+      true => 'local',
+      _ => '',
+    };
 
-    if(rhs.isEmpty) return '$scp $lhs';
+    if (rhs.isEmpty) return '$scp $lhs';
     return '$scp $lhs=$rhs';
   }
 
@@ -113,12 +116,12 @@ class Obfuscator extends Visitor<String> {
   String visitDeclVar(DeclVar declVar) {
     final id = writeOrReadNewID(declVar.id.lexeme);
     final init = declVar.init?.accept(this);
-    final attr = switch(declVar.attr?.lexeme) {
+    final attr = switch (declVar.attr?.lexeme) {
       final String s => ' <$s> ',
       _ => '',
     };
 
-    if(init != null) {
+    if (init != null) {
       return '$id$attr=$init';
     }
 
@@ -127,7 +130,9 @@ class Obfuscator extends Visitor<String> {
 
   @override
   String visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
-    final head = forIterLoopStmt.vars.map((e) => writeOrReadNewID(e.lexeme)).join(',');
+    final head = forIterLoopStmt.vars
+        .map((e) => writeOrReadNewID(e.lexeme))
+        .join(',');
     final tail = forIterLoopStmt.exprs.map((e) => e.accept(this)).join(',');
     final body = forIterLoopStmt.body.map((e) => e.accept(this)).join(_sep);
     return 'for $head in $tail do$_sep$body${_sep}end';
@@ -170,11 +175,11 @@ class Obfuscator extends Visitor<String> {
     final expr = stmt.expr?.accept(this);
     final body = stmt.body.map((e) => e.accept(this)).join(_sep);
 
-    if(stmt.isTerminalElse) {
+    if (stmt.isTerminalElse) {
       return '$_sep$body${_sep}end';
     }
 
-    final next = switch(stmt.nextIfStmt?.accept(this)) {
+    final next = switch (stmt.nextIfStmt?.accept(this)) {
       final String n => '${_sep}else$n',
       null => '${_sep}end',
     };
@@ -186,7 +191,7 @@ class Obfuscator extends Visitor<String> {
   String visitKeyValStmt(KeyValStmt keyval) {
     final key = keyval.key?.accept(this);
     final val = keyval.value.accept(this);
-    if(key == null) {
+    if (key == null) {
       return val;
     }
     return '$key=$val';
@@ -198,12 +203,12 @@ class Obfuscator extends Visitor<String> {
     final field = memoryAccess.field?.accept(this);
     final args = memoryAccess.args.map((e) => e.accept(this)).join(',');
 
-    return switch(memoryAccess.type) {
+    return switch (memoryAccess.type) {
       MemoryAccessType.field => '$id.$field',
       MemoryAccessType.table => '$id[$field]',
-      MemoryAccessType.call => switch(memoryAccess.isSelfFwd) {
+      MemoryAccessType.call => switch (memoryAccess.isSelfFwd) {
         true => '$id:$args',
-        false =>'$id($args)',
+        false => '$id($args)',
       },
     };
   }
@@ -240,7 +245,7 @@ class Obfuscator extends Visitor<String> {
   String visitReturnStmt(ReturnStmt expr) {
     final args = expr.values.map((e) => e.accept(this)).join(',');
 
-    if(args.isEmpty) {
+    if (args.isEmpty) {
       return 'return';
     }
     return 'return $args';
