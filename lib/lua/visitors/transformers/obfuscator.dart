@@ -41,7 +41,7 @@ class Scope {
       _nextId[n] = 'a';
       _nextId.add('a');
     } else {
-      _nextId[n] = String.fromCharCode(_nextId.last.codeUnitAt(0)+1);
+      _nextId[n] = String.fromCharCode(_nextId.last.codeUnitAt(0) + 1);
     }
   }
 
@@ -246,9 +246,12 @@ class Obfuscator extends Visitor<String> {
   String visitDeclMultiVar(DeclMultiVar declMultiVar) {
     final lhs = declMultiVar.vars.map((e) => e.accept(this)).join(',');
     final rhs = declMultiVar.vals.map((e) => e.accept(this)).join(',');
-    final scp = switch(declMultiVar.local) { true => 'local', _ => ''};
+    final scp = switch (declMultiVar.local) {
+      true => 'local',
+      _ => '',
+    };
 
-    if(rhs.isEmpty) return '$scp $lhs';
+    if (rhs.isEmpty) return '$scp $lhs';
     return '$scp $lhs=$rhs';
   }
 
@@ -261,7 +264,7 @@ class Obfuscator extends Visitor<String> {
       _ => '',
     };
 
-    if(init != null) {
+    if (init != null) {
       return '$id$attr=$init';
     }
 
@@ -326,11 +329,11 @@ class Obfuscator extends Visitor<String> {
       body = stmt.body.map((e) => e.accept(this)).join(_sep);
     });
 
-    if(stmt.isTerminalElse) {
+    if (stmt.isTerminalElse) {
       return '$_sep$body${_sep}end';
     }
 
-    final next = switch(stmt.nextIfStmt?.accept(this)) {
+    final next = switch (stmt.nextIfStmt?.accept(this)) {
       final String n => '${_sep}else$n',
       null => '${_sep}end',
     };
@@ -342,7 +345,7 @@ class Obfuscator extends Visitor<String> {
   String visitKeyValStmt(KeyValStmt keyval) {
     final key = keyval.key?.accept(this);
     final val = keyval.value.accept(this);
-    if(key == null) {
+    if (key == null) {
       return val;
     }
     return '$key=$val';
@@ -354,12 +357,12 @@ class Obfuscator extends Visitor<String> {
     final field = memoryAccess.field?.accept(this);
     final args = memoryAccess.args.map((e) => e.accept(this)).join(',');
 
-    return switch(memoryAccess.type) {
+    return switch (memoryAccess.type) {
       MemoryAccessType.field => '$id.$field',
       MemoryAccessType.table => '$id[$field]',
-      MemoryAccessType.call => switch(memoryAccess.isSelfFwd) {
+      MemoryAccessType.call => switch (memoryAccess.isSelfFwd) {
         true => '$id:$args',
-        false =>'$id($args)',
+        false => '$id($args)',
       },
     };
   }
@@ -404,7 +407,7 @@ class Obfuscator extends Visitor<String> {
   String visitReturnStmt(ReturnStmt expr) {
     final args = expr.values.map((e) => e.accept(this)).join(',');
 
-    if(args.isEmpty) {
+    if (args.isEmpty) {
       return 'return';
     }
     return 'return $args';
