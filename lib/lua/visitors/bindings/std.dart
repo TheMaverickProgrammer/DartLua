@@ -80,6 +80,7 @@ mixin Std on BaseRuntime {
   /// - getmetatable(t)
   /// - rawset(t,k,v)
   /// - rawget(t,k)
+  /// - rawquals(t,k)
   void initStdMetatables() {
     final defSetMetatable = LuaFuncBuilder.create('setmetatable')
         .arg('t')
@@ -192,6 +193,37 @@ mixin Std on BaseRuntime {
       Given lua table <code>t</code>, returns the value in the table
       by key <code>k</code>. This does not trigger
       <code>__index</code>.
+      ''',
+    );
+
+    final defRawEquals = LuaFuncBuilder.create('rawequal')
+        .arg('a')
+        .arg('b')
+        .exec(
+          call: () {
+            final a = findVar('a');
+            final b = findVar('b');
+
+            Object? lval = a;
+            if (a is LuaObject) {
+              lval = a.value;
+            }
+
+            Object? rval = b;
+            if (b is LuaObject) {
+              rval = b.value;
+            }
+
+            return lval == rval;
+          },
+        );
+
+    defGlobal(defRawEquals).doc = LuaDoc(
+      category: catRuntime,
+      html: '''
+      Given lua objects or values <code>a</code> and <code>b</code>, returns whether
+      they are both equal by comparing references or values if primitives.
+      Unlike the equality operator, this method does not invoke metamethod <code>__eq</code> if present.
       ''',
     );
   }
@@ -1204,7 +1236,10 @@ table.insert(t, "foo")
     );
   }
 
-  // I don't have a better name for this group.
+  /// Defines the following misc. utilities:
+  /// - pcall
+  /// - xpcall
+  /// - tonumber
   void initMiscRuntime() {
     pcall() {
       final fn = findVar('fn')?.toLuaRet();
@@ -1247,6 +1282,41 @@ table.insert(t, "foo")
       This lua runtime does not support the debug library nor stack traces at runtime.
       Therefore the function <code>xpcall</code> is another name for <code>pcall</code>.
       They do the same thing.
+      ''',
+    );
+
+    tonumber() {
+      final s = findVar('v')?.valueAs<String>();
+      if(s == null) {
+        return null;
+      }
+
+      final LuaObject? b = findVar('base');
+
+      if(!s.contains('.')) {
+        int radix = 10;
+        if(b != null) {
+          final int? bb = b.valueAsInt();
+          if(bb == null) {
+            throw 'Base expected to be an integer.';
+          }
+          radix = bb;
+        }
+        return int.tryParse(s, radix: radix);
+      }
+
+      if(b != null) return null;
+
+      return double.tryParse(s);
+    }
+
+    defGlobal(LuaFuncBuilder.create('tonumber').arg('v').arg('base', optional: true).exec(call: tonumber),
+    ).doc = LuaDoc(
+      category: catRuntime,
+      html: '''
+      Converts a string <code>v</code> into a number. Optional <code>base</code>
+      converts strictly integers to that base if provided. Default base is <code>10</code>.
+      Real numbers cannot have a base and will return <code>nil</code> if provided.
       ''',
     );
   }

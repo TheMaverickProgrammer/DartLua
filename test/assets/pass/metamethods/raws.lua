@@ -39,3 +39,28 @@ t[5] = 'world'
 -- No key "5" on t.
 -- Expect: nil
 print(rawget(t, 5))
+
+t = {}
+local u = t
+
+-- Expect: true
+print(t == u)
+
+-- Expect: true
+print(rawequal(t, u))
+
+local v = {}
+
+-- Expect: false
+print(t == v)
+
+-- Expect: false
+print(rawequal(t, v))
+
+setmetatable(t, { __eq = function(a, b) return true end })
+
+-- Expect: true
+print(t == v)
+
+-- Expect: false
+print(rawequal(t, v))

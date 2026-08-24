@@ -1,3 +1,7 @@
+## 1.0.17
+- Added `rawequal` and `tonumber` std lib methods.
+- Fixed autodoc regression introduced in 1.0.14.
+
 ## 1.0.16
 - For-loop initial value, limit, and step expressions unpacked correctly after evaluation now.
   - Added a test to `for_loop.lua` to ensure expressions are evaluated here.

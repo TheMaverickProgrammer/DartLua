@@ -187,8 +187,8 @@ void main() {
       expect(runTest('$dir/__newindex.lua'), true);
     });
 
-    test('rawset & rawget', () {
-      expect(runTest('$dir/rawset.lua'), true);
+    test('rawset & rawget & rawequal', () {
+      expect(runTest('$dir/raws.lua'), true);
     });
 
     test('__eq', () {
