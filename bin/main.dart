@@ -13,6 +13,23 @@ void help() {
 	''');
 }
 
+/// Standard libs prelude for the obfuscation option.
+const stdLibsPrelude = [
+  'rawget',
+  'rawset',
+  'math',
+  'next',
+  'ipairs',
+  'pairs',
+  'table',
+  'print',
+  'type',
+  'string',
+  'coroutine'
+  'setmetatable',
+  'getmetatable',
+];
+
 /// Pipe each string in [errs] to [print].
 void onErrors(List<String> errs) => errs.forEach(print);
 
@@ -72,7 +89,7 @@ void main(List<String> args) {
     if (ast == null) return;
 
     if (obfuscate) {
-      final obf = Obfuscator(ast);
+      final obf = Obfuscator(ast, prelude: stdLibsPrelude);
 
       /*
       // Useful for debugging.

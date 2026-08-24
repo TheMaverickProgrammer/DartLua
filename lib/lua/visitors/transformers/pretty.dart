@@ -1,4 +1,3 @@
-import 'package:puredartlua/lua/passes/lexer.dart';
 import 'package:puredartlua/lua/visitors/visitor.dart';
 
 class Pretty extends Visitor<String> {
