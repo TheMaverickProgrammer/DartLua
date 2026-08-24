@@ -25,7 +25,7 @@ const stdLibsPrelude = [
   'print',
   'type',
   'string',
-  'coroutine'
+  'coroutine',
   'setmetatable',
   'getmetatable',
 ];
