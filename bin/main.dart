@@ -17,6 +17,7 @@ void help() {
 const stdLibsPrelude = [
   'rawget',
   'rawset',
+  'rawequal',
   'math',
   'next',
   'ipairs',
@@ -28,6 +29,8 @@ const stdLibsPrelude = [
   'coroutine',
   'setmetatable',
   'getmetatable',
+  'tostring',
+  'tonumber',
 ];
 
 /// Pipe each string in [errs] to [print].
