@@ -1,3 +1,32 @@
+
+/// Reserved lua keywords.
+const List<String> keywords = [
+  'do',
+  'while',
+  'if',
+  'then',
+  'for',
+  'repeat',
+  'until',
+  'while',
+  'local',
+  'function',
+  'elseif',
+  'else',
+  'end',
+  'break',
+  'goto',
+  'in',
+  'nil',
+  'not',
+  'and',
+  'or',
+  'true',
+  'false',
+  'return',
+];
+
+
 enum TokenType {
   kRaw,
   kNewLine,

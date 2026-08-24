@@ -1,6 +1,7 @@
 ## 1.0.17
 - Added `rawequal` and `tonumber` std lib methods.
 - Fixed autodoc regression introduced in 1.0.14.
+- Improved obfuscator naming algorithm.
 
 ## 1.0.16
 - For-loop initial value, limit, and step expressions unpacked correctly after evaluation now.

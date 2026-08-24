@@ -103,7 +103,7 @@ void main(List<String> args) {
 
       if (parse(obf.content) == null) {
         print(
-          'There was a problem parsing the obfuscated contents. Report this problem.',
+          'There was a problem parsing the obfuscated contents. Send a report.',
         );
         return;
       }

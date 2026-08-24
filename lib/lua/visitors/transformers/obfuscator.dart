@@ -1,6 +1,7 @@
 import 'package:puredartlua/lua/lua.dart';
 import 'package:puredartlua/lua/passes/lexer.dart';
 
+/// Line separator. Placed here for debugging.
 final String _sep = ';';
 
 /// A simple lexical scope to track the lifetime of variables.
@@ -17,32 +18,44 @@ class Scope {
   final List<String> _nextId = [];
 
   /// Advances the next ID and returns it using the following
-  /// algorithm:
-  /// Bumps the last letter in the set to the next in the
-  /// collection `[a-z, A-Z, 0-9]`.
-  /// If the last letter was '9', then flip it back to 'a' and
-  /// append a new alphabet entry to the [_newId] list.
-  /// If [_newId] is empty, then the letter "a" is inserted.
-  /// If [_newId] is of length 1 and is letter "Z", then
-  /// skip numbers `[0-9]` b/c lua needs a non-number character
-  /// for valid identifiers.
+  /// collection as a sequence of combinations: `[a-zA-Z0-9]
+  /// where all digits except the first can include [0-9] b/c
+  /// the first digit in the sequence must be a valid lua
+  /// variable name. 1 million unique variables can fit
+  /// comfortably in 4 digit generations using this scheme.
   void advanceNextId() {
-    final n = _nextId.length-1;
-    if(_nextId.last == 'z') {
-      _nextId[n] = 'A';
-    } else if(_nextId.last == 'Z') {
-      if(_nextId.length == 1) {
-        _nextId[n] = 'a';
-        _nextId.add('a');
-      } else {
-        _nextId[n] = '0';
+    bump(int n) {
+      if(n-1 >= 0) {
+        _nextId[n-1] = 'a';
       }
-    } else if(_nextId.last == '9') {
-      _nextId[n] = 'a';
-      _nextId.add('a');
-    } else {
-      _nextId[n] = String.fromCharCode(_nextId.last.codeUnitAt(0) + 1);
+
+      if(n == _nextId.length) return false;
+      if(_nextId[n] == 'z') {
+        _nextId[n] = 'A';
+      } else if(_nextId[n] == 'Z') {
+        if(n == 0) {
+          return bump(n+1);
+        }else {
+          _nextId[n] = '0';
+        }
+      }
+      else if(_nextId[n] == '9') {
+        return bump(n+1);
+      } else {
+        _nextId[n] = String.fromCharCode(_nextId[n].codeUnitAt(0) + 1);
+      }
+      return true;
     }
+
+    do {
+      if(!bump(0)) {
+        for(int i = 0; i < _nextId.length; i++) {
+          _nextId[i] = 'a';
+        }
+        _nextId.add('a');
+      }
+
+    } while(keywords.contains(_nextId.join()));
   }
 
   /// Clears [_nextId] and copies the contents of
@@ -91,7 +104,10 @@ class Scope {
 /// A very simple obfuscator example.
 /// Visits every node and generates minified lua.
 /// Identifiers are remapped to the next smallest unique id
-/// composed of strictly lower-case alphanumeric chars.
+/// composed of strictly lower-case alphanumeric chars. An
+/// optional prelude of terms to include at the top of the
+/// script can be provided in the constructor.
+/// See [Obfuscator.new].
 class Obfuscator extends Visitor<String> {
   /// Global scope.
   late Scope global;
