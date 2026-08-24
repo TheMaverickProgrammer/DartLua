@@ -88,6 +88,8 @@ bool runTest(String path) {
       stdOut.addAll(evaluator.impl.stdOut);
     }
 
+    stdOut.forEach(print);
+
     print('--- Test Results ---');
     final List<ExpectationLine> expected = ExpectationParser.parse(content);
     ok = _testComparisons(expected, stdOut);
@@ -164,6 +166,10 @@ void main() {
 
   test('currying', () {
     expect(runTest('./test/assets/pass/currying.lua'), true);
+  });
+
+  test('do-block', () {
+    expect(runTest('./test/assets/pass/do_block.lua'), true);
   });
 
   group('metamethods', () {
@@ -278,6 +284,10 @@ void main() {
 
     test('assignment is not a value expression', () {
       expect(runTest('$dir/assignment_as_value_expr.lua'), true);
+    });
+
+    test('Return syntax must be the end of a chunk.', () {
+      expect(runTest('$dir/early_return.lua'), true);
     });
   });
 }

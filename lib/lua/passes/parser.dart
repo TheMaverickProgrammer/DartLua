@@ -117,6 +117,7 @@ class Parser {
 
     // Pipe result through [echo] to debug when needed.
     return echo(switch (token.type) {
+      TokenType.kDo => doBlockStmt(),
       TokenType.kLocal => localStmt(),
       TokenType.kFunc => declFuncExpr(),
       TokenType.kReturn => returnStmt(),
@@ -135,6 +136,13 @@ class Parser {
     final op = consume(TokenType.kAssign, 'Expected "=" for assignment.');
     final rhs = math();
     return AssignStmt(op, lhs: lhs, rhs: rhs);
+  }
+
+  DoBlockStmt doBlockStmt() {
+    final token = consume(TokenType.kDo, 'Expected "do" keyword.');
+    final body = bodyStmt(terminal: TokenType.kEnd);
+    consume(TokenType.kEnd, 'Expected do-block to terminate with "end" keyword.');
+    return DoBlockStmt(token, body: body);
   }
 
   Stmt localStmt() {
@@ -209,7 +217,13 @@ class Parser {
     ];
 
     final token = consume(TokenType.kReturn, 'Expected "return" keyword.');
-    return ReturnStmt(token, argList(terminals: retTerminals));
+    final args = argList(terminals: retTerminals);
+
+    final next = peek();
+    if(!retTerminals.contains(next.type)) {
+      throw '${next.pos} Keyword "return" must be last in a block.';
+    }
+    return ReturnStmt(token, args);
   }
 
   Stmt breakStmt() {
@@ -854,7 +868,7 @@ class Parser {
           TokenType.kAssign =>
             '${token.pos} Assignment is not a value expression.',
           // Else, provide the default error.
-          _ => '${token.pos} Expected literal value or variable. Found $type.',
+          _ => '${token.pos} Expected literal value or variable. Found "${token.lexeme}".',
         },
       ),
     };
@@ -882,9 +896,11 @@ class Parser {
         addError(e.toString());
       }
 
-      if (peek().type == TokenType.kComma) {
-        advance();
+      if (peek().type != TokenType.kComma) {
+        break;
       }
+
+      advance();
     }
     return args;
   }

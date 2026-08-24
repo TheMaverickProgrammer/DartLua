@@ -13,6 +13,9 @@
 - Added `obfuscator.dart` example AST transformer.
 - Included obfuscation in the main driver `-f` flag.
 - Moved transformers to their own directory under `/lib/lua/visitors/transformers`.
+- Added `do <expr> block` grammar and rules.
+- Added syntax error check for early returns as per the spec.
+- Parser errors now print the offending token lexeme in quotes instead of the Dart enum token name.
 - Updated readme.
 
 ## 1.0.15

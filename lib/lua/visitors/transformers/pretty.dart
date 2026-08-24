@@ -225,6 +225,12 @@ class Pretty extends Visitor<String> {
   }
 
   @override
+  String visitDoBlockStmt(DoBlockStmt doBlockStmt) {
+    final body = doBlockStmt.body.map((e) => e.accept(this)).join('/n');
+    return 'do\n$body\nend';
+  }
+
+  @override
   String visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
     final exprs = whileLoopStmt.expr.accept(this);
     final body = whileLoopStmt.body.map((e) => e.accept(this)).join('/n');

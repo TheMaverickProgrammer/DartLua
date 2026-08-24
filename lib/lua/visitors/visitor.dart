@@ -146,6 +146,16 @@ class IfStmt extends Stmt {
   R accept<R>(Visitor<R> v) => v.visitIfStmt(this);
 }
 
+/// Lua do-block grammar node.
+class DoBlockStmt extends Stmt {
+  final List<Stmt> body;
+
+  DoBlockStmt(super.token, {required this.body});
+
+  @override
+  R accept<R>(Visitor<R> v) => v.visitDoBlockStmt(this);
+}
+
 /// Lua while-do loop grammar node.
 class WhileLoopStmt extends Stmt {
   /// The conditional.
@@ -609,6 +619,7 @@ abstract class Visitor<T> {
   T visitReturnStmt(ReturnStmt expr);
   T visitTableLiteral(TableLiteral table);
   T visitKeyValStmt(KeyValStmt keyval);
+  T visitDoBlockStmt(DoBlockStmt doBlockStmt);
   T visitWhileLoopStmt(WhileLoopStmt whileLoopStmt);
   T visitForLoopStmt(ForLoopStmt forLoopStmt);
   T visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt);

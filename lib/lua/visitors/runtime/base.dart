@@ -1544,6 +1544,22 @@ abstract class BaseRuntime extends Visitor<Object?> {
     }
     return null;
   }
+
+  @override
+  Object? visitDoBlockStmt(DoBlockStmt doBlockStmt) {
+    final prevScope = scope;
+    pushScope();
+    try {
+      for (Stmt stmt in doBlockStmt.body) {
+        stmt.accept(this);
+      }
+    } catch (e) {
+      rethrow;
+    } finally {
+      restoreScope(prevScope);
+    }
+    return null;
+  }
 }
 
 /// Helper to convert [Object] to a lua `true` or `false`

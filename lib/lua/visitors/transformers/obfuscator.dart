@@ -437,6 +437,15 @@ class Obfuscator extends Visitor<String> {
   }
 
   @override
+  String visitDoBlockStmt(DoBlockStmt doBlockStmt) {
+    late final String body;
+    wrapScope(current, block: (){
+      body = doBlockStmt.body.map((e) => e.accept(this)).join(_sep);
+    });
+    return 'do$_sep$body${_sep}end';
+  }
+
+  @override
   String visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
     final expr = whileLoopStmt.expr.accept(this);
     late final String body;

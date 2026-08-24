@@ -243,7 +243,11 @@ I will get around to that when I can!
 
 ## Missing Lua Lang Support
 Here's what's left to be compliant with most `Lua 5.5` programs:
-- I missed `do ... end` blocks. I rarely see those used. To be added.
+- Missing modules:
+  - The rest of the `table` utility methods. To be covered in time.
+  - The `string` module seems reasonable to add.
+  - The `io` module could be added, but not a priority.
+  - The `debug` related modules are not included and are not a priority for me atm.
 - Bytecode generation. Which is necessary because...
   - We need to jump on `goto` and resume on `::label::` statements.
   - `Coroutines` library **is** added but the runtime needs bytecode to make use of it.

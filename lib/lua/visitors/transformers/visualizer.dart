@@ -525,6 +525,20 @@ class Visualizer extends Visitor<GzBaseNode> {
   }
 
   @override
+  GzBaseNode visitDoBlockStmt(DoBlockStmt doBlockStmt) {
+    final body = doBlockStmt.body.map((e) => e.accept(this)).toList();
+
+    return node(
+      'do',
+      shape: 'diamond',
+      color: 'yellow',
+      children: [
+        node('body', color: 'yellow', children: body),
+      ],
+    );
+  }
+
+  @override
   GzBaseNode visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
     final exprs = whileLoopStmt.expr.accept(this);
     final body = whileLoopStmt.body.map((e) => e.accept(this)).toList();
