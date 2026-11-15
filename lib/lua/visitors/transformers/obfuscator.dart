@@ -122,6 +122,23 @@ class Obfuscator extends Visitor<String> {
   /// The output content to write to file.
   String content = '';
 
+  /// Used to check if a parent or ancestor chain is in the prelude.
+  /// This list represents a chain and any ID will be replaced
+  /// with the proper value representing that chain.
+  final List<String> _parentChain = [];
+  bool _buildParentChain = false;
+  String? _storedParentFieldID = null;
+  void pushParentChain() { _buildParentChain = true; }
+  void commitParentChain() { _buildParentChain = false; }
+  String? popParentChain() {
+    if(_parentChain.isNotEmpty) {
+      _parentChain.removeLast();
+    }
+    String? temp = _storedParentFieldID;
+    _storedParentFieldID = null;
+    return temp;
+  }
+
   /// Constructor walks the AST,
   /// generates a [prelude] of remapped variables,
   /// and stores the result in [content].
@@ -369,12 +386,16 @@ class Obfuscator extends Visitor<String> {
 
   @override
   String visitMemoryAccess(MemoryAccess memoryAccess) {
+    pushParentChain();
     final id = memoryAccess.callee.accept(this);
+    commitParentChain();
     final field = memoryAccess.field?.accept(this);
+    final fieldOut = popParentChain();
+
     final args = memoryAccess.args.map((e) => e.accept(this)).join(',');
 
     return switch (memoryAccess.type) {
-      MemoryAccessType.field => '$id.$field',
+      MemoryAccessType.field => fieldOut ?? '$id.$field',
       MemoryAccessType.table => '$id[$field]',
       MemoryAccessType.call => switch (memoryAccess.isSelfFwd) {
         true => '$id:$args',
@@ -402,7 +423,23 @@ class Obfuscator extends Visitor<String> {
   @override
   String visitRawExpr(RawExpr rawExpr) {
     final id = rawExpr.token.lexeme;
-    final out = getID(id);
+    final String? out;
+
+    // This state requires we build ID chains for prelude
+    // candidate detection.
+    if(_parentChain.isNotEmpty) {
+      final String pre = _parentChain.join('.');
+      out = getID('$pre.$id');
+      _storedParentFieldID = out;
+    } else {
+      out = getID(id);
+    }
+
+    // This state means we are collecting IDs for the chain.
+    if(_buildParentChain) {
+      _parentChain.add(id);
+    }
+
     if(out == null) {
       return createID(id);
     }

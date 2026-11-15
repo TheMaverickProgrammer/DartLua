@@ -27,6 +27,9 @@ const stdLibsPrelude = [
   'type',
   'string',
   'coroutine',
+  'coroutine.create',
+  'coroutine.yield',
+  'coroutine.resume',
   'setmetatable',
   'getmetatable',
   'tostring',
@@ -88,7 +91,9 @@ void main(List<String> args) {
   AST? ast;
   try {
     // Try to construct an AST.
-    ast = parseFile(path);
+    final inFile = File(path);
+    final oldSize = inFile.lengthSync();
+    ast = parse(inFile.readAsStringSync(), onErrors: onErrors);
     if (ast == null) return;
 
     if (obfuscate) {
@@ -112,7 +117,10 @@ void main(List<String> args) {
       final fogPath = p.joinAll(parts);
       final file = File(fogPath);
       file.writeAsStringSync(obf.content);
+      final newSize = file.lengthSync();
       print('Write OK $fogPath');
+      final r = ((1.0-(newSize / oldSize))*100).toStringAsFixed(2);
+      print('$oldSize bytes => $newSize bytes ($r% smaller)');
       // Done.
       return;
     }
