@@ -101,6 +101,185 @@ class Scope {
   Scope([this.parent]);
 }
 
+class ObfuscatorCollectConstants extends Visitor<List<Token>> {
+  @override
+  List<Token> visitAST(AST ast) {
+    return ast.stmts.fold([], (e, v) => e..addAll(v.accept(this)));
+  }
+
+  @override
+  List<Token> visitAssignMultiStmt(AssignMultiStmt assignMultiStmt) {
+    return assignMultiStmt.rhs.fold([], (e, v) => e..addAll(v.accept(this)));
+  }
+
+  @override
+  List<Token> visitAssignStmt(AssignStmt assignStmt) {
+    return assignStmt.rhs.accept(this);
+  }
+
+  @override
+  List<Token> visitBinaryExpr(BinaryExpr expr) {
+    return [...expr.lhs.accept(this), ...expr.rhs.accept(this)];
+  }
+
+  @override
+  List<Token> visitBooleanLiteral(BooleanLiteral boolean) {
+    return [];
+  }
+
+  @override
+  List<Token> visitBreakStmt(BreakStmt stmt) {
+    return [];
+  }
+
+  @override
+  List<Token> visitDeclArg(DeclArg declArg) {
+    return [];
+  }
+
+  @override
+  List<Token> visitDeclMultiVar(DeclMultiVar declMultiVar) {
+    return declMultiVar.vals.fold([], (e, v) => e..addAll(v.accept(this)));
+  }
+
+  @override
+  List<Token> visitDeclVar(DeclVar declVar) {
+    return declVar.init?.accept(this) ?? [];
+  }
+
+  @override
+  List<Token> visitDoBlockStmt(DoBlockStmt doBlockStmt) {
+    return [];
+  }
+
+  @override
+  List<Token> visitForIterLoopStmt(ForIterLoopStmt forIterLoopStmt) {
+    final e = forIterLoopStmt.exprs.fold([], (e, v) => e..addAll(v.accept(this)));
+    final b = forIterLoopStmt.body.fold([], (e, v) => e..addAll(v.accept(this)));
+
+    return [
+      ...e,
+      ...b,
+    ];
+  }
+
+  @override
+  List<Token> visitForLoopStmt(ForLoopStmt forLoopStmt) {
+    final c = forLoopStmt.control.accept(this);
+    final e = forLoopStmt.endExpr.accept(this);
+    final x = forLoopStmt.exprList.fold([], (e, v) => e..addAll(v.accept(this)));
+    final s = forLoopStmt.stepExpr.accept(this);
+    final b = forLoopStmt.body.fold([], (e, v) => e..addAll(v.accept(this)));
+
+    return [
+      ...c,
+      ...e,
+      ...x,
+      ...s,
+      ...b,
+    ];
+  }
+
+  @override
+  List<Token> visitFuncExpr(FuncExpr expr) {
+    return expr.body.fold([], (e,v) => e..addAll(v.accept(this)));
+  }
+
+  @override
+  List<Token> visitGotoLabelStmt(GotoLabelStmt gotoLabelStmt) {
+    return [];
+  }
+
+  @override
+  List<Token> visitGotoStmt(GotoStmt gotoStmt) {
+    return [];
+  }
+
+  @override
+  List<Token> visitGroupExpr(GroupExpr groupExpr) {
+    return groupExpr.expr.accept(this);
+  }
+
+  @override
+  List<Token> visitIfStmt(IfStmt stmt) {
+    final e = stmt.expr?.accept(this) ?? [];
+    final b = stmt.body.fold([], (e,v) => e..addAll(v.accept(this)));
+    final n = stmt.nextIfStmt?.accept(this) ?? [];
+    return [...e, ...b, ...n];
+  }
+
+  @override
+  List<Token> visitKeyValStmt(KeyValStmt keyval) {
+    return keyval.value.accept(this);
+  }
+
+  @override
+  List<Token> visitMemoryAccess(MemoryAccess memoryAccess) {
+    return memoryAccess.args.fold([], (e, v) => e..addAll(v.accept(this)));
+  }
+
+  @override
+  List<Token> visitNilLiteral(NilLiteral nil) {
+    return [];
+  }
+
+  @override
+  List<Token> visitNotExpr(NotExpr notExpr) {
+    return notExpr.expr.accept(this);
+  }
+
+  @override
+  List<Token> visitNumberLiteral(NumberLiteral number) {
+    // TODO: implement visitNumberLiteral
+    throw UnimplementedError();
+  }
+
+  @override
+  List<Token> visitRawExpr(RawExpr rawExpr) {
+    return [];
+  }
+
+  @override
+  List<Token> visitRepeatUntilLoopStmt(RepeatUntilLoopStmt repeatUntilLoopStmt) {
+    final e = repeatUntilLoopStmt.untilExpr.accept(this);
+    final b = repeatUntilLoopStmt.body.fold([], (e,v) => e..addAll(v.accept(this)));
+    return [...e, ...b];
+  }
+
+  @override
+  List<Token> visitReturnStmt(ReturnStmt expr) {
+    return expr.values.fold([], (e,v) => e..addAll(v.accept(this)));
+  }
+
+  @override
+  List<Token> visitSelfExpr(SelfExpr selfExpr) {
+    return [];
+  }
+
+  @override
+  List<Token> visitStringLiteral(StringLiteral string) {
+    // TODO: implement visitStringLiteral
+    throw UnimplementedError();
+  }
+
+  @override
+  List<Token> visitTableLiteral(TableLiteral table) {
+    return table.pairs.fold([], (e, v) => e..addAll(v.accept(this)));
+  }
+
+  @override
+  List<Token> visitUnaryExpr(UnaryExpr expr) {
+    return expr.rhs.accept(this);
+  }
+
+  @override
+  List<Token> visitWhileLoopStmt(WhileLoopStmt whileLoopStmt) {
+    final e = whileLoopStmt.expr.accept(this);
+    final b = whileLoopStmt.body.fold([], (e,v) => e..addAll(v.accept(this)));
+    return [...e, ...b];
+  }
+}
+
 /// A very simple obfuscator example.
 /// Visits every node and generates minified lua.
 /// Identifiers are remapped to the next smallest unique id
@@ -126,15 +305,15 @@ class Obfuscator extends Visitor<String> {
   /// This list represents a chain and any ID will be replaced
   /// with the proper value representing that chain.
   final List<String> _parentChain = [];
-  bool _buildParentChain = false;
-  String? _storedParentFieldID = null;
-  void pushParentChain() { _buildParentChain = true; }
-  void commitParentChain() { _buildParentChain = false; }
+  int _parentChainDepth = 0;
+  String? _storedParentFieldID;
+  void pushParentChain() { _parentChainDepth++; }
   String? popParentChain() {
-    if(_parentChain.isNotEmpty) {
-      _parentChain.removeLast();
+    _parentChainDepth--;
+    if(_parentChainDepth == 0) {
+      _parentChain.clear();
     }
-    String? temp = _storedParentFieldID;
+    final temp = _storedParentFieldID;
     _storedParentFieldID = null;
     return temp;
   }
@@ -388,19 +567,20 @@ class Obfuscator extends Visitor<String> {
   String visitMemoryAccess(MemoryAccess memoryAccess) {
     pushParentChain();
     final id = memoryAccess.callee.accept(this);
-    commitParentChain();
     final field = memoryAccess.field?.accept(this);
     final fieldOut = popParentChain();
-
-    final args = memoryAccess.args.map((e) => e.accept(this)).join(',');
 
     return switch (memoryAccess.type) {
       MemoryAccessType.field => fieldOut ?? '$id.$field',
       MemoryAccessType.table => '$id[$field]',
-      MemoryAccessType.call => switch (memoryAccess.isSelfFwd) {
-        true => '$id:$args',
-        false => '$id($args)',
-      },
+      MemoryAccessType.call => () {
+        final args = memoryAccess.args.map((e) => e.accept(this)).join(',');
+        if(memoryAccess.isSelfFwd) {
+          return '$id:$args';
+        }
+
+        return '$id($args)';
+      }()
     };
   }
 
@@ -423,7 +603,7 @@ class Obfuscator extends Visitor<String> {
   @override
   String visitRawExpr(RawExpr rawExpr) {
     final id = rawExpr.token.lexeme;
-    final String? out;
+    String? out;
 
     // This state requires we build ID chains for prelude
     // candidate detection.
@@ -431,18 +611,22 @@ class Obfuscator extends Visitor<String> {
       final String pre = _parentChain.join('.');
       out = getID('$pre.$id');
       _storedParentFieldID = out;
-    } else {
-      out = getID(id);
     }
 
+    // Fall back on the ID lookup if the chain did not match
+    // to an entry.
+    out ??= getID(id);
+
     // This state means we are collecting IDs for the chain.
-    if(_buildParentChain) {
+    if(_parentChainDepth > 0) {
       _parentChain.add(id);
     }
 
+    // If it's still null, create a new ID.
     if(out == null) {
       return createID(id);
     }
+
     return out;
   }
 
@@ -473,7 +657,7 @@ class Obfuscator extends Visitor<String> {
 
   @override
   String visitStringLiteral(StringLiteral string) {
-    return global.createID('"${string.value}"');
+    return '"${string.value}"';
   }
 
   @override

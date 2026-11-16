@@ -34,6 +34,7 @@ const stdLibsPrelude = [
   'getmetatable',
   'tostring',
   'tonumber',
+  'this.is.a.test',
 ];
 
 /// Pipe each string in [errs] to [print].
@@ -119,8 +120,19 @@ void main(List<String> args) {
       file.writeAsStringSync(obf.content);
       final newSize = file.lengthSync();
       print('Write OK $fogPath');
-      final r = ((1.0-(newSize / oldSize))*100).toStringAsFixed(2);
-      print('$oldSize bytes => $newSize bytes ($r% smaller)');
+
+      final String tagline;
+      if(oldSize > newSize) {
+        final r = ((1.0-(newSize / oldSize))*100).toStringAsFixed(2);
+        tagline = '$r% smaller';
+      } else if(oldSize < newSize) {
+        final r = ((newSize / oldSize)*100).toStringAsFixed(2);
+        tagline = '$r% bigger';
+      } else {
+        tagline = 'same size';
+      }
+
+      print('$oldSize bytes => $newSize bytes ($tagline)');
       // Done.
       return;
     }
